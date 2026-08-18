@@ -6,10 +6,11 @@ import {
   deleteExercise,
   emptyExercise,
   lastPerformance,
+  personalRecords,
   saveExercise,
   useGym,
 } from "@/lib/gym-store";
-import { EQUIPMENT, MUSCLE_GROUPS, type Exercise } from "@/lib/gym-types";
+import { EQUIPMENT, EXERCISE_CATEGORIES, MUSCLE_GROUPS, type Exercise } from "@/lib/gym-types";
 
 export const Route = createFileRoute("/exercises/$exerciseId")({
   head: () => ({
@@ -43,6 +44,9 @@ function ExerciseDetail() {
 
   const [editing, setEditing] = useState(isNew);
   const [draft, setDraft] = useState<Exercise>(existing ?? emptyExercise());
+  const [customMuscle, setCustomMuscle] = useState(() =>
+    existing && !MUSCLE_GROUPS.includes(existing.muscleGroup) ? existing.muscleGroup : "",
+  );
 
   if (!isNew && !existing) {
     return (
@@ -56,12 +60,25 @@ function ExerciseDetail() {
 
   const ex = existing ?? draft;
   const last = lastPerformance(history, ex.id);
+  const pr = personalRecords(history, ex.id);
+
+  const toggleSecondary = (muscle: string) =>
+    setDraft((d) => {
+      const current = d.secondaryMuscles ?? [];
+      return {
+        ...d,
+        secondaryMuscles: current.includes(muscle)
+          ? current.filter((m) => m !== muscle)
+          : [...current, muscle],
+      };
+    });
 
   const set = (patch: Partial<Exercise>) => setDraft({ ...draft, ...patch });
 
   const onSave = () => {
-    if (!draft.name.trim()) return;
-    saveExercise(draft);
+    const muscleGroup = draft.muscleGroup === "Other" ? customMuscle.trim() : draft.muscleGroup;
+    if (!draft.name.trim() || !muscleGroup) return;
+    saveExercise({ ...draft, muscleGroup });
     if (isNew) navigate({ to: "/exercises/$exerciseId", params: { exerciseId: draft.id } });
     else setEditing(false);
   };
@@ -118,13 +135,21 @@ function ExerciseDetail() {
               <label className={labelCls}>Muscle group</label>
               <select
                 className={field}
-                value={draft.muscleGroup}
-                onChange={(e) => set({ muscleGroup: e.target.value })}
+                value={MUSCLE_GROUPS.includes(draft.muscleGroup) ? draft.muscleGroup : "Other"}
+              onChange={(e) => set({ muscleGroup: e.target.value })}
               >
                 {MUSCLE_GROUPS.map((g) => (
                   <option key={g}>{g}</option>
                 ))}
               </select>
+              {draft.muscleGroup === "Other" ? (
+                <input
+                  className={`${field} mt-2`}
+                  value={customMuscle}
+                  onChange={(e) => setCustomMuscle(e.target.value)}
+                  placeholder="Write the muscle group"
+                />
+              ) : null}
             </div>
             <div>
               <label className={labelCls}>Equipment</label>
@@ -140,12 +165,67 @@ function ExerciseDetail() {
             </div>
           </div>
           <div>
+            <label className={labelCls}>Category</label>
+            <select
+              className={field}
+              value={draft.category ?? ""}
+              onChange={(e) => set({ category: e.target.value })}
+            >
+              <option value="">—</option>
+              {EXERCISE_CATEGORIES.map((c) => (
+                <option key={c}>{c}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className={labelCls}>Secondary muscles</label>
+            <div className="flex flex-wrap gap-2">
+              {MUSCLE_GROUPS.map((m) => {
+                const active = (draft.secondaryMuscles ?? []).includes(m);
+                return (
+                  <button
+                    type="button"
+                    key={m}
+                    onClick={() => toggleSecondary(m)}
+                    className={`rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${
+                      active
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-secondary text-muted-foreground"
+                    }`}
+                  >
+                    {m}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          <div>
             <label className={labelCls}>Description</label>
             <textarea
               rows={3}
               className={field}
               value={draft.description}
               onChange={(e) => set({ description: e.target.value })}
+            />
+          </div>
+          <div>
+            <label className={labelCls}>Instructions</label>
+            <textarea
+              rows={3}
+              className={field}
+              value={draft.instructions ?? ""}
+              onChange={(e) => set({ instructions: e.target.value })}
+              placeholder="Step-by-step execution"
+            />
+          </div>
+          <div>
+            <label className={labelCls}>Technique tips</label>
+            <textarea
+              rows={2}
+              className={field}
+              value={draft.tips ?? ""}
+              onChange={(e) => set({ tips: e.target.value })}
+              placeholder="Cues that help you get it right"
             />
           </div>
           <div>
@@ -214,10 +294,53 @@ function ExerciseDetail() {
             </a>
           )}
 
+          <div className="surface-card p-4">
+            <p className={labelCls}>Details</p>
+            <div className="flex flex-wrap gap-2">
+              <span className="num-pill px-3 py-1 text-sm">{ex.equipment}</span>
+              <span className="num-pill px-3 py-1 text-sm">{ex.muscleGroup}</span>
+              {ex.category ? <span className="num-pill px-3 py-1 text-sm">{ex.category}</span> : null}
+            </div>
+            {(ex.secondaryMuscles ?? []).length > 0 ? (
+              <div className="mt-3">
+                <p className={labelCls}>Also works</p>
+                <div className="flex flex-wrap gap-2">
+                  {ex.secondaryMuscles!.map((m) => (
+                    <span key={m} className="rounded-full bg-secondary px-3 py-1 text-sm text-muted-foreground">{m}</span>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+          </div>
+
           <Panel title="Description">
             {ex.description || "No description yet."}
           </Panel>
+          {ex.instructions ? <Panel title="Instructions">{ex.instructions}</Panel> : null}
+          {ex.tips ? <Panel title="Technique tips">{ex.tips}</Panel> : null}
           <Panel title="Personal notes">{ex.notes || "No notes yet."}</Panel>
+
+          <div className="surface-card p-4">
+            <p className={labelCls}>Personal records</p>
+            {pr ? (
+              <div className="grid grid-cols-3 gap-2">
+                <div className="num-pill p-3 text-center">
+                  <p className="text-xl font-bold tabular-nums">{pr.heaviest}</p>
+                  <p className="text-[11px] leading-tight text-muted-foreground">Heaviest kg</p>
+                </div>
+                <div className="num-pill p-3 text-center">
+                  <p className="text-xl font-bold tabular-nums">{pr.bestRepsAtHeaviest}</p>
+                  <p className="text-[11px] leading-tight text-muted-foreground">Reps @ top</p>
+                </div>
+                <div className="num-pill p-3 text-center">
+                  <p className="text-xl font-bold tabular-nums">{pr.estimatedMax}</p>
+                  <p className="text-[11px] leading-tight text-muted-foreground">Est. 1RM kg</p>
+                </div>
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">No records yet.</p>
+            )}
+          </div>
 
           <div className="surface-card p-4">
             <p className={labelCls}>Last performance</p>

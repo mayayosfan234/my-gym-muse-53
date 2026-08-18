@@ -29,7 +29,11 @@ function HistoryPage() {
       <div className="space-y-4">
         {history.map((s) => {
           const volume = s.entries.reduce(
-            (v, e) => v + e.sets.reduce((a, b) => a + b.reps * b.weight, 0),
+            (v, e) =>
+              v +
+              e.sets
+                .filter((set) => !set.warmup)
+                .reduce((a, b) => a + b.reps * b.weight, 0),
             0,
           );
           return (
@@ -38,6 +42,7 @@ function HistoryPage() {
                 <div className="min-w-0">
                   <p className="truncate text-lg font-semibold">{s.workoutName}</p>
                   <p className="text-sm text-muted-foreground">
+                    {s.programName ? `${s.programName} · ` : ""}
                     {new Date(s.date).toLocaleString()} ·{" "}
                     {Math.round(s.durationSec / 60)} min · {volume} kg
                   </p>

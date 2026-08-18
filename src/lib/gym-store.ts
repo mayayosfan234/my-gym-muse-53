@@ -1,16 +1,30 @@
 import { useSyncExternalStore } from "react";
-import type {
-  Exercise,
-  GymData,
-  HistorySession,
-  Program,
-  Workout,
-  WorkoutItem,
+import {
+  DEFAULT_MEALS,
+  type Exercise,
+  type FoodItem,
+  type GymData,
+  type HistorySession,
+  type MealFood,
+  type NutritionDay,
+  type NutritionTargets,
+  type Program,
+  type WarmupSet,
+  type Workout,
+  type WorkoutItem,
 } from "./gym-types";
 
 const KEY = "gymtrack.v1";
 
 export const uid = () => Math.random().toString(36).slice(2, 10);
+
+/** Local calendar date as YYYY-MM-DD (used to key nutrition days). */
+export const todayKey = (d: Date = new Date()) => {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+};
 
 const seed = (): GymData => {
   const ex: Exercise[] = [
@@ -18,70 +32,110 @@ const seed = (): GymData => {
       id: "ex-bench",
       name: "Barbell Bench Press",
       muscleGroup: "Chest",
+      secondaryMuscles: ["Triceps", "Shoulders"],
+      category: "Compound",
       equipment: "Barbell",
       description:
         "Lie flat, grip slightly wider than shoulders, lower to mid chest and press up.",
+      instructions: "",
       videoUrl: "",
       images: [],
       notes: "Keep shoulder blades retracted.",
+      tips: "Drive feet into the floor and keep a slight arch.",
     },
     {
       id: "ex-squat",
       name: "Back Squat",
       muscleGroup: "Legs",
+      secondaryMuscles: ["Glutes", "Core"],
+      category: "Compound",
       equipment: "Barbell",
       description: "Bar on upper back, sit down and back, drive through mid foot.",
+      instructions: "",
       videoUrl: "",
       images: [],
       notes: "Belt above 100kg.",
+      tips: "",
     },
     {
       id: "ex-row",
       name: "Seated Cable Row",
       muscleGroup: "Back",
+      secondaryMuscles: ["Biceps"],
+      category: "Compound",
       equipment: "Cable",
       description: "Pull the handle to the navel, squeeze the shoulder blades.",
+      instructions: "",
       videoUrl: "",
       images: [],
       notes: "",
+      tips: "",
     },
     {
       id: "ex-curl",
       name: "Dumbbell Curl",
       muscleGroup: "Biceps",
+      category: "Isolation",
       equipment: "Dumbbell",
       description: "Curl without swinging, controlled negative.",
+      instructions: "",
       videoUrl: "",
       images: [],
       notes: "",
+      tips: "",
+    },
+    {
+      id: "ex-hipthrust",
+      name: "Hip Thrust",
+      muscleGroup: "Glutes",
+      secondaryMuscles: ["Legs"],
+      category: "Compound",
+      equipment: "Barbell",
+      description: "Upper back on a bench, drive hips up, squeeze glutes at the top.",
+      instructions: "",
+      videoUrl: "",
+      images: [],
+      notes: "Pause at the top.",
+      tips: "",
     },
     {
       id: "ex-plank",
       name: "Plank",
       muscleGroup: "Core",
+      category: "Isolation",
       equipment: "Bodyweight",
       description: "Hold a straight line from head to heels.",
+      instructions: "",
       videoUrl: "",
       images: [],
       notes: "",
+      tips: "",
     },
   ];
 
-  const day = (
-    id: string,
-    name: string,
-    items: [string, number, number, number, number][],
-  ): Workout => ({
+  type SeedItem = {
+    exerciseId: string;
+    sets: number;
+    reps: number;
+    repMin?: number;
+    repMax?: number;
+    weight: number;
+    rest: number;
+  };
+  const day = (id: string, name: string, items: SeedItem[]): Workout => ({
     id,
     name,
     notes: "",
-    items: items.map(([exerciseId, sets, reps, weight, rest], i) => ({
+    items: items.map((s, i) => ({
       id: `${id}-i${i}`,
-      exerciseId,
-      sets,
-      reps,
-      weight,
-      rest,
+      exerciseId: s.exerciseId,
+      sets: s.sets,
+      reps: s.reps,
+      repType: s.repMin != null ? ("range" as const) : ("fixed" as const),
+      repMin: s.repMin,
+      repMax: s.repMax,
+      weight: s.weight,
+      rest: s.rest,
       notes: "",
     })),
   });
@@ -89,20 +143,21 @@ const seed = (): GymData => {
   // Starting template only — every day, name, order and exercise is editable.
   const workouts: Workout[] = [
     day("w-lower-1", "Lower Body 1", [
-      ["ex-squat", 4, 6, 80, 150],
-      ["ex-plank", 3, 1, 0, 60],
+      { exerciseId: "ex-squat", sets: 4, reps: 6, weight: 80, rest: 150 },
+      { exerciseId: "ex-hipthrust", sets: 4, reps: 8, repMin: 8, repMax: 10, weight: 60, rest: 90 },
+      { exerciseId: "ex-plank", sets: 3, reps: 1, weight: 0, rest: 60 },
     ]),
     day("w-upper-1", "Upper Body 1", [
-      ["ex-bench", 4, 8, 60, 120],
-      ["ex-row", 3, 10, 45, 90],
+      { exerciseId: "ex-bench", sets: 4, reps: 8, repMin: 8, repMax: 10, weight: 60, rest: 120 },
+      { exerciseId: "ex-row", sets: 3, reps: 10, repMin: 10, repMax: 12, weight: 45, rest: 90 },
     ]),
     day("w-lower-2", "Lower Body 2", [
-      ["ex-squat", 3, 10, 60, 120],
-      ["ex-plank", 3, 1, 0, 60],
+      { exerciseId: "ex-squat", sets: 3, reps: 10, weight: 60, rest: 120 },
+      { exerciseId: "ex-hipthrust", sets: 3, reps: 12, weight: 55, rest: 90 },
     ]),
     day("w-upper-2", "Upper Body 2", [
-      ["ex-row", 4, 10, 45, 90],
-      ["ex-curl", 3, 12, 12, 60],
+      { exerciseId: "ex-row", sets: 4, reps: 10, weight: 45, rest: 90 },
+      { exerciseId: "ex-curl", sets: 3, reps: 12, repMin: 10, repMax: 12, weight: 12, rest: 60 },
     ]),
   ];
 
@@ -115,16 +170,36 @@ const seed = (): GymData => {
     },
   ];
 
+  const foods: FoodItem[] = [
+    { id: "f-eggs", name: "Eggs", servingSize: "1 unit", calories: 70, protein: 6, carbs: 0.5, fat: 5 },
+    { id: "f-chicken", name: "Chicken breast", servingSize: "100g", calories: 165, protein: 31, carbs: 0, fat: 3.6 },
+    { id: "f-rice", name: "White rice (cooked)", servingSize: "100g", calories: 130, protein: 2.5, carbs: 28, fat: 0.3 },
+    { id: "f-oats", name: "Oats", servingSize: "100g", calories: 389, protein: 17, carbs: 66, fat: 7, fiber: 10 },
+    { id: "f-yogurt", name: "Greek yogurt", servingSize: "100g", calories: 59, protein: 10, carbs: 3.6, fat: 0.4 },
+    { id: "f-banana", name: "Banana", servingSize: "1 unit", calories: 105, protein: 1.3, carbs: 27, fat: 0.3, fiber: 3 },
+    { id: "f-cottage", name: "Cottage cheese", servingSize: "100g", calories: 98, protein: 11, carbs: 3.4, fat: 4.3 },
+    { id: "f-bread", name: "Whole wheat bread", servingSize: "1 slice", calories: 80, protein: 4, carbs: 14, fat: 1, fiber: 2 },
+    { id: "f-edamame", name: "Edamame", servingSize: "100g", calories: 121, protein: 11.9, carbs: 8.9, fat: 5.2, fiber: 5.2 },
+  ];
 
-  return { exercises: ex, workouts, programs, history: [] };
+  return {
+    exercises: ex,
+    workouts,
+    programs,
+    history: [],
+    foods,
+    nutritionDays: [],
+    nutritionTargets: {},
+    mealTemplate: [...DEFAULT_MEALS],
+  };
 };
 
 let data: GymData = seed();
 let hydrated = false;
 const listeners = new Set<() => void>();
 
-/** Ensure older saved data (without programs) still works. */
-function migrate(d: GymData): GymData {
+/** Ensure older saved data (without programs / nutrition) still works. */
+function migrate(d: Partial<GymData>): GymData {
   const workouts = d.workouts ?? [];
   let programs = d.programs ?? [];
   if (!programs.length && workouts.length) {
@@ -132,7 +207,16 @@ function migrate(d: GymData): GymData {
       { id: uid(), name: "My Workouts", notes: "", dayIds: workouts.map((w) => w.id) },
     ];
   }
-  return { ...d, workouts, programs, history: d.history ?? [] };
+  return {
+    exercises: d.exercises ?? [],
+    workouts,
+    programs,
+    history: d.history ?? [],
+    foods: d.foods ?? [],
+    nutritionDays: d.nutritionDays ?? [],
+    nutritionTargets: d.nutritionTargets ?? {},
+    mealTemplate: d.mealTemplate?.length ? d.mealTemplate : [...DEFAULT_MEALS],
+  };
 }
 
 function load() {
@@ -140,7 +224,7 @@ function load() {
   hydrated = true;
   try {
     const raw = window.localStorage.getItem(KEY);
-    if (raw) data = migrate({ ...seed(), ...(JSON.parse(raw) as GymData) });
+    if (raw) data = migrate({ ...seed(), ...(JSON.parse(raw) as Partial<GymData>) });
   } catch {
     /* ignore */
   }
@@ -180,6 +264,15 @@ export function useGym(): GymData {
   );
 }
 
+/* ---------- rep helpers ---------- */
+/** Human-readable programmed reps for an item (fixed or range). */
+export function repLabel(item: Pick<WorkoutItem, "reps" | "repType" | "repMin" | "repMax">) {
+  if (item.repType === "range" && item.repMin != null && item.repMax != null) {
+    return `${item.repMin}–${item.repMax}`;
+  }
+  return String(item.reps);
+}
+
 /* ---------- exercises ---------- */
 export function saveExercise(ex: Exercise) {
   const exists = data.exercises.some((e) => e.id === ex.id);
@@ -207,11 +300,15 @@ export function emptyExercise(): Exercise {
     id: uid(),
     name: "",
     muscleGroup: "Chest",
+    secondaryMuscles: [],
+    category: "Compound",
     equipment: "Barbell",
     description: "",
+    instructions: "",
     videoUrl: "",
     images: [],
     notes: "",
+    tips: "",
   };
 }
 
@@ -283,7 +380,21 @@ export function emptyWorkout(): Workout {
 }
 
 export function emptyItem(exerciseId: string): WorkoutItem {
-  return { id: uid(), exerciseId, sets: 3, reps: 10, weight: 20, rest: 90, notes: "" };
+  return {
+    id: uid(),
+    exerciseId,
+    sets: 3,
+    reps: 10,
+    repType: "fixed",
+    weight: 20,
+    rest: 90,
+    notes: "",
+    warmups: [],
+  };
+}
+
+export function emptyWarmup(): WarmupSet {
+  return { id: uid(), weight: 20, reps: 10 };
 }
 
 /* ---------- programs ---------- */
@@ -358,7 +469,266 @@ export function deleteSession(id: string) {
 export function lastPerformance(history: HistorySession[], exerciseId: string) {
   for (const s of history) {
     const e = s.entries.find((x) => x.exerciseId === exerciseId);
-    if (e && e.sets.length) return { date: s.date, sets: e.sets };
+    if (e) {
+      const working = e.sets.filter((x) => !x.warmup);
+      if (working.length) return { date: s.date, sets: working };
+    }
   }
   return null;
+}
+
+/** Simple personal records for an exercise across all history. */
+export function personalRecords(history: HistorySession[], exerciseId: string) {
+  let heaviest = 0;
+  let bestRepsAtHeaviest = 0;
+  let bestEst = 0; // estimated 1RM (Epley)
+  for (const s of history) {
+    for (const e of s.entries) {
+      if (e.exerciseId !== exerciseId) continue;
+      for (const set of e.sets) {
+        if (set.warmup || set.reps === 0) continue;
+        if (set.weight > heaviest) {
+          heaviest = set.weight;
+          bestRepsAtHeaviest = set.reps;
+        } else if (set.weight === heaviest && set.reps > bestRepsAtHeaviest) {
+          bestRepsAtHeaviest = set.reps;
+        }
+        const est = set.weight * (1 + set.reps / 30);
+        if (est > bestEst) bestEst = est;
+      }
+    }
+  }
+  if (heaviest === 0 && bestEst === 0) return null;
+  return {
+    heaviest,
+    bestRepsAtHeaviest,
+    estimatedMax: Math.round(bestEst),
+  };
+}
+
+/* ---------- nutrition: food library ---------- */
+export function saveFood(food: FoodItem) {
+  const exists = data.foods.some((f) => f.id === food.id);
+  set({
+    ...data,
+    foods: exists
+      ? data.foods.map((f) => (f.id === food.id ? food : f))
+      : [...data.foods, food],
+  });
+}
+
+export function deleteFood(id: string) {
+  set({ ...data, foods: data.foods.filter((f) => f.id !== id) });
+}
+
+export function emptyFood(): FoodItem {
+  return { id: uid(), name: "", servingSize: "100g", calories: 0, protein: 0, carbs: 0, fat: 0 };
+}
+
+export function saveNutritionTargets(targets: NutritionTargets) {
+  set({ ...data, nutritionTargets: targets });
+}
+
+/* ---------- nutrition: days & meals ---------- */
+/** Read a day for display; returns a template-seeded (unsaved) day when none exists. */
+export function nutritionDay(d: GymData, date: string): NutritionDay {
+  const found = d.nutritionDays.find((x) => x.date === date);
+  if (found) return found;
+  return {
+    date,
+    meals: d.mealTemplate.map((name, i) => ({ id: `tmpl-${date}-${i}`, name, foods: [] })),
+  };
+}
+
+/** Find or create the stored day (seeded from the template), then apply an update. */
+function withDay(date: string, updater: (day: NutritionDay) => NutritionDay) {
+  const existing = data.nutritionDays.find((x) => x.date === date);
+  const base: NutritionDay =
+    existing ?? {
+      date,
+      meals: data.mealTemplate.map((name) => ({ id: uid(), name, foods: [] })),
+    };
+  const next = updater(base);
+  const days = existing
+    ? data.nutritionDays.map((x) => (x.date === date ? next : x))
+    : [next, ...data.nutritionDays];
+  set({ ...data, nutritionDays: days });
+}
+
+export function addMeal(date: string, name: string) {
+  withDay(date, (day) => ({
+    ...day,
+    meals: [...day.meals, { id: uid(), name: name.trim() || "New meal", foods: [] }],
+  }));
+}
+
+export function deleteMeal(date: string, mealId: string) {
+  withDay(date, (day) => ({ ...day, meals: day.meals.filter((m) => m.id !== mealId) }));
+}
+
+export function renameMeal(date: string, mealId: string, name: string) {
+  withDay(date, (day) => ({
+    ...day,
+    meals: day.meals.map((m) => (m.id === mealId ? { ...m, name } : m)),
+  }));
+}
+
+export function reorderMeals(date: string, mealIds: string[]) {
+  withDay(date, (day) => ({
+    ...day,
+    meals: mealIds
+      .map((id) => day.meals.find((m) => m.id === id))
+      .filter((m): m is NutritionDay["meals"][number] => Boolean(m)),
+  }));
+}
+
+export function duplicateMeal(date: string, mealId: string) {
+  withDay(date, (day) => {
+    const meal = day.meals.find((m) => m.id === mealId);
+    if (!meal) return day;
+    const index = day.meals.findIndex((m) => m.id === mealId);
+    const copy = {
+      ...meal,
+      id: uid(),
+      name: `${meal.name} copy`,
+      foods: meal.foods.map((f) => ({ ...f, id: uid() })),
+    };
+    const meals = [...day.meals];
+    meals.splice(index + 1, 0, copy);
+    return { ...day, meals };
+  });
+}
+
+export function addFoodToMeal(date: string, mealId: string, food: MealFood) {
+  withDay(date, (day) => ({
+    ...day,
+    meals: day.meals.map((m) =>
+      m.id === mealId ? { ...m, foods: [...m.foods, food] } : m,
+    ),
+  }));
+}
+
+export function updateMealFood(date: string, mealId: string, food: MealFood) {
+  withDay(date, (day) => ({
+    ...day,
+    meals: day.meals.map((m) =>
+      m.id === mealId
+        ? { ...m, foods: m.foods.map((f) => (f.id === food.id ? food : f)) }
+        : m,
+    ),
+  }));
+}
+
+export function removeMealFood(date: string, mealId: string, foodId: string) {
+  withDay(date, (day) => ({
+    ...day,
+    meals: day.meals.map((m) =>
+      m.id === mealId ? { ...m, foods: m.foods.filter((f) => f.id !== foodId) } : m,
+    ),
+  }));
+}
+
+export function duplicateMealFood(date: string, mealId: string, foodId: string) {
+  withDay(date, (day) => ({
+    ...day,
+    meals: day.meals.map((m) => {
+      if (m.id !== mealId) return m;
+      const food = m.foods.find((f) => f.id === foodId);
+      if (!food) return m;
+      const index = m.foods.findIndex((f) => f.id === foodId);
+      const foods = [...m.foods];
+      foods.splice(index + 1, 0, { ...food, id: uid() });
+      return { ...m, foods };
+    }),
+  }));
+}
+
+export function emptyMealFood(): MealFood {
+  return {
+    id: uid(),
+    name: "",
+    servingSize: "100g",
+    quantity: 1,
+    calories: 0,
+    protein: 0,
+    carbs: 0,
+    fat: 0,
+  };
+}
+
+/** Convert a library food into a meal food entry (quantity 1). */
+export function mealFoodFromLibrary(food: FoodItem): MealFood {
+  return {
+    id: uid(),
+    foodId: food.id,
+    name: food.name,
+    servingSize: food.servingSize,
+    quantity: 1,
+    calories: food.calories,
+    protein: food.protein,
+    carbs: food.carbs,
+    fat: food.fat,
+    fiber: food.fiber,
+    notes: food.notes,
+  };
+}
+
+/**
+ * Finds sensible food substitutions.  Score calories and protein together so
+ * a replacement keeps a meal close to both its energy and protein target.
+ */
+export function findFoodReplacements(
+  foods: FoodItem[],
+  current: Pick<MealFood, "foodId" | "calories" | "protein">,
+  query = "",
+) {
+  const normalized = query.trim().toLocaleLowerCase();
+  return foods
+    .filter((food) => food.id !== current.foodId)
+    .filter((food) => !normalized || food.name.toLocaleLowerCase().includes(normalized))
+    .map((food) => ({
+      food,
+      score:
+        Math.abs(food.calories - current.calories) +
+        Math.abs(food.protein - current.protein) * 12,
+    }))
+    .sort((a, b) => a.score - b.score)
+    .map(({ food }) => food);
+}
+
+export type MacroTotals = {
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  fiber: number;
+};
+
+const round1 = (n: number) => Math.round(n * 10) / 10;
+
+/** Totals for a list of meal foods, scaled by each food's quantity. */
+export function foodTotals(foods: MealFood[]): MacroTotals {
+  return foods.reduce<MacroTotals>(
+    (t, f) => ({
+      calories: t.calories + f.calories * f.quantity,
+      protein: t.protein + f.protein * f.quantity,
+      carbs: t.carbs + f.carbs * f.quantity,
+      fat: t.fat + f.fat * f.quantity,
+      fiber: t.fiber + (f.fiber ?? 0) * f.quantity,
+    }),
+    { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 },
+  );
+}
+
+/** Totals across every meal in a day. */
+export function dayTotals(day: NutritionDay): MacroTotals {
+  const all = day.meals.flatMap((m) => m.foods);
+  const t = foodTotals(all);
+  return {
+    calories: Math.round(t.calories),
+    protein: round1(t.protein),
+    carbs: round1(t.carbs),
+    fat: round1(t.fat),
+    fiber: round1(t.fiber),
+  };
 }

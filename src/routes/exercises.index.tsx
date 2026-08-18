@@ -3,7 +3,7 @@ import { ChevronRight, Plus, Search } from "lucide-react";
 import { useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { useGym } from "@/lib/gym-store";
-import { MUSCLE_GROUPS } from "@/lib/gym-types";
+import { EQUIPMENT, MUSCLE_GROUPS } from "@/lib/gym-types";
 
 export const Route = createFileRoute("/exercises/")({
   head: () => ({
@@ -27,11 +27,17 @@ function Library() {
   const { exercises } = useGym();
   const [q, setQ] = useState("");
   const [group, setGroup] = useState("All");
+  const [equipment, setEquipment] = useState("All");
 
+  const query = q.toLowerCase();
   const list = exercises.filter(
     (e) =>
       (group === "All" || e.muscleGroup === group) &&
-      e.name.toLowerCase().includes(q.toLowerCase()),
+      (equipment === "All" || e.equipment === equipment) &&
+      (e.name.toLowerCase().includes(query) ||
+        e.equipment.toLowerCase().includes(query) ||
+        e.muscleGroup.toLowerCase().includes(query) ||
+        (e.category ?? "").toLowerCase().includes(query)),
   );
 
   return (
@@ -54,7 +60,7 @@ function Library() {
         <input
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="Search exercises"
+          placeholder="Search name, equipment, muscle"
           className="w-full min-w-0 bg-transparent text-base outline-none placeholder:text-muted-foreground"
         />
       </div>
@@ -75,6 +81,22 @@ function Library() {
         ))}
       </div>
 
+      <div className="-mx-5 mt-2 flex gap-2 overflow-x-auto px-5 pb-1">
+        {["All", ...EQUIPMENT].map((eq) => (
+          <button
+            key={eq}
+            onClick={() => setEquipment(eq)}
+            className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+              equipment === eq
+                ? "bg-accent text-accent-foreground"
+                : "bg-secondary text-muted-foreground"
+            }`}
+          >
+            {eq}
+          </button>
+        ))}
+      </div>
+
       <div className="mt-4 space-y-3">
         {list.map((e) => (
           <Link
@@ -85,10 +107,11 @@ function Library() {
           >
             <div className="min-w-0 flex-1">
               <p className="truncate font-semibold">{e.name}</p>
-              <p className="truncate text-sm text-muted-foreground">
-                {e.muscleGroup} · {e.equipment}
-              </p>
+              <p className="truncate text-sm text-muted-foreground">{e.muscleGroup}</p>
             </div>
+            <span className="num-pill shrink-0 px-2.5 py-1 text-xs font-medium text-muted-foreground">
+              {e.equipment}
+            </span>
             <ChevronRight className="h-5 w-5 shrink-0 text-muted-foreground" />
           </Link>
         ))}
