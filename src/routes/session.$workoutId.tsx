@@ -149,32 +149,17 @@ function Session() {
                       s.done ? "border-primary bg-primary/10" : "border-border bg-secondary"
                     }`}
                   >
-                    <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-end gap-2">
-                      <span className="pb-3 text-xs font-semibold text-muted-foreground">
-                        #{si + 1}
+                    <div className="mb-2 flex items-center justify-between">
+                      <span className="text-xs font-semibold text-muted-foreground">
+                        Set #{si + 1}
                       </span>
-                      <div className="grid min-w-0 grid-cols-2 gap-2">
-                        <Stepper
-                          label="Weight"
-                          value={s.weight}
-                          step={2.5}
-                          suffix="kg"
-                          onChange={(v) => patchSet(ei, si, { weight: v })}
-                        />
-                        <Stepper
-                          label="Reps"
-                          value={s.reps}
-                          min={0}
-                          onChange={(v) => patchSet(ei, si, { reps: v })}
-                        />
-                      </div>
                       <button
                         aria-label={`Complete set ${si + 1}`}
                         onClick={() => {
                           patchSet(ei, si, { done: !s.done });
                           if (!s.done) setRest(item?.rest ?? 60);
                         }}
-                        className={`grid h-11 w-11 shrink-0 place-items-center rounded-lg ${
+                        className={`grid h-10 w-10 shrink-0 place-items-center rounded-lg ${
                           s.done
                             ? "bg-primary text-primary-foreground"
                             : "bg-background text-muted-foreground"
@@ -183,6 +168,22 @@ function Session() {
                         <Check className="h-5 w-5" />
                       </button>
                     </div>
+                    <div className="grid min-w-0 grid-cols-2 gap-2">
+                      <Stepper
+                        label="Weight"
+                        value={s.weight}
+                        step={2.5}
+                        suffix="kg"
+                        onChange={(v) => patchSet(ei, si, { weight: v })}
+                      />
+                      <Stepper
+                        label="Reps"
+                        value={s.reps}
+                        min={0}
+                        onChange={(v) => patchSet(ei, si, { reps: v })}
+                      />
+                    </div>
+
                   </div>
                 ))}
               </div>
