@@ -26,7 +26,7 @@ export function Stepper({
           type="button"
           aria-label={`Decrease ${label}`}
           onClick={() => onChange(clamp(value - step))}
-          className="grid h-11 w-11 shrink-0 place-items-center rounded-lg bg-secondary text-foreground active:scale-95"
+          className="grid h-11 w-10 shrink-0 place-items-center rounded-lg bg-secondary text-foreground active:scale-95"
         >
           <Minus className="h-4 w-4" />
         </button>
@@ -45,7 +45,7 @@ export function Stepper({
           type="button"
           aria-label={`Increase ${label}`}
           onClick={() => onChange(clamp(value + step))}
-          className="grid h-11 w-11 shrink-0 place-items-center rounded-lg bg-secondary text-foreground active:scale-95"
+          className="grid h-11 w-10 shrink-0 place-items-center rounded-lg bg-secondary text-foreground active:scale-95"
         >
           <Plus className="h-4 w-4" />
         </button>
