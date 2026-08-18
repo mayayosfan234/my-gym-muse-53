@@ -63,7 +63,9 @@ function Builder() {
     const items = [...draft.items];
     const target = index + dir;
     if (target < 0 || target >= items.length) return;
-    [items[index], items[target]] = [items[target], items[index]];
+    const a = items[index]!;
+    items[index] = items[target]!;
+    items[target] = a;
     setDraft({ ...draft, items });
   };
 
