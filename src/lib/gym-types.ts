@@ -26,6 +26,14 @@ export type Workout = {
   items: WorkoutItem[];
 };
 
+/** A training program: a named collection of workout days. */
+export type Program = {
+  id: string;
+  name: string;
+  notes: string;
+  dayIds: string[];
+};
+
 export type LoggedSet = {
   reps: number;
   weight: number;
@@ -51,6 +59,7 @@ export type HistorySession = {
 export type GymData = {
   exercises: Exercise[];
   workouts: Workout[];
+  programs: Program[];
   history: HistorySession[];
 };
 
