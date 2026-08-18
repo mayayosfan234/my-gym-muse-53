@@ -5,8 +5,8 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
- * GymTrack design system — light, calm, premium.
- * Sage & Cream palette. All colors in oklch. Never hardcode colors in components.
+ * GymTrack — mobile web-app design system
+ * Sage & Cream. Optimized for phone screens and iOS Safari.
  */
 
 @theme inline {
@@ -14,9 +14,9 @@
   --radius-md: calc(var(--radius) - 6px);
   --radius-lg: calc(var(--radius) - 2px);
   --radius-xl: var(--radius);
-  --radius-2xl: calc(var(--radius) + 6px);
-  --radius-3xl: calc(var(--radius) + 12px);
-  --radius-4xl: calc(var(--radius) + 20px);
+  --radius-2xl: calc(var(--radius) + 4px);
+  --radius-3xl: calc(var(--radius) + 10px);
+  --radius-4xl: calc(var(--radius) + 16px);
   --font-display: "Outfit", ui-sans-serif, system-ui, sans-serif;
   --font-sans: "Figtree", ui-sans-serif, system-ui, sans-serif;
   --color-background: var(--background);
@@ -57,63 +57,79 @@
 }
 
 :root {
-  --radius: 1.25rem;
-  --background: oklch(0.965 0.011 88);
-  --foreground: oklch(0.28 0.012 140);
+  --radius: 1rem;
+  --background: oklch(0.97 0.008 95);
+  --foreground: oklch(0.24 0.02 145);
   --surface: oklch(1 0 0);
-  --surface-2: oklch(0.965 0.014 132);
+  --surface-2: oklch(0.955 0.014 140);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.28 0.012 140);
+  --card-foreground: oklch(0.24 0.02 145);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.28 0.012 140);
-  --primary: oklch(0.63 0.055 143);
+  --popover-foreground: oklch(0.24 0.02 145);
+  --primary: oklch(0.48 0.08 150);
   --primary-foreground: oklch(0.99 0.004 130);
-  --secondary: oklch(0.945 0.018 132);
-  --secondary-foreground: oklch(0.33 0.015 140);
-  --muted: oklch(0.955 0.012 120);
-  --muted-foreground: oklch(0.56 0.013 140);
-  --accent: oklch(0.82 0.042 140);
-  --accent-foreground: oklch(0.28 0.012 140);
-  --destructive: oklch(0.58 0.16 25);
+  --secondary: oklch(0.94 0.016 140);
+  --secondary-foreground: oklch(0.3 0.02 145);
+  --muted: oklch(0.95 0.01 120);
+  --muted-foreground: oklch(0.5 0.015 145);
+  --accent: oklch(0.9 0.04 145);
+  --accent-foreground: oklch(0.28 0.02 145);
+  --destructive: oklch(0.55 0.18 25);
   --destructive-foreground: oklch(0.99 0.004 130);
-  --border: oklch(0.915 0.012 122);
-  --input: oklch(0.915 0.012 122);
-  --ring: oklch(0.63 0.055 143);
-  --chart-1: oklch(0.63 0.055 143);
-  --chart-2: oklch(0.72 0.05 210);
-  --chart-3: oklch(0.8 0.06 80);
-  --chart-4: oklch(0.7 0.06 330);
-  --chart-5: oklch(0.75 0.05 190);
+  --border: oklch(0.9 0.012 130);
+  --input: oklch(0.9 0.012 130);
+  --ring: oklch(0.48 0.08 150);
+  --chart-1: oklch(0.48 0.08 150);
+  --chart-2: oklch(0.65 0.06 210);
+  --chart-3: oklch(0.75 0.08 80);
+  --chart-4: oklch(0.65 0.08 330);
+  --chart-5: oklch(0.7 0.06 190);
   --sidebar: oklch(1 0 0);
-  --sidebar-foreground: oklch(0.28 0.012 140);
-  --sidebar-primary: oklch(0.63 0.055 143);
+  --sidebar-foreground: oklch(0.24 0.02 145);
+  --sidebar-primary: oklch(0.48 0.08 150);
   --sidebar-primary-foreground: oklch(0.99 0.004 130);
-  --sidebar-accent: oklch(0.945 0.018 132);
-  --sidebar-accent-foreground: oklch(0.33 0.015 140);
-  --sidebar-border: oklch(0.915 0.012 122);
-  --sidebar-ring: oklch(0.63 0.055 143);
+  --sidebar-accent: oklch(0.94 0.016 140);
+  --sidebar-accent-foreground: oklch(0.3 0.02 145);
+  --sidebar-border: oklch(0.9 0.012 130);
+  --sidebar-ring: oklch(0.48 0.08 150);
 
-  --shadow-soft: 0 1px 2px oklch(0.4 0.02 140 / 0.04),
-    0 8px 24px oklch(0.4 0.02 140 / 0.05);
-  --shadow-lift: 0 2px 6px oklch(0.4 0.02 140 / 0.06),
-    0 18px 40px oklch(0.4 0.02 140 / 0.08);
+  --shadow-soft: 0 1px 2px oklch(0.35 0.02 145 / 0.04),
+    0 4px 16px oklch(0.35 0.02 145 / 0.05);
+  --shadow-lift: 0 2px 8px oklch(0.35 0.02 145 / 0.08),
+    0 12px 28px oklch(0.35 0.02 145 / 0.1);
+  --nav-height: 4.25rem;
 }
 
 @layer base {
   * {
     border-color: var(--color-border);
+    box-sizing: border-box;
   }
 
   html {
     -webkit-tap-highlight-color: transparent;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
   }
 
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
     font-family: var(--font-sans);
+    font-size: 16px;
+    line-height: 1.45;
     -webkit-font-smoothing: antialiased;
     overscroll-behavior-y: none;
+    min-height: 100dvh;
+    overflow-x: hidden;
+  }
+
+  /* Prevent iOS zoom on input focus */
+  input,
+  select,
+  textarea,
+  button {
+    font-size: 16px;
   }
 
   h1,
@@ -121,14 +137,20 @@
   h3,
   .font-display {
     font-family: var(--font-display);
-    letter-spacing: -0.02em;
+    letter-spacing: -0.025em;
+    line-height: 1.2;
+  }
+
+  button,
+  a {
+    -webkit-touch-callout: none;
   }
 }
 
 @utility surface-card {
   background-color: var(--surface);
-  border: 1px solid oklch(0.93 0.01 122 / 0.7);
-  border-radius: var(--radius-2xl);
+  border: 1px solid oklch(0.91 0.01 130 / 0.85);
+  border-radius: var(--radius-xl);
   box-shadow: var(--shadow-soft);
 }
 
@@ -144,24 +166,24 @@
 }
 
 @utility ink-card {
-  background: linear-gradient(145deg, oklch(0.39 0.045 145), oklch(0.31 0.045 150));
+  background: linear-gradient(155deg, oklch(0.42 0.07 150), oklch(0.32 0.06 155));
   color: oklch(0.98 0.01 95);
   border-radius: var(--radius-2xl);
-  box-shadow: 0 14px 34px oklch(0.3 0.05 145 / 0.16);
+  box-shadow: 0 10px 28px oklch(0.3 0.06 150 / 0.2);
 }
 
 @utility section-kicker {
   color: var(--muted-foreground);
-  font-size: 0.68rem;
+  font-size: 0.65rem;
   font-weight: 700;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
 }
 
 @keyframes rise-in {
   from {
     opacity: 0;
-    transform: translateY(8px);
+    transform: translateY(6px);
   }
   to {
     opacity: 1;
@@ -170,19 +192,14 @@
 }
 
 .page-enter {
-  animation: rise-in 420ms ease both;
+  animation: rise-in 280ms ease both;
 }
 
-.page-enter > * {
-  animation: rise-in 420ms ease both;
+/* Hide horizontal scrollbar on chip rows without killing scroll */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
-
-.page-enter > *:nth-child(2) {
-  animation-delay: 50ms;
-}
-.page-enter > *:nth-child(3) {
-  animation-delay: 100ms;
-}
-.page-enter > *:nth-child(4) {
-  animation-delay: 150ms;
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
 }
