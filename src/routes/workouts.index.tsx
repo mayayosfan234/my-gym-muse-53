@@ -18,7 +18,7 @@ export const Route = createFileRoute("/workouts/")({
       },
     ],
   }),
-  component: Workouts;
+  component: Workouts,
 });
 
 function Workouts() {
