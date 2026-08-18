@@ -3,6 +3,7 @@ import type {
   Exercise,
   GymData,
   HistorySession,
+  Program,
   Workout,
   WorkoutItem,
 } from "./gym-types";
@@ -73,7 +74,7 @@ const seed = (): GymData => {
       notes: "Chest focused",
       items: [
         {
-          id: uid(),
+          id: "wi-push-1",
           exerciseId: "ex-bench",
           sets: 4,
           reps: 8,
@@ -82,7 +83,7 @@ const seed = (): GymData => {
           notes: "",
         },
         {
-          id: uid(),
+          id: "wi-push-2",
           exerciseId: "ex-curl",
           sets: 3,
           reps: 12,
@@ -98,7 +99,7 @@ const seed = (): GymData => {
       notes: "",
       items: [
         {
-          id: uid(),
+          id: "wi-legs-1",
           exerciseId: "ex-squat",
           sets: 5,
           reps: 5,
@@ -107,7 +108,7 @@ const seed = (): GymData => {
           notes: "Warm up properly",
         },
         {
-          id: uid(),
+          id: "wi-legs-2",
           exerciseId: "ex-plank",
           sets: 3,
           reps: 1,
@@ -119,19 +120,40 @@ const seed = (): GymData => {
     },
   ];
 
-  return { exercises: ex, workouts, history: [] };
+  const programs: Program[] = [
+    {
+      id: "p-default",
+      name: "My Program",
+      notes: "Starter split",
+      dayIds: workouts.map((w) => w.id),
+    },
+  ];
+
+  return { exercises: ex, workouts, programs, history: [] };
 };
 
 let data: GymData = seed();
 let hydrated = false;
 const listeners = new Set<() => void>();
 
+/** Ensure older saved data (without programs) still works. */
+function migrate(d: GymData): GymData {
+  const workouts = d.workouts ?? [];
+  let programs = d.programs ?? [];
+  if (!programs.length && workouts.length) {
+    programs = [
+      { id: uid(), name: "My Workouts", notes: "", dayIds: workouts.map((w) => w.id) },
+    ];
+  }
+  return { ...d, workouts, programs, history: d.history ?? [] };
+}
+
 function load() {
   if (hydrated || typeof window === "undefined") return;
   hydrated = true;
   try {
     const raw = window.localStorage.getItem(KEY);
-    if (raw) data = { ...seed(), ...(JSON.parse(raw) as GymData) };
+    if (raw) data = migrate({ ...seed(), ...(JSON.parse(raw) as GymData) });
   } catch {
     /* ignore */
   }
@@ -206,7 +228,7 @@ export function emptyExercise(): Exercise {
   };
 }
 
-/* ---------- workouts ---------- */
+/* ---------- workout days ---------- */
 export function saveWorkout(w: Workout) {
   const exists = data.workouts.some((x) => x.id === w.id);
   set({
@@ -217,8 +239,56 @@ export function saveWorkout(w: Workout) {
   });
 }
 
+/** Save a workout day and make sure it belongs to the given program. */
+export function saveWorkoutInProgram(programId: string, w: Workout) {
+  const exists = data.workouts.some((x) => x.id === w.id);
+  const workouts = exists
+    ? data.workouts.map((x) => (x.id === w.id ? w : x))
+    : [...data.workouts, w];
+  const programs = data.programs.map((p) =>
+    p.id === programId && !p.dayIds.includes(w.id)
+      ? { ...p, dayIds: [...p.dayIds, w.id] }
+      : p,
+  );
+  set({ ...data, workouts, programs });
+}
+
 export function deleteWorkout(id: string) {
-  set({ ...data, workouts: data.workouts.filter((w) => w.id !== id) });
+  set({
+    ...data,
+    workouts: data.workouts.filter((w) => w.id !== id),
+    programs: data.programs.map((p) => ({
+      ...p,
+      dayIds: p.dayIds.filter((d) => d !== id),
+    })),
+  });
+}
+
+export function duplicateWorkoutDay(programId: string, dayId: string) {
+  const day = data.workouts.find((w) => w.id === dayId);
+  const program = data.programs.find((p) => p.id === programId);
+  if (!day || !program) return;
+  const copy: Workout = {
+    ...day,
+    id: uid(),
+    name: `${day.name} copy`,
+    items: day.items.map((i) => ({ ...i, id: uid() })),
+  };
+  const index = program.dayIds.indexOf(dayId);
+  const dayIds = [...program.dayIds];
+  dayIds.splice(index + 1, 0, copy.id);
+  set({
+    ...data,
+    workouts: [...data.workouts, copy],
+    programs: data.programs.map((p) => (p.id === programId ? { ...p, dayIds } : p)),
+  });
+}
+
+export function reorderProgramDays(programId: string, dayIds: string[]) {
+  set({
+    ...data,
+    programs: data.programs.map((p) => (p.id === programId ? { ...p, dayIds } : p)),
+  });
 }
 
 export function emptyWorkout(): Workout {
@@ -227,6 +297,66 @@ export function emptyWorkout(): Workout {
 
 export function emptyItem(exerciseId: string): WorkoutItem {
   return { id: uid(), exerciseId, sets: 3, reps: 10, weight: 20, rest: 90, notes: "" };
+}
+
+/* ---------- programs ---------- */
+export function saveProgram(p: Program) {
+  const exists = data.programs.some((x) => x.id === p.id);
+  set({
+    ...data,
+    programs: exists
+      ? data.programs.map((x) => (x.id === p.id ? p : x))
+      : [...data.programs, p],
+  });
+}
+
+export function createProgram(name: string): Program {
+  const p: Program = { id: uid(), name: name.trim() || "New program", notes: "", dayIds: [] };
+  set({ ...data, programs: [...data.programs, p] });
+  return p;
+}
+
+export function deleteProgram(id: string) {
+  const program = data.programs.find((p) => p.id === id);
+  const orphan = new Set(program?.dayIds ?? []);
+  set({
+    ...data,
+    programs: data.programs.filter((p) => p.id !== id),
+    workouts: data.workouts.filter((w) => !orphan.has(w.id)),
+  });
+}
+
+export function duplicateProgram(id: string) {
+  const program = data.programs.find((p) => p.id === id);
+  if (!program) return;
+  const newDays: Workout[] = [];
+  const dayIds = program.dayIds.map((dayId) => {
+    const day = data.workouts.find((w) => w.id === dayId);
+    if (!day) return dayId;
+    const copy: Workout = {
+      ...day,
+      id: uid(),
+      items: day.items.map((i) => ({ ...i, id: uid() })),
+    };
+    newDays.push(copy);
+    return copy.id;
+  });
+  set({
+    ...data,
+    workouts: [...data.workouts, ...newDays],
+    programs: [
+      ...data.programs,
+      { id: uid(), name: `${program.name} copy`, notes: program.notes, dayIds },
+    ],
+  });
+}
+
+export function programDays(d: GymData, programId: string): Workout[] {
+  const program = d.programs.find((p) => p.id === programId);
+  if (!program) return [];
+  return program.dayIds
+    .map((id) => d.workouts.find((w) => w.id === id))
+    .filter((w): w is Workout => Boolean(w));
 }
 
 /* ---------- history ---------- */
