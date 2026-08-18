@@ -67,67 +67,54 @@ const seed = (): GymData => {
     },
   ];
 
-  const workouts: Workout[] = [
-    {
-      id: "w-push",
-      name: "Push Day",
-      notes: "Chest focused",
-      items: [
-        {
-          id: "wi-push-1",
-          exerciseId: "ex-bench",
-          sets: 4,
-          reps: 8,
-          weight: 60,
-          rest: 120,
-          notes: "",
-        },
-        {
-          id: "wi-push-2",
-          exerciseId: "ex-curl",
-          sets: 3,
-          reps: 12,
-          weight: 12,
-          rest: 60,
-          notes: "",
-        },
-      ],
-    },
-    {
-      id: "w-legs",
-      name: "Leg Day",
+  const day = (
+    id: string,
+    name: string,
+    items: [string, number, number, number, number][],
+  ): Workout => ({
+    id,
+    name,
+    notes: "",
+    items: items.map(([exerciseId, sets, reps, weight, rest], i) => ({
+      id: `${id}-i${i}`,
+      exerciseId,
+      sets,
+      reps,
+      weight,
+      rest,
       notes: "",
-      items: [
-        {
-          id: "wi-legs-1",
-          exerciseId: "ex-squat",
-          sets: 5,
-          reps: 5,
-          weight: 90,
-          rest: 180,
-          notes: "Warm up properly",
-        },
-        {
-          id: "wi-legs-2",
-          exerciseId: "ex-plank",
-          sets: 3,
-          reps: 1,
-          weight: 0,
-          rest: 60,
-          notes: "60s hold",
-        },
-      ],
-    },
+    })),
+  });
+
+  // Starting template only — every day, name, order and exercise is editable.
+  const workouts: Workout[] = [
+    day("w-lower-1", "Lower Body 1", [
+      ["ex-squat", 4, 6, 80, 150],
+      ["ex-plank", 3, 1, 0, 60],
+    ]),
+    day("w-upper-1", "Upper Body 1", [
+      ["ex-bench", 4, 8, 60, 120],
+      ["ex-row", 3, 10, 45, 90],
+    ]),
+    day("w-lower-2", "Lower Body 2", [
+      ["ex-squat", 3, 10, 60, 120],
+      ["ex-plank", 3, 1, 0, 60],
+    ]),
+    day("w-upper-2", "Upper Body 2", [
+      ["ex-row", 4, 10, 45, 90],
+      ["ex-curl", 3, 12, 12, 60],
+    ]),
   ];
 
   const programs: Program[] = [
     {
       id: "p-default",
       name: "My Program",
-      notes: "Starter split",
+      notes: "4-day starting template",
       dayIds: workouts.map((w) => w.id),
     },
   ];
+
 
   return { exercises: ex, workouts, programs, history: [] };
 };
