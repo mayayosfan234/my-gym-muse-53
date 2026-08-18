@@ -1,6 +1,7 @@
 import { useSyncExternalStore } from "react";
 import {
   DEFAULT_MEALS,
+  SEED_FOODS,
   type Exercise,
   type FoodItem,
   type GymData,
@@ -140,7 +141,6 @@ const seed = (): GymData => {
     })),
   });
 
-  // Starting template only — every day, name, order and exercise is editable.
   const workouts: Workout[] = [
     day("w-lower-1", "Lower Body 1", [
       { exerciseId: "ex-squat", sets: 4, reps: 6, weight: 80, rest: 150 },
@@ -170,24 +170,12 @@ const seed = (): GymData => {
     },
   ];
 
-  const foods: FoodItem[] = [
-    { id: "f-eggs", name: "Eggs", servingSize: "1 unit", calories: 70, protein: 6, carbs: 0.5, fat: 5 },
-    { id: "f-chicken", name: "Chicken breast", servingSize: "100g", calories: 165, protein: 31, carbs: 0, fat: 3.6 },
-    { id: "f-rice", name: "White rice (cooked)", servingSize: "100g", calories: 130, protein: 2.5, carbs: 28, fat: 0.3 },
-    { id: "f-oats", name: "Oats", servingSize: "100g", calories: 389, protein: 17, carbs: 66, fat: 7, fiber: 10 },
-    { id: "f-yogurt", name: "Greek yogurt", servingSize: "100g", calories: 59, protein: 10, carbs: 3.6, fat: 0.4 },
-    { id: "f-banana", name: "Banana", servingSize: "1 unit", calories: 105, protein: 1.3, carbs: 27, fat: 0.3, fiber: 3 },
-    { id: "f-cottage", name: "Cottage cheese", servingSize: "100g", calories: 98, protein: 11, carbs: 3.4, fat: 4.3 },
-    { id: "f-bread", name: "Whole wheat bread", servingSize: "1 slice", calories: 80, protein: 4, carbs: 14, fat: 1, fiber: 2 },
-    { id: "f-edamame", name: "Edamame", servingSize: "100g", calories: 121, protein: 11.9, carbs: 8.9, fat: 5.2, fiber: 5.2 },
-  ];
-
   return {
     exercises: ex,
     workouts,
     programs,
     history: [],
-    foods,
+    foods: [...SEED_FOODS],
     nutritionDays: [],
     nutritionTargets: {},
     mealTemplate: [...DEFAULT_MEALS],
@@ -197,6 +185,18 @@ const seed = (): GymData => {
 let data: GymData = seed();
 let hydrated = false;
 const listeners = new Set<() => void>();
+
+/** Merge seed foods that are missing from saved data (e.g. Edamame). */
+function mergeSeedFoods(existing: FoodItem[]): FoodItem[] {
+  const byId = new Map(existing.map((f) => [f.id, f]));
+  const byName = new Map(existing.map((f) => [f.name.toLocaleLowerCase(), f]));
+  for (const seedFood of SEED_FOODS) {
+    if (byId.has(seedFood.id)) continue;
+    if (byName.has(seedFood.name.toLocaleLowerCase())) continue;
+    byId.set(seedFood.id, seedFood);
+  }
+  return Array.from(byId.values());
+}
 
 /** Ensure older saved data (without programs / nutrition) still works. */
 function migrate(d: Partial<GymData>): GymData {
@@ -212,7 +212,7 @@ function migrate(d: Partial<GymData>): GymData {
     workouts,
     programs,
     history: d.history ?? [],
-    foods: d.foods ?? [],
+    foods: mergeSeedFoods(d.foods ?? []),
     nutritionDays: d.nutritionDays ?? [],
     nutritionTargets: d.nutritionTargets ?? {},
     mealTemplate: d.mealTemplate?.length ? d.mealTemplate : [...DEFAULT_MEALS],
@@ -481,7 +481,7 @@ export function lastPerformance(history: HistorySession[], exerciseId: string) {
 export function personalRecords(history: HistorySession[], exerciseId: string) {
   let heaviest = 0;
   let bestRepsAtHeaviest = 0;
-  let bestEst = 0; // estimated 1RM (Epley)
+  let bestEst = 0;
   for (const s of history) {
     for (const e of s.entries) {
       if (e.exerciseId !== exerciseId) continue;
@@ -530,7 +530,6 @@ export function saveNutritionTargets(targets: NutritionTargets) {
 }
 
 /* ---------- nutrition: days & meals ---------- */
-/** Read a day for display; returns a template-seeded (unsaved) day when none exists. */
 export function nutritionDay(d: GymData, date: string): NutritionDay {
   const found = d.nutritionDays.find((x) => x.date === date);
   if (found) return found;
@@ -540,7 +539,6 @@ export function nutritionDay(d: GymData, date: string): NutritionDay {
   };
 }
 
-/** Find or create the stored day (seeded from the template), then apply an update. */
 function withDay(date: string, updater: (day: NutritionDay) => NutritionDay) {
   const existing = data.nutritionDays.find((x) => x.date === date);
   const base: NutritionDay =
@@ -673,26 +671,44 @@ export function mealFoodFromLibrary(food: FoodItem): MealFood {
   };
 }
 
+function normalizeSearch(s: string) {
+  return s
+    .toLocaleLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim();
+}
+
 /**
- * Finds sensible food substitutions.  Score calories and protein together so
- * a replacement keeps a meal close to both its energy and protein target.
+ * Finds sensible food substitutions. Score calories + protein so a swap
+ * stays close to energy and protein. Search matches any word in the name.
  */
 export function findFoodReplacements(
   foods: FoodItem[],
-  current: Pick<MealFood, "foodId" | "calories" | "protein">,
+  current: Pick<MealFood, "foodId" | "name" | "calories" | "protein">,
   query = "",
 ) {
-  const normalized = query.trim().toLocaleLowerCase();
+  const normalized = normalizeSearch(query);
+  const tokens = normalized.split(/\s+/).filter(Boolean);
+
   return foods
-    .filter((food) => food.id !== current.foodId)
-    .filter((food) => !normalized || food.name.toLocaleLowerCase().includes(normalized))
+    .filter((food) => {
+      if (current.foodId && food.id === current.foodId) return false;
+      if (!current.foodId && current.name && food.name === current.name) return false;
+      return true;
+    })
+    .filter((food) => {
+      if (!tokens.length) return true;
+      const name = normalizeSearch(food.name);
+      return tokens.every((t) => name.includes(t));
+    })
     .map((food) => ({
       food,
       score:
-        Math.abs(food.calories - current.calories) +
-        Math.abs(food.protein - current.protein) * 12,
+        Math.abs(food.calories - (current.calories ?? 0)) +
+        Math.abs(food.protein - (current.protein ?? 0)) * 12,
     }))
-    .sort((a, b) => a.score - b.score)
+    .sort((a, b) => a.score - b.score || a.food.name.localeCompare(b.food.name))
     .map(({ food }) => food);
 }
 
