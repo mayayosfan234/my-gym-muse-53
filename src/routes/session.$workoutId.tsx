@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { Stepper } from "@/components/Stepper";
 import { lastPerformance, repLabel, saveSession, uid, useGym } from "@/lib/gym-store";
-import type { HistoryEntry, LoggedSet, WorkoutItem } from "@/lib/gym-types";
+import type { Exercise, HistoryEntry, LoggedSet, WorkoutItem } from "@/lib/gym-types";
 
 export const Route = createFileRoute("/session/$workoutId")({
   head: () => ({
@@ -59,6 +59,7 @@ function Session() {
   const { workouts, exercises, history, programs } = useGym();
   const workout = workouts.find((w) => w.id === workoutId);
   const currentProgram = programs.find((program) => program.dayIds.includes(workoutId));
+  const [cardExercise, setCardExercise] = useState<Exercise | null>(null);
 
   const initial = useMemo<HistoryEntry[]>(() => {
     if (!workout) return [];
@@ -181,19 +182,20 @@ function Session() {
           const last = lastPerformance(history, entry.exerciseId);
           const targetLabel = item ? repLabel(item) : String(entry.targetReps ?? "");
           const supersetLabel = labels[ei];
+          const fullExercise = exercises.find((e) => e.id === entry.exerciseId);
           return (
             <div key={`${entry.exerciseId}-${ei}`} className={`surface-card p-4 ${supersetLabel ? "border-l-4 border-l-primary/60" : ""}`}>
               <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-2">
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
                     {supersetLabel ? <span className="shrink-0 rounded-md bg-primary px-1.5 py-0.5 text-[11px] font-bold text-primary-foreground">{supersetLabel}</span> : null}
-                    <Link
-                      to="/exercises/$exerciseId"
-                      params={{ exerciseId: entry.exerciseId }}
-                      className="truncate font-semibold underline-offset-4 hover:underline"
+                    <button
+                      type="button"
+                      onClick={() => fullExercise && setCardExercise(fullExercise)}
+                      className="truncate text-left font-semibold underline-offset-4 hover:underline"
                     >
                       {entry.exerciseName}
-                    </Link>
+                    </button>
                   </div>
                   <p className="mt-0.5 text-xs text-muted-foreground">
                     {entry.equipment ? `${entry.equipment} · ` : ""}
@@ -408,6 +410,96 @@ function Session() {
           </div>
         </div>
       )}
+
+      {cardExercise ? (
+        <div
+          className="fixed inset-0 z-50 flex flex-col justify-end bg-foreground/30 backdrop-blur-sm"
+          onClick={() => setCardExercise(null)}
+        >
+          <div
+            className="max-h-[85vh] overflow-y-auto rounded-t-3xl border-t border-border bg-card p-5"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mb-4 flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="section-kicker">Exercise card</p>
+                <h2 className="font-display text-xl font-semibold">{cardExercise.name}</h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {cardExercise.muscleGroup}
+                  {cardExercise.equipment ? ` · ${cardExercise.equipment}` : ""}
+                </p>
+              </div>
+              <button
+                type="button"
+                aria-label="Close"
+                onClick={() => setCardExercise(null)}
+                className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-secondary"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {(cardExercise.secondaryMuscles ?? []).length > 0 ? (
+              <div className="mb-3 flex flex-wrap gap-1.5">
+                {cardExercise.secondaryMuscles!.map((m) => (
+                  <span key={m} className="rounded-full bg-secondary px-2.5 py-1 text-xs text-muted-foreground">{m}</span>
+                ))}
+              </div>
+            ) : null}
+
+            {cardExercise.tips ? (
+              <div className="mb-3 rounded-xl bg-primary/10 p-3">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-primary">Cues / tips</p>
+                <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed">{cardExercise.tips}</p>
+              </div>
+            ) : null}
+
+            {cardExercise.notes ? (
+              <div className="mb-3 rounded-xl bg-secondary p-3">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Personal notes</p>
+                <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed">{cardExercise.notes}</p>
+              </div>
+            ) : null}
+
+            {cardExercise.description ? (
+              <div className="mb-3 rounded-xl border border-border p-3">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Description</p>
+                <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed">{cardExercise.description}</p>
+              </div>
+            ) : null}
+
+            {cardExercise.instructions ? (
+              <div className="mb-3 rounded-xl border border-border p-3">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Instructions</p>
+                <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed">{cardExercise.instructions}</p>
+              </div>
+            ) : null}
+
+            {cardExercise.videoUrl ? (
+              <a
+                href={cardExercise.videoUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="mb-3 block rounded-xl bg-secondary p-3 text-sm font-medium text-primary"
+              >
+                Watch technique video
+              </a>
+            ) : null}
+
+            {!cardExercise.tips && !cardExercise.notes && !cardExercise.description && !cardExercise.instructions ? (
+              <p className="text-sm text-muted-foreground">No notes or cues saved for this exercise yet.</p>
+            ) : null}
+
+            <Link
+              to="/exercises/$exerciseId"
+              params={{ exerciseId: cardExercise.id }}
+              className="mt-4 flex h-12 w-full items-center justify-center rounded-xl bg-primary font-semibold text-primary-foreground"
+            >
+              Open full exercise page
+            </Link>
+          </div>
+        </div>
+      ) : null}
     </AppShell>
   );
 }
