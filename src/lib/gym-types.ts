@@ -191,22 +191,32 @@ export type GymData = {
 
 export const MUSCLE_GROUPS = [
   "Chest",
+  "Upper Chest",
+  "Lower Chest",
   "Back",
+  "Lats",
+  "Traps",
+  "Lower Back",
   "Shoulders",
+  "Front Delts",
+  "Side Delts",
+  "Rear Delts",
   "Biceps",
   "Triceps",
-  "Legs",
-  "Glutes",
-  "Core",
-  "Full body",
-  "Cardio",
   "Forearms",
+  "Legs",
+  "Quads",
+  "Hamstrings",
+  "Glutes",
   "Calves",
   "Adductors",
   "Abductors",
-  "Traps",
+  "Hip Flexors",
+  "Core",
+  "Obliques",
   "Neck",
-  "Lower back",
+  "Full Body",
+  "Cardio",
   "Other",
 ];
 
@@ -241,4 +251,17 @@ export const DEFAULT_MEALS = [
   "Afternoon Snack",
   "Dinner",
   "Evening Snack",
+];
+
+/** Seed foods always available in the library (merged on load if missing). */
+export const SEED_FOODS: FoodItem[] = [
+  { id: "f-eggs", name: "Eggs", servingSize: "1 unit", calories: 70, protein: 6, carbs: 0.5, fat: 5 },
+  { id: "f-chicken", name: "Chicken breast", servingSize: "100g", calories: 165, protein: 31, carbs: 0, fat: 3.6 },
+  { id: "f-rice", name: "White rice (cooked)", servingSize: "100g", calories: 130, protein: 2.5, carbs: 28, fat: 0.3 },
+  { id: "f-oats", name: "Oats", servingSize: "100g", calories: 389, protein: 17, carbs: 66, fat: 7, fiber: 10 },
+  { id: "f-yogurt", name: "Greek yogurt", servingSize: "100g", calories: 59, protein: 10, carbs: 3.6, fat: 0.4 },
+  { id: "f-banana", name: "Banana", servingSize: "1 unit", calories: 105, protein: 1.3, carbs: 27, fat: 0.3, fiber: 3 },
+  { id: "f-cottage", name: "Cottage cheese", servingSize: "100g", calories: 98, protein: 11, carbs: 3.4, fat: 4.3 },
+  { id: "f-bread", name: "Whole wheat bread", servingSize: "1 slice", calories: 80, protein: 4, carbs: 14, fat: 1, fiber: 2 },
+  { id: "f-edamame", name: "Edamame", servingSize: "100g", calories: 121, protein: 11.9, carbs: 8.9, fat: 5.2, fiber: 5.2 },
 ];

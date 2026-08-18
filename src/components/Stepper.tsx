@@ -5,6 +5,7 @@ export function Stepper({
   value,
   step = 1,
   min = 0,
+  max,
   suffix,
   onChange,
 }: {
@@ -12,10 +13,17 @@ export function Stepper({
   value: number;
   step?: number;
   min?: number;
+  /** Optional upper bound. Omit to allow any large number (e.g. warm-up reps > 9). */
+  max?: number;
   suffix?: string;
   onChange: (v: number) => void;
 }) {
-  const clamp = (v: number) => Math.max(min, Math.round(v * 100) / 100);
+  const clamp = (v: number) => {
+    let n = Math.max(min, Math.round(v * 100) / 100);
+    if (max != null) n = Math.min(max, n);
+    return n;
+  };
+
   return (
     <div className="min-w-0">
       <p className="mb-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
@@ -33,8 +41,16 @@ export function Stepper({
         <div className="num-pill flex h-11 min-w-0 flex-1 items-center justify-center px-1">
           <input
             inputMode="decimal"
-            value={value}
-            onChange={(e) => onChange(clamp(Number(e.target.value) || 0))}
+            value={Number.isFinite(value) ? value : 0}
+            onChange={(e) => {
+              const raw = e.target.value.replace(",", ".");
+              if (raw === "" || raw === "-") {
+                onChange(min);
+                return;
+              }
+              const n = Number(raw);
+              if (!Number.isNaN(n)) onChange(clamp(n));
+            }}
             className="w-full min-w-0 bg-transparent text-center text-base font-semibold outline-none"
           />
           {suffix ? (
