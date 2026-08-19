@@ -5,16 +5,8 @@ import { AppShell } from "@/components/AppShell";
 export const Route = createFileRoute("/workouts/")({
   head: () => ({
     meta: [
-      { title: "My Workouts — GymTrack" },
-      {
-        name: "description",
-        content: "Your saved workout routines, ready to start in one tap.",
-      },
-      { property: "og:title", content: "My Workouts — GymTrack" },
-      {
-        property: "og:description",
-        content: "Your saved workout routines, ready to start in one tap.",
-      },
+      { title: "האימונים שלי — הרוטינה שלי" },
+      { property: "og:title", content: "האימונים שלי — הרוטינה שלי" },
     ],
   }),
   component: Workouts,
@@ -26,8 +18,8 @@ function Workouts() {
     navigate({ to: "/programs", replace: true });
   }, [navigate]);
   return (
-    <AppShell title="Programs" subtitle="Taking you to your training space">
-      <div className="surface-card animate-pulse p-5 text-sm text-muted-foreground">Loading programs…</div>
+    <AppShell title="תוכניות אימון" subtitle="מעביר אותך למתחם התוכניות...">
+      <div className="surface-card animate-pulse p-5 text-sm text-muted-foreground text-start">טוען תוכניות אימון…</div>
     </AppShell>
   );
 }

@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from "react";
+import { ISRAELI_FOOD_DATABASE } from "./israeli-food-db";
 import {
   DEFAULT_MEALS,
-  SEED_FOODS,
   type Exercise,
   type FoodItem,
   type GymData,
@@ -31,85 +31,122 @@ const seed = (): GymData => {
   const ex: Exercise[] = [
     {
       id: "ex-bench",
-      name: "Barbell Bench Press",
-      muscleGroup: "Chest",
-      secondaryMuscles: ["Triceps", "Shoulders"],
-      category: "Compound",
-      equipment: "Barbell",
-      description:
-        "Lie flat, grip slightly wider than shoulders, lower to mid chest and press up.",
-      instructions: "",
+      name: "לחיצת חזה כנגד מוט",
+      muscleGroup: "חזה",
+      muscleGroups: ["חזה", "טריצפס (יד אחורית)", "כתף קדמית"],
+      secondaryMuscles: ["טריצפס (יד אחורית)", "כתפיים"],
+      category: "מורכב",
+      equipment: "מוט",
+      description: "שכב על ספה שטוחה, אחוז במוט ברוחב מעט רחב מהכתפיים, הורד אל מרכז החזה ולחץ כלפי מעלה.",
+      instructions: "שמור על שכמות צמודות, כפות רגליים יציבות על הרצפה וקשת קלה בגב התחתון.",
       videoUrl: "",
       images: [],
-      notes: "Keep shoulder blades retracted.",
-      tips: "Drive feet into the floor and keep a slight arch.",
+      notes: "לשמור על שכמות צמודות ומכווצות לאורך כל התנועה.",
+      tips: "ללחוץ דרך העקבים ולשמור על מסלול מוט יציב.",
     },
     {
       id: "ex-squat",
-      name: "Back Squat",
-      muscleGroup: "Legs",
-      secondaryMuscles: ["Glutes", "Core"],
-      category: "Compound",
-      equipment: "Barbell",
-      description: "Bar on upper back, sit down and back, drive through mid foot.",
-      instructions: "",
+      name: "סקואט כנגד מוט (Back Squat)",
+      muscleGroup: "ארבע ראשי",
+      muscleGroups: ["ארבע ראשי", "ישבן", "גב תחתון"],
+      secondaryMuscles: ["ישבן", "בטן"],
+      category: "מורכב",
+      equipment: "מוט",
+      description: "הנח את המוט על הגב העליון, רד עם האגן אחורה ולמטה עד זווית 90 מעלות לפחות ולחץ חזרה מעלה.",
+      instructions: "שמור על חזה מורם וברכיים בקו אחד עם כפות הרגליים.",
       videoUrl: "",
       images: [],
-      notes: "Belt above 100kg.",
-      tips: "",
+      notes: "חגורת גב מעל 100 ק\"ג.",
+      tips: "דחיפה דרך מרכז כף הרגל.",
     },
     {
       id: "ex-row",
-      name: "Seated Cable Row",
-      muscleGroup: "Back",
-      secondaryMuscles: ["Biceps"],
-      category: "Compound",
-      equipment: "Cable",
-      description: "Pull the handle to the navel, squeeze the shoulder blades.",
-      instructions: "",
+      name: "חתירה בכבלים בישיבה",
+      muscleGroup: "גב",
+      muscleGroups: ["גב", "גב רחב", "ביצפס (יד קדמית)"],
+      secondaryMuscles: ["ביצפס (יד קדמית)"],
+      category: "מורכב",
+      equipment: "פולי / כבלים",
+      description: "שב מול הכבל, משוך את הידית לכיוון הטבור והדק את השכמות בסוף התנועה.",
+      instructions: "גב זקוף, מתיחה מלאה קדימה וכיווץ חזק בגב לאחור.",
       videoUrl: "",
       images: [],
-      notes: "",
-      tips: "",
+      notes: "להקפיד לא להשתמש בתנופה מוגזמת של הגב.",
+      tips: "למשוך דרך המרפקים ולא דרך כפות הידיים.",
     },
     {
       id: "ex-curl",
-      name: "Dumbbell Curl",
-      muscleGroup: "Biceps",
-      category: "Isolation",
-      equipment: "Dumbbell",
-      description: "Curl without swinging, controlled negative.",
-      instructions: "",
+      name: "כפילת מרפקים עם משקוליות",
+      muscleGroup: "ביצפס (יד קדמית)",
+      muscleGroups: ["ביצפס (יד קדמית)", "אמות"],
+      secondaryMuscles: ["אמות"],
+      category: "בידוד",
+      equipment: "משקוליות יד",
+      description: "עמוד יציב, כפוף את המרפקים והרם את המשקוליות תוך סיבוב קל של כף היד, והורד באיטיות.",
+      instructions: "מרפקים צמודים לצדי הגוף, ללא הנדנוד של הגב.",
       videoUrl: "",
       images: [],
-      notes: "",
+      notes: "עבודה נקייה ומבוקרת בחלק השלילי (ירידה).",
       tips: "",
     },
     {
       id: "ex-hipthrust",
-      name: "Hip Thrust",
-      muscleGroup: "Glutes",
-      secondaryMuscles: ["Legs"],
-      category: "Compound",
-      equipment: "Barbell",
-      description: "Upper back on a bench, drive hips up, squeeze glutes at the top.",
-      instructions: "",
+      name: "דחיקת אגן כנגד מוט (Hip Thrust)",
+      muscleGroup: "ישבן",
+      muscleGroups: ["ישבן", "המסטרינג"],
+      secondaryMuscles: ["המסטרינג", "ארבע ראשי"],
+      category: "מורכב",
+      equipment: "מוט",
+      description: "הנח גב עליון על ספסל, מוט על האגן, הרם את האגן מעלה וכווץ את הישבן בשיא התנועה.",
+      instructions: "מבט קדימה, כיווץ מלא של הישבן בשיא הגובה לשנייה אחת.",
       videoUrl: "",
       images: [],
-      notes: "Pause at the top.",
+      notes: "לעצור לשנייה אחת בחלק העליון.",
       tips: "",
     },
     {
       id: "ex-plank",
-      name: "Plank",
-      muscleGroup: "Core",
-      category: "Isolation",
-      equipment: "Bodyweight",
-      description: "Hold a straight line from head to heels.",
-      instructions: "",
+      name: "פלאנק (Plank)",
+      muscleGroup: "בטן",
+      muscleGroups: ["בטן", "אלכסונים", "גב תחתון"],
+      secondaryMuscles: ["כתפיים"],
+      category: "בידוד",
+      equipment: "משקל גוף",
+      description: "החזק גוף ישר על האמות וקצות האצבעות תוך כיווץ חזק של הבטן והישבן.",
+      instructions: "גוף בקו ישר אחד מהראש ועד העקבים.",
       videoUrl: "",
       images: [],
       notes: "",
+      tips: "",
+    },
+    {
+      id: "ex-ohp",
+      name: "לחיצת כתפיים בבעמידה כנגד מוט",
+      muscleGroup: "כתפיים",
+      muscleGroups: ["כתפיים", "כתף קדמית", "טריצפס (יד אחורית)"],
+      secondaryMuscles: ["טריצפס (יד אחורית)", "בטן"],
+      category: "מורכב",
+      equipment: "מוט",
+      description: "עמוד יציב, לחץ את המוט מגובה החזה העליון מעלה מעל הראש עד נעילה.",
+      instructions: "בטן מהודקת וישבן מכווץ לשמירה על הגב.",
+      videoUrl: "",
+      images: [],
+      notes: "",
+      tips: "",
+    },
+    {
+      id: "ex-rdl",
+      name: "דדליפט רומני (RDL)",
+      muscleGroup: "המסטרינג",
+      muscleGroups: ["המסטרינג", "ישבן", "גב תחתון"],
+      secondaryMuscles: ["ישבן", "גב תחתון"],
+      category: "מורכב",
+      equipment: "מוט",
+      description: "אחוז במוט, קח את האגן אחורנית תוך כפיפה קלה בברכיים והורד את המוט לאורך הרגליים.",
+      instructions: "גב ישר לחלוטין, מתיחה חזקה בחלק האחורי של הירכיים.",
+      videoUrl: "",
+      images: [],
+      notes: "מתיחה מורגשת בהמסטרינג.",
       tips: "",
     },
   ];
@@ -138,25 +175,38 @@ const seed = (): GymData => {
       weight: s.weight,
       rest: s.rest,
       notes: "",
+      workingSets: Array.from({ length: s.sets }, (_, setIdx) => ({
+        id: `${id}-i${i}-set-${setIdx}`,
+        setNumber: setIdx + 1,
+        weight: s.weight,
+        reps: s.repMin ?? s.reps,
+        repMax: s.repMax,
+      })),
     })),
   });
 
   const workouts: Workout[] = [
-    day("w-lower-1", "Lower Body 1", [
+    day("w-lower-1", "פלג גוף תחתון 1", [
       { exerciseId: "ex-squat", sets: 4, reps: 6, weight: 80, rest: 150 },
       { exerciseId: "ex-hipthrust", sets: 4, reps: 8, repMin: 8, repMax: 10, weight: 60, rest: 90 },
+      { exerciseId: "ex-rdl", sets: 3, reps: 10, repMin: 8, repMax: 10, weight: 50, rest: 90 },
       { exerciseId: "ex-plank", sets: 3, reps: 1, weight: 0, rest: 60 },
     ]),
-    day("w-upper-1", "Upper Body 1", [
+    day("w-upper-1", "פלג גוף עליון 1", [
       { exerciseId: "ex-bench", sets: 4, reps: 8, repMin: 8, repMax: 10, weight: 60, rest: 120 },
-      { exerciseId: "ex-row", sets: 3, reps: 10, repMin: 10, repMax: 12, weight: 45, rest: 90 },
+      { exerciseId: "ex-row", sets: 4, reps: 10, repMin: 10, repMax: 12, weight: 45, rest: 90 },
+      { exerciseId: "ex-ohp", sets: 3, reps: 8, repMin: 8, repMax: 10, weight: 35, rest: 90 },
+      { exerciseId: "ex-curl", sets: 3, reps: 12, weight: 12, rest: 60 },
     ]),
-    day("w-lower-2", "Lower Body 2", [
-      { exerciseId: "ex-squat", sets: 3, reps: 10, weight: 60, rest: 120 },
-      { exerciseId: "ex-hipthrust", sets: 3, reps: 12, weight: 55, rest: 90 },
+    day("w-lower-2", "פלג גוף תחתון 2", [
+      { exerciseId: "ex-squat", sets: 3, reps: 10, weight: 65, rest: 120 },
+      { exerciseId: "ex-hipthrust", sets: 4, reps: 12, weight: 55, rest: 90 },
+      { exerciseId: "ex-rdl", sets: 3, reps: 12, weight: 45, rest: 90 },
     ]),
-    day("w-upper-2", "Upper Body 2", [
-      { exerciseId: "ex-row", sets: 4, reps: 10, weight: 45, rest: 90 },
+    day("w-upper-2", "פלג גוף עליון 2", [
+      { exerciseId: "ex-row", sets: 4, reps: 10, weight: 50, rest: 90 },
+      { exerciseId: "ex-bench", sets: 3, reps: 10, repMin: 8, repMax: 10, weight: 55, rest: 90 },
+      { exerciseId: "ex-ohp", sets: 3, reps: 10, weight: 30, rest: 90 },
       { exerciseId: "ex-curl", sets: 3, reps: 12, repMin: 10, repMax: 12, weight: 12, rest: 60 },
     ]),
   ];
@@ -164,8 +214,8 @@ const seed = (): GymData => {
   const programs: Program[] = [
     {
       id: "p-default",
-      name: "My Program",
-      notes: "4-day starting template",
+      name: "תכנית האימונים שלי",
+      notes: "תבנית 4 ימי אימון (פלג גוף תחתון/עליון)",
       dayIds: workouts.map((w) => w.id),
     },
   ];
@@ -175,9 +225,9 @@ const seed = (): GymData => {
     workouts,
     programs,
     history: [],
-    foods: [...SEED_FOODS],
+    foods: [...ISRAELI_FOOD_DATABASE],
     nutritionDays: [],
-    nutritionTargets: {},
+    nutritionTargets: { calories: 2000, protein: 140, carbs: 200, fat: 65 },
     mealTemplate: [...DEFAULT_MEALS],
   };
 };
@@ -186,11 +236,11 @@ let data: GymData = seed();
 let hydrated = false;
 const listeners = new Set<() => void>();
 
-/** Merge seed foods that are missing from saved data (e.g. Edamame). */
+/** Merge food database so saved data retains all Israeli supermarket items */
 function mergeSeedFoods(existing: FoodItem[]): FoodItem[] {
   const byId = new Map(existing.map((f) => [f.id, f]));
   const byName = new Map(existing.map((f) => [f.name.toLocaleLowerCase(), f]));
-  for (const seedFood of SEED_FOODS) {
+  for (const seedFood of ISRAELI_FOOD_DATABASE) {
     if (byId.has(seedFood.id)) continue;
     if (byName.has(seedFood.name.toLocaleLowerCase())) continue;
     byId.set(seedFood.id, seedFood);
@@ -198,23 +248,23 @@ function mergeSeedFoods(existing: FoodItem[]): FoodItem[] {
   return Array.from(byId.values());
 }
 
-/** Ensure older saved data (without programs / nutrition) still works. */
+/** Ensure older saved data still works cleanly. */
 function migrate(d: Partial<GymData>): GymData {
   const workouts = d.workouts ?? [];
   let programs = d.programs ?? [];
   if (!programs.length && workouts.length) {
     programs = [
-      { id: uid(), name: "My Workouts", notes: "", dayIds: workouts.map((w) => w.id) },
+      { id: uid(), name: "תכנית אימונים", notes: "", dayIds: workouts.map((w) => w.id) },
     ];
   }
   return {
-    exercises: d.exercises ?? [],
-    workouts,
-    programs,
+    exercises: d.exercises?.length ? d.exercises : seed().exercises,
+    workouts: workouts.length ? workouts : seed().workouts,
+    programs: programs.length ? programs : seed().programs,
     history: d.history ?? [],
     foods: mergeSeedFoods(d.foods ?? []),
     nutritionDays: d.nutritionDays ?? [],
-    nutritionTargets: d.nutritionTargets ?? {},
+    nutritionTargets: d.nutritionTargets ?? seed().nutritionTargets,
     mealTemplate: d.mealTemplate?.length ? d.mealTemplate : [...DEFAULT_MEALS],
   };
 }
@@ -299,10 +349,11 @@ export function emptyExercise(): Exercise {
   return {
     id: uid(),
     name: "",
-    muscleGroup: "Chest",
+    muscleGroup: "חזה",
+    muscleGroups: ["חזה"],
     secondaryMuscles: [],
-    category: "Compound",
-    equipment: "Barbell",
+    category: "מורכב",
+    equipment: "מוט",
     description: "",
     instructions: "",
     videoUrl: "",
@@ -355,7 +406,7 @@ export function duplicateWorkoutDay(programId: string, dayId: string) {
   const copy: Workout = {
     ...day,
     id: uid(),
-    name: `${day.name} copy`,
+    name: `${day.name} (עותק)`,
     items: day.items.map((i) => ({ ...i, id: uid() })),
   };
   const index = program.dayIds.indexOf(dayId);
@@ -390,6 +441,12 @@ export function emptyItem(exerciseId: string): WorkoutItem {
     rest: 90,
     notes: "",
     warmups: [],
+    workingSets: Array.from({ length: 3 }, (_, i) => ({
+      id: uid(),
+      setNumber: i + 1,
+      weight: 20,
+      reps: 10,
+    })),
   };
 }
 
@@ -409,7 +466,7 @@ export function saveProgram(p: Program) {
 }
 
 export function createProgram(name: string): Program {
-  const p: Program = { id: uid(), name: name.trim() || "New program", notes: "", dayIds: [] };
+  const p: Program = { id: uid(), name: name.trim() || "תכנית חדשה", notes: "", dayIds: [] };
   set({ ...data, programs: [...data.programs, p] });
   return p;
 }
@@ -444,7 +501,7 @@ export function duplicateProgram(id: string) {
     workouts: [...data.workouts, ...newDays],
     programs: [
       ...data.programs,
-      { id: uid(), name: `${program.name} copy`, notes: program.notes, dayIds },
+      { id: uid(), name: `${program.name} (עותק)`, notes: program.notes, dayIds },
     ],
   });
 }
@@ -522,7 +579,7 @@ export function deleteFood(id: string) {
 }
 
 export function emptyFood(): FoodItem {
-  return { id: uid(), name: "", servingSize: "100g", calories: 0, protein: 0, carbs: 0, fat: 0 };
+  return { id: uid(), name: "", servingSize: "100 גרם", calories: 0, protein: 0, carbs: 0, fat: 0 };
 }
 
 export function saveNutritionTargets(targets: NutritionTargets) {
@@ -556,7 +613,7 @@ function withDay(date: string, updater: (day: NutritionDay) => NutritionDay) {
 export function addMeal(date: string, name: string) {
   withDay(date, (day) => ({
     ...day,
-    meals: [...day.meals, { id: uid(), name: name.trim() || "New meal", foods: [] }],
+    meals: [...day.meals, { id: uid(), name: name.trim() || "ארוחה חדשה", foods: [] }],
   }));
 }
 
@@ -588,7 +645,7 @@ export function duplicateMeal(date: string, mealId: string) {
     const copy = {
       ...meal,
       id: uid(),
-      name: `${meal.name} copy`,
+      name: `${meal.name} (עותק)`,
       foods: meal.foods.map((f) => ({ ...f, id: uid() })),
     };
     const meals = [...day.meals];
@@ -645,7 +702,7 @@ export function emptyMealFood(): MealFood {
   return {
     id: uid(),
     name: "",
-    servingSize: "100g",
+    servingSize: "100 גרם",
     quantity: 1,
     calories: 0,
     protein: 0,
@@ -680,16 +737,18 @@ function normalizeSearch(s: string) {
 }
 
 /**
- * Finds sensible food substitutions. Score calories + protein so a swap
- * stays close to energy and protein. Search matches any word in the name.
+ * Finds food replacements with EXACT calorie matching formula.
+ * Calculate replacement quantity (in grams or serving multiplier) to preserve target calories!
+ * formula: replacementGrams = (targetCalories * 100) / replacementCaloriesPer100g
  */
 export function findFoodReplacements(
   foods: FoodItem[],
-  current: Pick<MealFood, "foodId" | "name" | "calories" | "protein">,
+  current: Pick<MealFood, "foodId" | "name" | "calories" | "protein" | "quantity">,
   query = "",
 ) {
   const normalized = normalizeSearch(query);
   const tokens = normalized.split(/\s+/).filter(Boolean);
+  const targetCal = (current.calories ?? 0) * (current.quantity ?? 1);
 
   return foods
     .filter((food) => {
@@ -702,14 +761,20 @@ export function findFoodReplacements(
       const name = normalizeSearch(food.name);
       return tokens.every((t) => name.includes(t));
     })
-    .map((food) => ({
-      food,
-      score:
-        Math.abs(food.calories - (current.calories ?? 0)) +
-        Math.abs(food.protein - (current.protein ?? 0)) * 12,
-    }))
-    .sort((a, b) => a.score - b.score || a.food.name.localeCompare(b.food.name))
-    .map(({ food }) => food);
+    .map((food) => {
+      // Calculate required quantity to match target calories
+      const requiredQty = food.calories > 0 ? targetCal / food.calories : 1;
+      return {
+        food,
+        calculatedQuantity: round1(requiredQty),
+        calculatedCalories: Math.round(food.calories * requiredQty),
+        calculatedProtein: round1(food.protein * requiredQty),
+        calculatedCarbs: round1(food.carbs * requiredQty),
+        calculatedFat: round1(food.fat * requiredQty),
+        score: Math.abs(food.calories - (current.calories ?? 0)),
+      };
+    })
+    .sort((a, b) => a.score - b.score || a.food.name.localeCompare(b.food.name));
 }
 
 export type MacroTotals = {

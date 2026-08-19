@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
-  ArrowRight,
+  ArrowLeft,
   ChevronLeft,
   ChevronRight,
   Library,
@@ -33,7 +33,7 @@ import type { MealFood } from "@/lib/gym-types";
 
 export const Route = createFileRoute("/nutrition/")({
   head: () => ({
-    meta: [{ title: "Nutrition — MY ROUTINE" }],
+    meta: [{ title: "יומן תזונה — הרוטינה שלי" }],
   }),
   component: NutritionLog,
 });
@@ -46,13 +46,15 @@ function shiftDate(key: string, delta: number) {
 }
 
 function formatDayLabel(key: string) {
+  const today = todayKey();
+  if (key === today) return "היום";
+  const yesterday = shiftDate(today, -1);
+  if (key === yesterday) return "אתמול";
+  const prevYesterday = shiftDate(today, -2);
+  if (key === prevYesterday) return "לפני יומיים";
   const [y, m, d] = key.split("-").map(Number);
   const date = new Date(y!, m! - 1, d);
-  const today = todayKey();
-  if (key === today) return "Today";
-  const yesterday = shiftDate(today, -1);
-  if (key === yesterday) return "Yesterday";
-  return date.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
+  return date.toLocaleDateString("he-IL", { weekday: "short", month: "short", day: "numeric" });
 }
 
 function MacroBar({
@@ -71,13 +73,13 @@ function MacroBar({
     <div>
       <div className="mb-1 flex items-baseline justify-between gap-2">
         <span className="text-xs font-semibold text-muted-foreground">{label}</span>
-        <span className="text-sm font-semibold tabular-nums">
+        <span className="text-xs sm:text-sm font-semibold tabular-nums text-foreground">
           {Math.round(value)}
           {target ? <span className="font-normal text-muted-foreground"> / {target}{unit}</span> : unit}
         </span>
       </div>
       {target ? (
-        <div className="h-1.5 overflow-hidden rounded-full bg-secondary">
+        <div className="h-2 overflow-hidden rounded-full bg-secondary">
           <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${pct}%` }} />
         </div>
       ) : null}
@@ -104,12 +106,14 @@ function NutritionLog() {
 
   const filteredFoods = useMemo(() => {
     const q = pickerQuery.trim().toLocaleLowerCase();
-    return gym.foods.filter((f) => !q || f.name.toLocaleLowerCase().includes(q));
+    return gym.foods.filter(
+      (f) => !q || f.name.toLocaleLowerCase().includes(q) || (f.category ?? "").toLocaleLowerCase().includes(q),
+    );
   }, [gym.foods, pickerQuery]);
 
   const replacements = useMemo(() => {
     if (!substituteFor) return [];
-    return findFoodReplacements(gym.foods, substituteFor.food, substituteQuery).slice(0, 12);
+    return findFoodReplacements(gym.foods, substituteFor.food, substituteQuery).slice(0, 15);
   }, [gym.foods, substituteFor, substituteQuery]);
 
   const addFromLibrary = (mealId: string, foodId: string) => {
@@ -120,14 +124,27 @@ function NutritionLog() {
     setPickerQuery("");
   };
 
-  const applyReplacement = (mealId: string, current: MealFood, replacementId: string) => {
-    const lib = gym.foods.find((f) => f.id === replacementId);
-    if (!lib) return;
-    const next = mealFoodFromLibrary(lib);
+  /** Calorie-Based Replacement Application using exact math */
+  const applyCalorieReplacement = (
+    mealId: string,
+    current: MealFood,
+    replacement: {
+      food: typeof gym.foods[0];
+      calculatedQuantity: number;
+    },
+  ) => {
+    const lib = replacement.food;
     updateMealFood(date, mealId, {
-      ...next,
       id: current.id,
-      quantity: current.quantity,
+      foodId: lib.id,
+      name: lib.name,
+      servingSize: lib.servingSize,
+      quantity: replacement.calculatedQuantity,
+      calories: lib.calories,
+      protein: lib.protein,
+      carbs: lib.carbs,
+      fat: lib.fat,
+      fiber: lib.fiber,
       notes: current.notes,
     });
     setSubstituteFor(null);
@@ -136,13 +153,13 @@ function NutritionLog() {
 
   return (
     <AppShell
-      title="Nutrition"
+      title="תזונה"
       subtitle={formatDayLabel(date)}
       action={
         <div className="flex gap-2">
           <button
             type="button"
-            aria-label="Edit targets"
+            aria-label="הגדר יעדים"
             onClick={() => {
               setTargetsDraft(gym.nutritionTargets);
               setShowTargets(true);
@@ -153,7 +170,7 @@ function NutritionLog() {
           </button>
           <Link
             to="/nutrition/foods"
-            aria-label="Food library"
+            aria-label="ספריית מאכלים"
             className="grid h-11 w-11 place-items-center rounded-xl bg-secondary active:scale-95"
           >
             <Library className="h-5 w-5" />
@@ -161,34 +178,34 @@ function NutritionLog() {
         </div>
       }
     >
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex items-center justify-between gap-3 text-start">
         <button
           type="button"
-          aria-label="Previous day"
+          aria-label="יום קודם"
           onClick={() => setDate((d) => shiftDate(d, -1))}
-          className="grid h-11 w-11 place-items-center rounded-xl bg-secondary active:scale-95"
-        >
-          <ChevronLeft className="h-5 w-5" />
-        </button>
-        <p className="text-center text-sm font-semibold">{date}</p>
-        <button
-          type="button"
-          aria-label="Next day"
-          onClick={() => setDate((d) => shiftDate(d, 1))}
           className="grid h-11 w-11 place-items-center rounded-xl bg-secondary active:scale-95"
         >
           <ChevronRight className="h-5 w-5" />
         </button>
+        <p className="text-center text-sm font-bold text-foreground">{formatDayLabel(date)} ({date})</p>
+        <button
+          type="button"
+          aria-label="יום הבא"
+          onClick={() => setDate((d) => shiftDate(d, 1))}
+          className="grid h-11 w-11 place-items-center rounded-xl bg-secondary active:scale-95"
+        >
+          <ChevronLeft className="h-5 w-5" />
+        </button>
       </div>
 
-      <div className="surface-card mt-4 space-y-3 p-4">
-        <MacroBar label="Calories" value={totals.calories} target={targets.calories} unit="" />
-        <MacroBar label="Protein" value={totals.protein} target={targets.protein} unit="g" />
-        <MacroBar label="Carbs" value={totals.carbs} target={targets.carbs} unit="g" />
-        <MacroBar label="Fat" value={totals.fat} target={targets.fat} unit="g" />
+      <div className="surface-card mt-3.5 space-y-3 p-4 text-start">
+        <MacroBar label="קלוריות" value={totals.calories} target={targets.calories} unit=" kcal" />
+        <MacroBar label="חלבון" value={totals.protein} target={targets.protein} unit="g" />
+        <MacroBar label="פחמימות" value={totals.carbs} target={targets.carbs} unit="g" />
+        <MacroBar label="שומן" value={totals.fat} target={targets.fat} unit="g" />
       </div>
 
-      <div className="mt-6 space-y-4">
+      <div className="mt-5 space-y-3.5 text-start">
         {day.meals.map((meal) => {
           const mealTotals = foodTotals(meal.foods);
           return (
@@ -196,18 +213,18 @@ function NutritionLog() {
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0 flex-1">
                   <input
-                    className="w-full bg-transparent text-lg font-semibold outline-none"
+                    className="w-full bg-transparent text-lg font-semibold text-foreground outline-none"
                     value={meal.name}
                     onChange={(e) => renameMeal(date, meal.id, e.target.value)}
                   />
                   <p className="text-xs text-muted-foreground tabular-nums">
-                    {Math.round(mealTotals.calories)} kcal · P {mealTotals.protein.toFixed(0)}g · C{" "}
-                    {mealTotals.carbs.toFixed(0)}g · F {mealTotals.fat.toFixed(0)}g
+                    {Math.round(mealTotals.calories)} קלוריות · חלבון {mealTotals.protein.toFixed(0)}g · פחמימות{" "}
+                    {mealTotals.carbs.toFixed(0)}g · שומן {mealTotals.fat.toFixed(0)}g
                   </p>
                 </div>
                 <button
                   type="button"
-                  aria-label="Delete meal"
+                  aria-label="מחק ארוחה"
                   onClick={() => deleteMeal(date, meal.id)}
                   className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-secondary text-destructive"
                 >
@@ -223,16 +240,16 @@ function NutritionLog() {
                         <Link
                           to="/nutrition/foods/$foodId"
                           params={{ foodId: food.foodId }}
-                          className="min-w-0 flex-1 font-semibold underline-offset-4 hover:underline"
+                          className="min-w-0 flex-1 font-semibold text-foreground underline-offset-4 hover:underline"
                         >
                           {food.name}
                         </Link>
                       ) : (
-                        <p className="min-w-0 flex-1 font-semibold">{food.name}</p>
+                        <p className="min-w-0 flex-1 font-semibold text-foreground">{food.name}</p>
                       )}
                       <button
                         type="button"
-                        aria-label="Remove food"
+                        aria-label="הסר מאכל"
                         onClick={() => removeMealFood(date, meal.id, food.id)}
                         className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-background text-destructive"
                       >
@@ -240,14 +257,14 @@ function NutritionLog() {
                       </button>
                     </div>
                     <p className="mt-0.5 text-xs text-muted-foreground">
-                      {food.servingSize} · {Math.round(food.calories * food.quantity)} kcal
+                      {food.servingSize} × {food.quantity} · {Math.round(food.calories * food.quantity)} קלוריות
                     </p>
                     <div className="mt-2 grid grid-cols-2 gap-2">
                       <Stepper
-                        label="Qty"
+                        label="כמות"
                         value={food.quantity}
                         step={0.5}
-                        min={0.5}
+                        min={0.1}
                         onChange={(quantity) =>
                           updateMealFood(date, meal.id, { ...food, quantity })
                         }
@@ -259,9 +276,9 @@ function NutritionLog() {
                             setSubstituteFor({ mealId: meal.id, food });
                             setSubstituteQuery("");
                           }}
-                          className="flex h-11 w-full items-center justify-center gap-1.5 rounded-xl bg-background text-xs font-semibold text-primary"
+                          className="flex h-11 w-full items-center justify-center gap-1.5 rounded-xl bg-background border border-border text-xs font-semibold text-primary transition-transform active:scale-95"
                         >
-                          <Shuffle className="h-3.5 w-3.5" /> Swap
+                          <Shuffle className="h-3.5 w-3.5" /> החלף מאכל (החלפה קלורית)
                         </button>
                       </div>
                     </div>
@@ -275,9 +292,9 @@ function NutritionLog() {
                   setPickerMealId(meal.id);
                   setPickerQuery("");
                 }}
-                className="mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-dashed border-border bg-secondary/40 text-sm font-semibold"
+                className="mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-dashed border-border bg-secondary/40 text-sm font-semibold text-foreground"
               >
-                <Plus className="h-4 w-4" /> Add food
+                <Plus className="h-4 w-4" /> הוסף מאכל לארוחה
               </button>
             </section>
           );
@@ -286,20 +303,21 @@ function NutritionLog() {
 
       <button
         type="button"
-        onClick={() => addMeal(date, "New meal")}
-        className="mt-4 flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-secondary font-semibold"
+        onClick={() => addMeal(date, "ארוחה חדשה")}
+        className="mt-4 flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-secondary font-semibold text-foreground"
       >
-        <Plus className="h-4 w-4" /> Add meal
+        <Plus className="h-4 w-4" /> הוסף ארוחה
       </button>
 
+      {/* Add Food from Library Modal */}
       {pickerMealId ? (
         <div className="fixed inset-0 z-40 flex flex-col justify-end bg-background/70 backdrop-blur-sm">
-          <div className="max-h-[80vh] overflow-y-auto rounded-t-3xl border-t border-border bg-card p-5">
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-lg font-semibold">Add from library</h2>
+          <div className="max-h-[80vh] overflow-y-auto rounded-t-3xl border-t border-border bg-card p-5 text-start">
+            <div className="mb-3.5 flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-foreground">הוסף מאכל מספריית המזון (400+ מוצרים)</h2>
               <button
                 type="button"
-                aria-label="Close"
+                aria-label="סגור"
                 onClick={() => setPickerMealId(null)}
                 className="grid h-10 w-10 place-items-center rounded-xl bg-secondary"
               >
@@ -310,53 +328,55 @@ function NutritionLog() {
               autoFocus
               value={pickerQuery}
               onChange={(e) => setPickerQuery(e.target.value)}
-              placeholder="Search foods…"
-              className="mb-3 w-full rounded-xl border border-border bg-secondary px-4 py-3 outline-none focus:border-primary"
+              placeholder="חפש מוצר בסופרמרקט הישראלי..."
+              className="mb-3 w-full rounded-xl border border-border bg-secondary px-4 py-3 text-sm outline-none focus:border-primary"
             />
             <div className="space-y-2">
-              {filteredFoods.map((food) => (
+              {filteredFoods.slice(0, 30).map((food) => (
                 <button
                   key={food.id}
                   type="button"
                   onClick={() => addFromLibrary(pickerMealId, food.id)}
-                  className="flex w-full items-center justify-between rounded-xl bg-secondary px-4 py-3 text-left active:scale-[0.99]"
+                  className="flex w-full items-center justify-between rounded-xl bg-secondary px-4 py-3 text-start active:scale-[0.99]"
                 >
-                  <div>
-                    <p className="font-semibold">{food.name}</p>
+                  <div className="min-w-0 flex-1">
+                    <p className="font-semibold text-foreground truncate">{food.name}</p>
                     <p className="text-xs text-muted-foreground">
-                      {food.servingSize} · {food.calories} kcal · P {food.protein}g
+                      {food.servingSize} · {food.calories} קלוריות · חלבון {food.protein}g · פחמימות {food.carbs}g
                     </p>
                   </div>
-                  <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                  <ArrowLeft className="h-4 w-4 text-muted-foreground shrink-0 ms-2" />
                 </button>
               ))}
               {filteredFoods.length === 0 ? (
-                <p className="py-6 text-center text-sm text-muted-foreground">No foods found.</p>
+                <p className="py-6 text-center text-sm text-muted-foreground">לא נמצאו מוצרים תואמים.</p>
               ) : null}
             </div>
             <Link
-              to="/nutrition/foods/new"
+              to="/nutrition/foods/$foodId"
+              params={{ foodId: "new" }}
               className="mt-4 flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary font-semibold text-primary-foreground"
             >
-              <Plus className="h-4 w-4" /> Create new food
+              <Plus className="h-4 w-4" /> צור מאכל חדש בספרייה
             </Link>
           </div>
         </div>
       ) : null}
 
+      {/* Calorie-Based Food Replacement Modal */}
       {substituteFor ? (
         <div className="fixed inset-0 z-40 flex flex-col justify-end bg-background/70 backdrop-blur-sm">
-          <div className="max-h-[80vh] overflow-y-auto rounded-t-3xl border-t border-border bg-card p-5">
-            <div className="mb-4 flex items-center justify-between">
+          <div className="max-h-[85vh] overflow-y-auto rounded-t-3xl border-t border-border bg-card p-5 text-start">
+            <div className="mb-3.5 flex items-start justify-between">
               <div>
-                <h2 className="text-lg font-semibold">Find a swap</h2>
-                <p className="text-sm text-muted-foreground">
-                  Similar calories & protein to {substituteFor.food.name}
+                <h2 className="text-lg font-bold text-foreground">החלפת מאכל שומרת קלוריות</h2>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  מחליף את "{substituteFor.food.name}" ({Math.round(substituteFor.food.calories * substituteFor.food.quantity)} קלוריות target)
                 </p>
               </div>
               <button
                 type="button"
-                aria-label="Close"
+                aria-label="סגור"
                 onClick={() => setSubstituteFor(null)}
                 className="grid h-10 w-10 place-items-center rounded-xl bg-secondary"
               >
@@ -367,27 +387,29 @@ function NutritionLog() {
               autoFocus
               value={substituteQuery}
               onChange={(e) => setSubstituteQuery(e.target.value)}
-              placeholder="Filter by name…"
-              className="mb-3 w-full rounded-xl border border-border bg-secondary px-4 py-3 outline-none focus:border-primary"
+              placeholder="סינון לפי שם המאכל החלופי..."
+              className="mb-3 w-full rounded-xl border border-border bg-secondary px-4 py-3 text-sm outline-none focus:border-primary"
             />
             <div className="space-y-2">
-              {replacements.map((food) => (
+              {replacements.map((item) => (
                 <button
-                  key={food.id}
+                  key={item.food.id}
                   type="button"
                   onClick={() =>
-                    applyReplacement(substituteFor.mealId, substituteFor.food, food.id)
+                    applyCalorieReplacement(substituteFor.mealId, substituteFor.food, item)
                   }
-                  className="flex w-full items-center justify-between rounded-xl bg-secondary px-4 py-3 text-left"
+                  className="flex w-full items-center justify-between rounded-xl bg-secondary px-4 py-3 text-start active:scale-[0.99] border border-border/50"
                 >
-                  <div>
-                    <p className="font-semibold">{food.name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {food.calories} kcal · P {food.protein}g · Δ
-                      {Math.abs(food.calories - substituteFor.food.calories)} kcal
+                  <div className="min-w-0 flex-1">
+                    <p className="font-semibold text-foreground truncate">{item.food.name}</p>
+                    <p className="text-xs text-primary font-medium mt-0.5">
+                      כמות נדרשת להשוואה: {item.calculatedQuantity} ({item.food.servingSize})
+                    </p>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">
+                      ערכים חלופיים: {item.calculatedCalories} קלוריות · חלבון {item.calculatedProtein}g · פחמימות {item.calculatedCarbs}g · שומן {item.calculatedFat}g
                     </p>
                   </div>
-                  <Shuffle className="h-4 w-4 text-primary" />
+                  <Shuffle className="h-4 w-4 text-primary shrink-0 ms-2" />
                 </button>
               ))}
             </div>
@@ -395,28 +417,29 @@ function NutritionLog() {
         </div>
       ) : null}
 
+      {/* Daily Targets Modal */}
       {showTargets ? (
         <div className="fixed inset-0 z-40 flex items-end bg-background/70 backdrop-blur-sm sm:items-center sm:justify-center">
-          <div className="w-full max-w-md rounded-t-3xl border-t border-border bg-card p-5 sm:rounded-3xl sm:border">
-            <h2 className="text-lg font-semibold">Daily targets</h2>
+          <div className="w-full max-w-md rounded-t-3xl border-t border-border bg-card p-5 sm:rounded-3xl sm:border text-start">
+            <h2 className="text-lg font-semibold text-foreground">יעדי תזונה יומיים</h2>
             <div className="mt-4 space-y-3">
               <TargetField
-                label="Calories"
+                label="קלוריות (kcal)"
                 value={targetsDraft.calories}
                 onChange={(calories) => setTargetsDraft((t) => ({ ...t, calories }))}
               />
               <TargetField
-                label="Protein (g)"
+                label="חלבון (גרם)"
                 value={targetsDraft.protein}
                 onChange={(protein) => setTargetsDraft((t) => ({ ...t, protein }))}
               />
               <TargetField
-                label="Carbs (g)"
+                label="פחמימות (גרם)"
                 value={targetsDraft.carbs}
                 onChange={(carbs) => setTargetsDraft((t) => ({ ...t, carbs }))}
               />
               <TargetField
-                label="Fat (g)"
+                label="שומן (גרם)"
                 value={targetsDraft.fat}
                 onChange={(fat) => setTargetsDraft((t) => ({ ...t, fat }))}
               />
@@ -425,9 +448,9 @@ function NutritionLog() {
               <button
                 type="button"
                 onClick={() => setShowTargets(false)}
-                className="h-12 rounded-xl bg-secondary font-semibold"
+                className="h-12 rounded-xl bg-secondary font-semibold text-foreground"
               >
-                Cancel
+                ביטול
               </button>
               <button
                 type="button"
@@ -437,7 +460,7 @@ function NutritionLog() {
                 }}
                 className="h-12 rounded-xl bg-primary font-semibold text-primary-foreground"
               >
-                Save
+                שמור יעדים
               </button>
             </div>
           </div>
@@ -458,7 +481,7 @@ function TargetField({
 }) {
   return (
     <label className="block">
-      <span className="section-kicker">{label}</span>
+      <span className="section-kicker block">{label}</span>
       <input
         inputMode="numeric"
         value={value ?? ""}
@@ -467,7 +490,7 @@ function TargetField({
           onChange(raw === "" ? undefined : Number(raw));
         }}
         placeholder="—"
-        className="mt-1 w-full rounded-xl border border-border bg-secondary px-4 py-3 outline-none focus:border-primary"
+        className="mt-1 w-full rounded-xl border border-border bg-secondary px-4 py-3 outline-none focus:border-primary text-base"
       />
     </label>
   );
