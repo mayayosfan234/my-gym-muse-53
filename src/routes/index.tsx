@@ -38,9 +38,9 @@ import { CARDIO_TYPES } from "@/lib/gym-types";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "לוח בקרה — GymTrack" },
+      { title: "לוח בקרה — הרוטינה שלי" },
       { name: "description", content: "מעקב אימונים, משקל גוף ותזונה יומית." },
-      { property: "og:title", content: "לוח בקרה — GymTrack" },
+      { property: "og:title", content: "לוח בקרה — הרוטינה שלי" },
     ],
   }),
   component: Dashboard,
@@ -91,6 +91,7 @@ function Dashboard() {
   // RMR & Body Profile
   const rmrData = calculateRmr(userProfile);
   const [weightInput, setWeightInput] = useState(String(userProfile?.weight ?? 65));
+  const [workoutsWeekInput, setWorkoutsWeekInput] = useState(String(userProfile?.workoutsPerWeek ?? 4));
   const [showBodyModal, setShowBodyModal] = useState(false);
   const [showCardioModal, setShowCardioModal] = useState(false);
 
@@ -106,12 +107,17 @@ function Dashboard() {
     ? programs.find((p) => p.dayIds.includes(nextWorkout.id))
     : undefined;
 
-  const handleWeightSave = () => {
-    const val = parseFloat(weightInput);
-    if (!isNaN(val) && val > 0) {
-      saveBodyWeight(val);
-      saveUserProfile({ ...(userProfile ?? { weight: 65 }), weight: val });
-    }
+  const handleProfileSave = () => {
+    const valW = parseFloat(weightInput);
+    const valFreq = parseInt(workoutsWeekInput, 10) || 4;
+    const w = !isNaN(valW) && valW > 0 ? valW : userProfile?.weight ?? 65;
+
+    saveBodyWeight(w);
+    saveUserProfile({
+      ...(userProfile ?? { weight: 65, height: 165, age: 26, gender: "female" }),
+      weight: w,
+      workoutsPerWeek: valFreq,
+    });
     setShowBodyModal(false);
   };
 
@@ -285,7 +291,7 @@ function Dashboard() {
               onClick={() => setShowBodyModal(true)}
               className="press rounded-full bg-secondary px-3 py-1.5 text-[12px] font-bold text-primary"
             >
-              עדכני משקל
+              עדכני נתונים
             </button>
           }
         />
@@ -299,7 +305,7 @@ function Dashboard() {
             </div>
             <div className="num-pill p-3">
               <p className="text-[10.5px] font-bold text-muted-foreground uppercase">
-                RMR (במנוחה)
+                RMR (מנוחה)
               </p>
               <p className="mt-1 font-display text-[20px] font-bold tabular-nums text-ink">
                 {rmrData.rmr} <span className="text-[12px] font-normal">קל׳</span>
@@ -307,7 +313,7 @@ function Dashboard() {
             </div>
             <div className="num-pill p-3">
               <p className="text-[10.5px] font-bold text-muted-foreground uppercase">
-                יומי כולל (TDEE)
+                יומי (TDEE)
               </p>
               <p className="mt-1 font-display text-[20px] font-bold tabular-nums text-primary">
                 {rmrData.tdee} <span className="text-[12px] font-normal">קל׳</span>
@@ -315,8 +321,7 @@ function Dashboard() {
             </div>
           </div>
           <p className="mt-2.5 text-[11.5px] text-muted-foreground">
-            * RMR מציג את השריפה הקלורית של הגוף במנוחה מוחלטת. הוצאה יומית מוערכת לפי 4 אימונים
-            בשבוע.
+            * RMR מציג את השריפה הקלורית של הגוף במנוחה מוחלטת. הוצאה יומית (TDEE) מחושבת לפי {userProfile?.workoutsPerWeek ?? 4} אימונים בשבוע.
           </p>
         </div>
       </section>
@@ -371,7 +376,7 @@ function Dashboard() {
         )}
       </section>
 
-      {/* Modal: Update Body Weight */}
+      {/* Modal: Update Body Weight & Workouts Per Week */}
       {showBodyModal ? (
         <div
           className="fade-in fixed inset-0 z-50 flex items-end justify-center bg-black/40 backdrop-blur-sm"
@@ -382,23 +387,36 @@ function Dashboard() {
             onClick={(e) => e.stopPropagation()}
           >
             <p className="text-[11px] font-bold tracking-wider text-primary uppercase">
-              עדכון משקל גוף
+              עדכון נתוני גוף ופעילות
             </p>
             <h3 className="mt-1 font-display text-[20px] font-bold text-ink">
-              מה משקל הגוף הנוכחי שלך?
+              עדכני משקל ומספר אימונים
             </h3>
-            <div className="mt-4">
-              <label className="block text-[12px] font-bold text-muted-foreground">משקל (בק״ג)</label>
-              <input
-                type="number"
-                step="0.1"
-                value={weightInput}
-                onChange={(e) => setWeightInput(e.target.value)}
-                className="mt-1 w-full rounded-2xl border border-border bg-secondary px-4 py-3 text-[18px] font-bold text-ink outline-none focus:border-primary"
-              />
+            <div className="mt-4 space-y-3">
+              <div>
+                <label className="block text-[12px] font-bold text-muted-foreground">משקל (בק״ג)</label>
+                <input
+                  type="number"
+                  step="0.1"
+                  value={weightInput}
+                  onChange={(e) => setWeightInput(e.target.value)}
+                  className="mt-1 w-full rounded-2xl border border-border bg-secondary px-4 py-3 text-[17px] font-bold text-ink outline-none focus:border-primary"
+                />
+              </div>
+              <div>
+                <label className="block text-[12px] font-bold text-muted-foreground">אימונים בשבוע</label>
+                <input
+                  type="number"
+                  min="0"
+                  max="14"
+                  value={workoutsWeekInput}
+                  onChange={(e) => setWorkoutsWeekInput(e.target.value)}
+                  className="mt-1 w-full rounded-2xl border border-border bg-secondary px-4 py-3 text-[17px] font-bold text-ink outline-none focus:border-primary"
+                />
+              </div>
             </div>
             <div className="mt-5 flex gap-2">
-              <PrimaryButton onClick={handleWeightSave}>שמרי משקל</PrimaryButton>
+              <PrimaryButton onClick={handleProfileSave}>שמרי נתונים</PrimaryButton>
             </div>
           </div>
         </div>

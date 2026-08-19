@@ -1,5 +1,20 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { Check, ChevronLeft, Copy, Info, Pause, Play, Plus, RefreshCw, Search, Timer, X } from "lucide-react";
+import {
+  Check,
+  ChevronLeft,
+  Copy,
+  Info,
+  Minus,
+  Pause,
+  Play,
+  Plus,
+  RefreshCw,
+  RotateCcw,
+  Search,
+  SkipForward,
+  Timer,
+  X,
+} from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { Stepper } from "@/components/Stepper";
@@ -20,7 +35,7 @@ export const Route = createFileRoute("/session/$workoutId")({
       { title: "אימון פעיל — הרוטינה שלי" },
       {
         name: "description",
-        content: "רשום סטים, משקלים וחזרות בזמן אמת במהלך האימון.",
+        content: "רשמי סטים, משקלים וחזרות בזמן אמת במהלך האימון.",
       },
       { property: "og:title", content: "אימון פעיל — הרוטינה שלי" },
     ],
@@ -56,6 +71,8 @@ function supersetLabels(items: WorkoutItem[]) {
   return labels;
 }
 
+const ACTIVE_SESSION_KEY = (id: string) => `gymtrack.active_session.${id}`;
+
 function Session() {
   const { workoutId } = Route.useParams();
   const navigate = useNavigate();
@@ -70,6 +87,20 @@ function Session() {
 
   const initial = useMemo<HistoryEntry[]>(() => {
     if (!workout) return [];
+
+    // Check for saved active session in localStorage to support seamless resume on refresh
+    try {
+      const saved = localStorage.getItem(ACTIVE_SESSION_KEY(workoutId));
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length === workout.items.length) {
+          return parsed;
+        }
+      }
+    } catch {
+      /* ignore */
+    }
+
     return workout.items.map((item) => {
       const ex = exercises.find((e) => e.id === item.exerciseId);
       const last = lastPerformance(history, item.exerciseId);
@@ -113,7 +144,19 @@ function Session() {
   const [pendingExit, setPendingExit] = useState(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  useEffect(() => setEntries(initial), [initial]);
+  useEffect(() => {
+    setEntries(initial);
+  }, [initial]);
+
+  // Continuously save active session progress to survive page refresh or app reopening
+  useEffect(() => {
+    if (!workoutId || entries.length === 0) return;
+    try {
+      localStorage.setItem(ACTIVE_SESSION_KEY(workoutId), JSON.stringify(entries));
+    } catch {
+      /* ignore */
+    }
+  }, [entries, workoutId]);
 
   useEffect(() => {
     if (rest <= 0) return;
@@ -180,6 +223,14 @@ function Session() {
     setReplaceSearch("");
   };
 
+  const clearSavedSession = () => {
+    try {
+      localStorage.removeItem(ACTIVE_SESSION_KEY(workout.id));
+    } catch {
+      /* ignore */
+    }
+  };
+
   const totalSets = entries.reduce((a, e) => a + e.sets.filter((s) => !s.warmup).length, 0);
   const doneSets = entries.reduce(
     (a, e) => a + e.sets.filter((s) => s.done && !s.warmup).length,
@@ -196,6 +247,7 @@ function Session() {
       durationSec: Math.round((Date.now() - startedAt) / 1000),
       entries: entries.map((e) => ({ ...e, sets: e.sets.filter((s) => s.done) })),
     });
+    clearSavedSession();
     navigate({ to: "/history" });
   };
 
@@ -506,32 +558,52 @@ function Session() {
         </PrimaryButton>
       </div>
 
-      {/* Timer floating bar */}
+      {/* Floating Rest Timer Bar with +/- 15s Controls and Skip */}
       {rest > 0 ? (
         <div
           className="scale-in fixed inset-x-0 z-40 mx-auto max-w-xl px-4"
           style={{ bottom: "calc(5.5rem + env(safe-area-inset-bottom))" }}
         >
-          <div className="ink-card flex items-center gap-3 p-4">
-            <div className="grid h-10 w-10 place-items-center rounded-full bg-white/15">
+          <div className="ink-card flex items-center gap-2 p-3.5">
+            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white/15">
               <Timer className="h-4 w-4 text-primary-foreground" />
             </div>
-            <div className="flex-1 text-start">
-              <p className="text-[10.5px] font-semibold tracking-[0.14em] text-primary-foreground/80 uppercase">
-                מנוחה
+            <div className="flex-1 min-w-0 text-start">
+              <p className="text-[10px] font-semibold tracking-[0.14em] text-primary-foreground/80 uppercase">
+                זמן מנוחה
               </p>
-              <p className="font-display text-[22px] font-semibold tabular-nums text-primary-foreground">
+              <p className="font-display text-[20px] font-semibold tabular-nums text-primary-foreground">
                 {Math.floor(rest / 60)}:{String(rest % 60).padStart(2, "0")}
               </p>
             </div>
-            <button
-              type="button"
-              onClick={() => setRest(0)}
-              className="press grid h-11 w-11 place-items-center rounded-full bg-white/15 text-primary-foreground hover:bg-white/25"
-              aria-label="עצור מנוחה"
-            >
-              <Pause className="h-4 w-4" fill="currentColor" />
-            </button>
+
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => setRest((r) => Math.max(0, r - 15))}
+                className="press rounded-xl bg-white/15 px-2.5 py-1.5 text-[12px] font-bold text-primary-foreground hover:bg-white/25"
+                title="-15 שניות"
+              >
+                -15ש׳
+              </button>
+              <button
+                type="button"
+                onClick={() => setRest((r) => r + 15)}
+                className="press rounded-xl bg-white/15 px-2.5 py-1.5 text-[12px] font-bold text-primary-foreground hover:bg-white/25"
+                title="+15 שניות"
+              >
+                +15ש׳
+              </button>
+              <button
+                type="button"
+                onClick={() => setRest(0)}
+                className="press flex items-center gap-1 rounded-xl bg-white/20 px-3 py-1.5 text-[12px] font-bold text-primary-foreground hover:bg-white/30"
+                title="סלג/דלגי"
+              >
+                <SkipForward className="h-3.5 w-3.5 fill-current" />
+                <span>דילוג</span>
+              </button>
+            </div>
           </div>
         </div>
       ) : null}
@@ -697,11 +769,12 @@ function Session() {
       <ConfirmSheet
         open={pendingExit}
         title="לצאת מהאימון?"
-        description="הסטים שתיעדת עד כה לא יישמרו. אם תרצי לשמור את ההתקדמות, לחצי על ״סיים ושמור אימון״ במקום."
+        description="הסטים שתיעדת עד כה יישמרו רק אם לא תנקי את הנתונים, אך לא יישמרו בהיסטוריית האימונים הסופית."
         confirmLabel="צאי בלי לשמור"
         cancelLabel="המשיכי באימון"
         destructive
         onConfirm={() => {
+          clearSavedSession();
           setPendingExit(false);
           navigate({ to: "/programs" });
         }}
