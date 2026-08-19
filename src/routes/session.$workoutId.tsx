@@ -1,5 +1,20 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { Check, ChevronLeft, Info, Pause, Play, Plus, Timer, X } from "lucide-react";
+import {
+  Check,
+  ChevronLeft,
+  Copy,
+  Info,
+  Minus,
+  Pause,
+  Play,
+  Plus,
+  RefreshCw,
+  RotateCcw,
+  Search,
+  SkipForward,
+  Timer,
+  X,
+} from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { Stepper } from "@/components/Stepper";
@@ -20,7 +35,7 @@ export const Route = createFileRoute("/session/$workoutId")({
       { title: "אימון פעיל — הרוטינה שלי" },
       {
         name: "description",
-        content: "רשום סטים, משקלים וחזרות בזמן אמת במהלך האימון.",
+        content: "רשמי סטים, משקלים וחזרות בזמן אמת במהלך האימון.",
       },
       { property: "og:title", content: "אימון פעיל — הרוטינה שלי" },
     ],
@@ -56,6 +71,8 @@ function supersetLabels(items: WorkoutItem[]) {
   return labels;
 }
 
+const ACTIVE_SESSION_KEY = (id: string) => `gymtrack.active_session.${id}`;
+
 function Session() {
   const { workoutId } = Route.useParams();
   const navigate = useNavigate();
@@ -64,8 +81,26 @@ function Session() {
   const currentProgram = programs.find((program) => program.dayIds.includes(workoutId));
   const [cardExercise, setCardExercise] = useState<Exercise | null>(null);
 
+  // Exercise replacement modal state
+  const [replacingIndex, setReplacingIndex] = useState<number | null>(null);
+  const [replaceSearch, setReplaceSearch] = useState("");
+
   const initial = useMemo<HistoryEntry[]>(() => {
     if (!workout) return [];
+
+    // Check for saved active session in localStorage to support seamless resume on refresh
+    try {
+      const saved = localStorage.getItem(ACTIVE_SESSION_KEY(workoutId));
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length === workout.items.length) {
+          return parsed;
+        }
+      }
+    } catch {
+      /* ignore */
+    }
+
     return workout.items.map((item) => {
       const ex = exercises.find((e) => e.id === item.exerciseId);
       const last = lastPerformance(history, item.exerciseId);
@@ -109,7 +144,19 @@ function Session() {
   const [pendingExit, setPendingExit] = useState(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  useEffect(() => setEntries(initial), [initial]);
+  useEffect(() => {
+    setEntries(initial);
+  }, [initial]);
+
+  // Continuously save active session progress to survive page refresh or app reopening
+  useEffect(() => {
+    if (!workoutId || entries.length === 0) return;
+    try {
+      localStorage.setItem(ACTIVE_SESSION_KEY(workoutId), JSON.stringify(entries));
+    } catch {
+      /* ignore */
+    }
+  }, [entries, workoutId]);
 
   useEffect(() => {
     if (rest <= 0) return;
@@ -138,6 +185,52 @@ function Session() {
       ),
     );
 
+  const toggleSetDone = (ei: number, si: number) => {
+    const currentSet = entries[ei]?.sets[si];
+    if (!currentSet) return;
+    const isNowDone = !currentSet.done;
+    patchSet(ei, si, { done: isNowDone });
+
+    // Auto trigger rest timer on completing a working set
+    if (isNowDone && !currentSet.warmup) {
+      const restSec = workout.items[ei]?.rest ?? 60;
+      setRest(restSec);
+    }
+  };
+
+  const copySetValues = (ei: number, si: number) => {
+    if (si <= 0) return;
+    const prevSet = entries[ei]?.sets[si - 1];
+    if (prevSet) {
+      patchSet(ei, si, { weight: prevSet.weight, reps: prevSet.reps });
+    }
+  };
+
+  const replaceExercise = (ei: number, newEx: Exercise) => {
+    setEntries((prev) =>
+      prev.map((e, i) =>
+        i === ei
+          ? {
+              ...e,
+              exerciseId: newEx.id,
+              exerciseName: newEx.name,
+              equipment: newEx.equipment,
+            }
+          : e,
+      ),
+    );
+    setReplacingIndex(null);
+    setReplaceSearch("");
+  };
+
+  const clearSavedSession = () => {
+    try {
+      localStorage.removeItem(ACTIVE_SESSION_KEY(workout.id));
+    } catch {
+      /* ignore */
+    }
+  };
+
   const totalSets = entries.reduce((a, e) => a + e.sets.filter((s) => !s.warmup).length, 0);
   const doneSets = entries.reduce(
     (a, e) => a + e.sets.filter((s) => s.done && !s.warmup).length,
@@ -154,16 +247,24 @@ function Session() {
       durationSec: Math.round((Date.now() - startedAt) / 1000),
       entries: entries.map((e) => ({ ...e, sets: e.sets.filter((s) => s.done) })),
     });
+    clearSavedSession();
     navigate({ to: "/history" });
   };
 
   const progress = totalSets ? (doneSets / totalSets) * 100 : 0;
 
+  const filteredExercisesForReplace = exercises.filter(
+    (ex) =>
+      ex.name.toLowerCase().includes(replaceSearch.toLowerCase()) ||
+      ex.muscleGroup.toLowerCase().includes(replaceSearch.toLowerCase()) ||
+      (ex.equipment && ex.equipment.toLowerCase().includes(replaceSearch.toLowerCase())),
+  );
+
   return (
     <AppShell
       kicker={currentProgram?.name ?? "אימון"}
       title={workout.name}
-      subtitle={`${doneSets} מתוך ${totalSets} סטים · שלב טוב!`}
+      subtitle={`${doneSets} מתוך ${totalSets} סטים · בהצלחה!`}
       action={
         <IconButton aria-label="יציאה מהאימון" onClick={() => setPendingExit(true)}>
           <X className="h-5 w-5" />
@@ -178,7 +279,7 @@ function Session() {
         <div className="min-w-0 flex-1">
           <div className="mb-1 flex items-center justify-between gap-2">
             <p className="text-[11px] font-semibold tracking-[0.14em] text-muted-foreground uppercase">
-              התקדמות
+              התקדמות אימון
             </p>
             <p className="text-[11.5px] font-semibold tabular-nums text-ink">
               {Math.round(progress)}%
@@ -236,15 +337,27 @@ function Session() {
                     {entry.targetSets ?? workingCount}× {targetLabel} חזרות
                   </p>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setRest(item?.rest ?? 60)}
-                  className="press flex shrink-0 items-center gap-1 rounded-full bg-secondary px-3 py-2 text-[12px] font-semibold text-ink"
-                  aria-label="התחל מנוחה"
-                >
-                  <Timer className="h-3.5 w-3.5 text-primary" />
-                  {item?.rest ?? 60}ש׳
-                </button>
+
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setReplacingIndex(ei)}
+                    className="press grid h-9 w-9 place-items-center rounded-full bg-secondary text-muted-foreground hover:text-primary"
+                    title="החליפי תרגיל"
+                    aria-label="החליפי תרגיל"
+                  >
+                    <RefreshCw className="h-3.5 w-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setRest(item?.rest ?? 60)}
+                    className="press flex shrink-0 items-center gap-1 rounded-full bg-secondary px-3 py-2 text-[12px] font-semibold text-ink"
+                    aria-label="התחל מנוחה"
+                  >
+                    <Timer className="h-3.5 w-3.5 text-primary" />
+                    {item?.rest ?? 60}ש׳
+                  </button>
+                </div>
               </div>
 
               {entry.notes ? (
@@ -310,10 +423,23 @@ function Session() {
                             ) : null}
                           </p>
                         </div>
+
+                        {si > 0 ? (
+                          <button
+                            type="button"
+                            onClick={() => copySetValues(ei, si)}
+                            className="press flex items-center gap-1 rounded-xl bg-secondary px-2 py-1 text-[11px] font-medium text-muted-foreground hover:text-ink"
+                            title="העתק משקל וחזרות מסט קודם"
+                          >
+                            <Copy className="h-3 w-3" />
+                            <span className="hidden sm:inline">העתקי</span>
+                          </button>
+                        ) : null}
+
                         {!s.warmup ? (
                           <button
                             type="button"
-                            onClick={() => patchSet(ei, si, { done: !s.done })}
+                            onClick={() => toggleSetDone(ei, si)}
                             className={`press grid h-11 w-11 place-items-center rounded-2xl text-[13px] font-bold transition-colors ${
                               s.done
                                 ? "bg-primary text-primary-foreground"
@@ -432,32 +558,52 @@ function Session() {
         </PrimaryButton>
       </div>
 
-      {/* Timer floating bar */}
+      {/* Floating Rest Timer Bar with +/- 15s Controls and Skip */}
       {rest > 0 ? (
         <div
           className="scale-in fixed inset-x-0 z-40 mx-auto max-w-xl px-4"
           style={{ bottom: "calc(5.5rem + env(safe-area-inset-bottom))" }}
         >
-          <div className="ink-card flex items-center gap-3 p-4">
-            <div className="grid h-10 w-10 place-items-center rounded-full bg-white/15">
+          <div className="ink-card flex items-center gap-2 p-3.5">
+            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white/15">
               <Timer className="h-4 w-4 text-primary-foreground" />
             </div>
-            <div className="flex-1 text-start">
-              <p className="text-[10.5px] font-semibold tracking-[0.14em] text-primary-foreground/80 uppercase">
-                מנוחה
+            <div className="flex-1 min-w-0 text-start">
+              <p className="text-[10px] font-semibold tracking-[0.14em] text-primary-foreground/80 uppercase">
+                זמן מנוחה
               </p>
-              <p className="font-display text-[22px] font-semibold tabular-nums text-primary-foreground">
+              <p className="font-display text-[20px] font-semibold tabular-nums text-primary-foreground">
                 {Math.floor(rest / 60)}:{String(rest % 60).padStart(2, "0")}
               </p>
             </div>
-            <button
-              type="button"
-              onClick={() => setRest(0)}
-              className="press grid h-11 w-11 place-items-center rounded-full bg-white/15 text-primary-foreground hover:bg-white/25"
-              aria-label="עצור מנוחה"
-            >
-              <Pause className="h-4 w-4" fill="currentColor" />
-            </button>
+
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => setRest((r) => Math.max(0, r - 15))}
+                className="press rounded-xl bg-white/15 px-2.5 py-1.5 text-[12px] font-bold text-primary-foreground hover:bg-white/25"
+                title="-15 שניות"
+              >
+                -15ש׳
+              </button>
+              <button
+                type="button"
+                onClick={() => setRest((r) => r + 15)}
+                className="press rounded-xl bg-white/15 px-2.5 py-1.5 text-[12px] font-bold text-primary-foreground hover:bg-white/25"
+                title="+15 שניות"
+              >
+                +15ש׳
+              </button>
+              <button
+                type="button"
+                onClick={() => setRest(0)}
+                className="press flex items-center gap-1 rounded-xl bg-white/20 px-3 py-1.5 text-[12px] font-bold text-primary-foreground hover:bg-white/30"
+                title="סלג/דלגי"
+              >
+                <SkipForward className="h-3.5 w-3.5 fill-current" />
+                <span>דילוג</span>
+              </button>
+            </div>
           </div>
         </div>
       ) : null}
@@ -469,7 +615,7 @@ function Session() {
           inputMode="numeric"
           value={customRest}
           onChange={(e) => setCustomRest(e.target.value.replace(/\D/g, ""))}
-          placeholder="מנוחה מותאמת..."
+          placeholder="מנוחה מותאמת (שניות)..."
           className="min-w-0 flex-1 bg-transparent text-[13px] outline-none placeholder:text-muted-foreground"
         />
         <button
@@ -560,14 +706,75 @@ function Session() {
         </div>
       ) : null}
 
+      {/* Replace Exercise Modal */}
+      {replacingIndex !== null ? (
+        <div
+          className="fade-in fixed inset-0 z-50 flex items-end justify-center bg-foreground/40 backdrop-blur-sm"
+          onClick={() => setReplacingIndex(null)}
+          style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+        >
+          <div
+            className="scale-in max-h-[85dvh] w-full max-w-xl overflow-y-auto rounded-t-[2rem] border-t border-border/40 bg-card p-5 text-start shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-border" />
+            <div className="flex items-center justify-between">
+              <h2 className="font-display text-[18px] font-bold text-ink">
+                החליפי תרגיל במקום: {entries[replacingIndex]?.exerciseName}
+              </h2>
+              <IconButton
+                aria-label="סגור"
+                onClick={() => setReplacingIndex(null)}
+                variant="ghost"
+              >
+                <X className="h-5 w-5" />
+              </IconButton>
+            </div>
+
+            <div className="mt-3 flex items-center gap-2 rounded-2xl bg-secondary px-3.5 py-2.5">
+              <Search className="h-4 w-4 text-muted-foreground shrink-0" />
+              <input
+                type="text"
+                value={replaceSearch}
+                onChange={(e) => setReplaceSearch(e.target.value)}
+                placeholder="חפשי תרגיל חלופי..."
+                className="min-w-0 flex-1 bg-transparent text-[13.5px] outline-none placeholder:text-muted-foreground"
+              />
+            </div>
+
+            <div className="mt-4 space-y-2 pb-6">
+              {filteredExercisesForReplace.map((ex) => (
+                <button
+                  key={ex.id}
+                  type="button"
+                  onClick={() => replaceExercise(replacingIndex, ex)}
+                  className="press flex w-full items-center justify-between rounded-2xl bg-secondary p-3.5 text-start hover:bg-secondary/80"
+                >
+                  <div>
+                    <p className="font-semibold text-ink text-[14px]">{ex.name}</p>
+                    <p className="text-[12px] text-muted-foreground">
+                      {ex.muscleGroup} {ex.equipment ? `· ${ex.equipment}` : ""}
+                    </p>
+                  </div>
+                  <span className="rounded-xl bg-primary/10 px-2.5 py-1 text-[12px] font-semibold text-primary">
+                    בחר
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       <ConfirmSheet
         open={pendingExit}
         title="לצאת מהאימון?"
-        description="הסטים שתיעדת עד כה לא יישמרו. אם תרצי לשמור את ההתקדמות, לחצי על ״סיים ושמור אימון״ במקום."
+        description="הסטים שתיעדת עד כה יישמרו רק אם לא תנקי את הנתונים, אך לא יישמרו בהיסטוריית האימונים הסופית."
         confirmLabel="צאי בלי לשמור"
         cancelLabel="המשיכי באימון"
         destructive
         onConfirm={() => {
+          clearSavedSession();
           setPendingExit(false);
           navigate({ to: "/programs" });
         }}
