@@ -4,7 +4,6 @@ import { useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { ConfirmSheet } from "@/components/ui-app/ConfirmSheet";
 import {
-  Card,
   EmptyState,
   IconButton,
   Pill,
@@ -46,7 +45,7 @@ function ProgramsPage() {
           aria-label="תכנית חדשה"
           onClick={() => setAdding((value) => !value)}
         >
-          <Plus className="h-5 w-5" strokeWidth={2.2} />
+          <Plus className="h-5 w-5" strokeWidth={2.4} />
         </IconButton>
       }
     >
@@ -55,11 +54,11 @@ function ProgramsPage() {
         <div className="relative z-10 max-w-sm text-start">
           <div className="flex items-center gap-1.5">
             <Sparkles className="h-3.5 w-3.5 text-primary" strokeWidth={2.2} />
-            <p className="text-[10.5px] font-semibold tracking-[0.16em] text-primary uppercase">
+            <p className="text-[10.5px] font-bold tracking-[0.16em] text-primary uppercase">
               מרחב האימונים שלך
             </p>
           </div>
-          <h2 className="mt-2 font-display text-[1.5rem] font-semibold leading-[1.15] text-ink">
+          <h2 className="mt-2 font-display text-[1.5rem] font-bold leading-[1.15] text-ink">
             הפכי כל אימון לפשוט וזמין לביצוע.
           </h2>
           <p className="mt-2 text-[12.5px] leading-relaxed text-muted-foreground">
@@ -71,9 +70,9 @@ function ProgramsPage() {
 
       {/* Add new program input */}
       {adding ? (
-        <div className="surface-card mt-4 p-4">
+        <div className="surface-card mt-4 p-4 text-start">
           <div className="flex items-center justify-between gap-2">
-            <p className="text-[11px] font-semibold tracking-[0.14em] text-muted-foreground uppercase">
+            <p className="text-[11px] font-bold tracking-[0.14em] text-muted-foreground uppercase">
               תכנית חדשה
             </p>
             <button
@@ -83,7 +82,7 @@ function ProgramsPage() {
                 setName("");
               }}
               aria-label="סגור"
-              className="press grid h-8 w-8 place-items-center rounded-lg text-muted-foreground hover:bg-secondary"
+              className="press grid h-8 w-8 place-items-center rounded-xl text-muted-foreground hover:bg-secondary"
             >
               <X className="h-4 w-4" />
             </button>
@@ -128,7 +127,7 @@ function ProgramsPage() {
                 <article key={program.id} className="surface-card press p-4">
                   <div className="flex items-start gap-3.5">
                     <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-sage-soft text-primary">
-                      <Calendar className="h-5 w-5" strokeWidth={1.8} />
+                      <Calendar className="h-5 w-5" strokeWidth={2} />
                     </div>
                     <div className="min-w-0 flex-1 text-start">
                       <Link
@@ -136,10 +135,10 @@ function ProgramsPage() {
                         params={{ programId: program.id }}
                         className="block"
                       >
-                        <p className="truncate font-display text-[16px] font-semibold text-ink">
+                        <p className="truncate font-display text-[16px] font-bold text-ink">
                           {program.name}
                         </p>
-                        <p className="mt-0.5 text-[12.5px] text-muted-foreground">
+                        <p className="mt-0.5 text-[12.5px] font-medium text-muted-foreground">
                           {daysCount} ימי אימון · {exerciseCount} תרגילים
                         </p>
                       </Link>
@@ -165,7 +164,7 @@ function ProgramsPage() {
                         to="/programs/$programId"
                         params={{ programId: program.id }}
                         aria-label="פתח תכנית"
-                        className="press grid h-9 w-9 place-items-center rounded-xl bg-primary text-primary-foreground"
+                        className="press grid h-9 w-9 place-items-center rounded-xl bg-primary text-primary-foreground shadow-sm"
                       >
                         <ArrowLeft className="h-4 w-4" />
                       </Link>
@@ -189,9 +188,9 @@ function ProgramsPage() {
               <button
                 type="button"
                 onClick={() => setAdding(true)}
-                className="press inline-flex h-11 items-center gap-2 rounded-full bg-primary px-5 text-[13.5px] font-semibold text-primary-foreground"
+                className="press inline-flex h-11 items-center gap-2 rounded-full bg-primary px-5 text-[13.5px] font-bold text-primary-foreground shadow-sm"
               >
-                <Plus className="h-4 w-4" strokeWidth={2.2} />
+                <Plus className="h-4 w-4" strokeWidth={2.4} />
                 יצירת תכנית אימונים
               </button>
             }
@@ -206,13 +205,11 @@ function ProgramsPage() {
               <Pill className="bg-transparent">💡</Pill>
             </div>
             <p className="text-start text-[12.5px] leading-relaxed text-muted-foreground">
-              רוצי להתחיל מהר? שכפלי תכנית קיימת והתאימי אותה לשבוע הבא.
+              רוצה להתחיל מהר? שכפלי תכנית קיימת והתאימי אותה לשבוע הבא.
             </p>
           </div>
         </div>
       ) : null}
-
-      <Card className="mt-4 hidden">{/* placeholder for layout */}</Card>
 
       <ConfirmSheet
         open={pendingDelete !== null}

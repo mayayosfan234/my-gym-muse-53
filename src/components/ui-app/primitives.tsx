@@ -103,7 +103,7 @@ export function Pill({
       onClick={onClick}
       data-active={active ? "true" : undefined}
       className={cn(
-        "inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-[11.5px] font-semibold transition-colors",
+        "inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-[11.5px] font-bold transition-colors",
         active ? "bg-primary text-primary-foreground shadow-sm" : styles[variant],
         interactive && "press active:scale-95",
         className,
@@ -124,8 +124,8 @@ export function IconButton({
   variant?: "default" | "primary" | "ghost";
 }) {
   const styles = {
-    default: "bg-white/80 border border-border/60 text-ink hover:bg-white",
-    primary: "bg-primary text-primary-foreground hover:bg-primary/90",
+    default: "bg-white/80 border border-border/60 text-ink hover:bg-white shadow-sm",
+    primary: "bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm",
     ghost: "bg-transparent text-ink hover:bg-secondary",
   } as const;
   return (
@@ -157,8 +157,8 @@ export function SectionHeader({
 }) {
   return (
     <div className={cn("mb-3 flex items-end justify-between gap-3", className)}>
-      <div className="min-w-0">
-        <h2 className="font-display text-[18px] font-semibold tracking-tight text-ink">{title}</h2>
+      <div className="min-w-0 text-start">
+        <h2 className="font-display text-[18px] font-bold tracking-tight text-ink">{title}</h2>
         {subtitle ? <p className="mt-0.5 text-[12.5px] text-muted-foreground">{subtitle}</p> : null}
       </div>
       {action ? <div className="shrink-0">{action}</div> : null}
@@ -191,10 +191,10 @@ export function StatTile({
       <div className={cn("grid h-9 w-9 place-items-center rounded-xl", tones[tone])}>
         {Icon ? <Icon className="h-4 w-4" strokeWidth={2.2} /> : null}
       </div>
-      <p className="mt-1 font-display text-[22px] font-semibold leading-none tabular-nums text-ink">
+      <p className="mt-1 font-display text-[22px] font-bold leading-none tabular-nums text-ink">
         {value}
       </p>
-      <p className="text-[11.5px] leading-tight text-muted-foreground">{label}</p>
+      <p className="text-[11.5px] font-medium leading-tight text-muted-foreground">{label}</p>
       {hint ? (
         <p className="mt-0.5 text-[10.5px] leading-tight text-muted-foreground/80">{hint}</p>
       ) : null}
@@ -221,7 +221,7 @@ export function EmptyState({
           <Icon className="h-7 w-7" strokeWidth={1.8} />
         </div>
       ) : null}
-      <h3 className="mt-4 font-display text-[19px] font-semibold text-ink">{title}</h3>
+      <h3 className="mt-4 font-display text-[19px] font-bold text-ink">{title}</h3>
       {description ? (
         <p className="mt-1.5 text-[13px] leading-relaxed text-muted-foreground">{description}</p>
       ) : null}
@@ -245,7 +245,7 @@ export function PrimaryButton({
     <button
       type="button"
       className={cn(
-        "press inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-primary px-5 text-[14.5px] font-semibold text-primary-foreground shadow-[0_8px_20px_oklch(0.55_0.06_155/0.25)] hover:bg-primary/90",
+        "press inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-primary px-5 text-[14.5px] font-bold text-primary-foreground shadow-[0_8px_20px_oklch(0.55_0.06_155/0.25)] hover:bg-primary/90 disabled:opacity-50",
         className,
       )}
       {...props}
@@ -272,7 +272,7 @@ export function SecondaryButton({
     <button
       type="button"
       className={cn(
-        "press inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-secondary px-5 text-[14.5px] font-semibold text-secondary-foreground hover:bg-secondary/80",
+        "press inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-secondary px-5 text-[14.5px] font-bold text-secondary-foreground hover:bg-secondary/80 disabled:opacity-50",
         className,
       )}
       {...props}
@@ -301,7 +301,7 @@ export function LinkPill({
     <Comp
       href={href}
       className={cn(
-        "inline-flex items-center gap-1 rounded-full bg-secondary/60 px-3 py-1.5 text-[12px] font-semibold text-primary",
+        "inline-flex items-center gap-1 rounded-full bg-secondary/70 px-3 py-1.5 text-[12px] font-bold text-primary",
         className,
       )}
     >
