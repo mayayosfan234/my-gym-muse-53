@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { ArrowLeft, Check, Shuffle, Trash2 } from "lucide-react";
+import { ArrowRight, Check, Shuffle, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { Stepper } from "@/components/Stepper";
@@ -14,7 +14,7 @@ type FoodSearch = {
 
 export const Route = createFileRoute("/nutrition/foods/$foodId")({
   head: () => ({
-    meta: [{ title: "Food — MY ROUTINE" }],
+    meta: [{ title: "פרטי מאכל — הרוטינה שלי" }],
   }),
   validateSearch: (search: Record<string, unknown>): FoodSearch => ({
     mealDate: typeof search.mealDate === "string" ? search.mealDate : undefined,
@@ -60,10 +60,10 @@ function FoodDetail() {
 
   if (!isNew && !existing && foodId !== "custom") {
     return (
-      <AppShell title="Not found">
-        <p className="surface-card p-5 text-muted-foreground">This food no longer exists.</p>
-        <Link to="/nutrition/foods" className="mt-4 inline-block text-primary">
-          Back to library
+      <AppShell title="מאכל לא נמצא">
+        <p className="surface-card p-5 text-muted-foreground text-start">מאכל זה אינו קיים עוד בספרייה.</p>
+        <Link to="/nutrition/foods" className="mt-4 inline-block text-primary font-semibold text-start">
+          חזרה לספריית המאכלים
         </Link>
       </AppShell>
     );
@@ -71,12 +71,12 @@ function FoodDetail() {
 
   if (foodId === "custom" && isLogEdit) {
     return (
-      <AppShell title="Logged food">
-        <p className="surface-card p-5 text-muted-foreground">
-          This entry was added manually and isn&apos;t linked to the library.
+      <AppShell title="מאכל יומן">
+        <p className="surface-card p-5 text-muted-foreground text-start">
+          מאכל זה מופיע ביומן ולא מקושר ישירות לספרייה.
         </p>
-        <Link to="/nutrition" className="mt-4 inline-block text-primary">
-          Back to nutrition log
+        <Link to="/nutrition" className="mt-4 inline-block text-primary font-semibold text-start">
+          חזרה ליומן התזונה
         </Link>
       </AppShell>
     );
@@ -102,119 +102,130 @@ function FoodDetail() {
 
   return (
     <AppShell
-      title={isNew ? "New food" : draft.name || "Food"}
+      title={isNew ? "מאכל חדש" : draft.name || "מאכל"}
       subtitle={!isNew ? draft.servingSize : undefined}
       action={
         <div className="flex gap-2">
           <Link
             to="/nutrition/foods"
-            aria-label="Back"
+            aria-label="חזרה"
             className="grid h-11 w-11 place-items-center rounded-xl bg-secondary active:scale-95"
           >
-            <ArrowLeft className="h-5 w-5" />
+            <ArrowRight className="h-5 w-5" />
           </Link>
           <button
             type="button"
-            aria-label="Save"
+            aria-label="שמור"
             onClick={onSave}
-            className="grid h-11 w-11 place-items-center rounded-xl bg-primary text-primary-foreground active:scale-95"
+            className="grid h-11 w-11 place-items-center rounded-xl bg-primary text-primary-foreground active:scale-95 shadow-sm"
           >
             <Check className="h-5 w-5" />
           </button>
         </div>
       }
     >
-      <label className="block">
-        <span className={labelCls}>Name</span>
-        <input className={field} value={draft.name} onChange={(e) => set({ name: e.target.value })} />
-      </label>
+      <div className="space-y-3.5 text-start">
+        <label className="block">
+          <span className={labelCls}>שם המאכל</span>
+          <input className={field} value={draft.name} onChange={(e) => set({ name: e.target.value })} placeholder="שם המאכל..." />
+        </label>
 
-      <label className="mt-3 block">
-        <span className={labelCls}>Serving size</span>
-        <input
-          className={field}
-          value={draft.servingSize}
-          onChange={(e) => set({ servingSize: e.target.value })}
-          placeholder="100g, 1 unit…"
-        />
-      </label>
+        <label className="block">
+          <span className={labelCls}>גודל מנה ייחוס</span>
+          <input
+            className={field}
+            value={draft.servingSize}
+            onChange={(e) => set({ servingSize: e.target.value })}
+            placeholder="100 גרם, יחידה 1, פרוסה 1..."
+          />
+        </label>
 
-      <div className="mt-4 grid grid-cols-2 gap-3">
-        <Stepper label="Calories" value={draft.calories} min={0} onChange={(calories) => set({ calories })} />
-        <Stepper
-          label="Protein"
-          value={draft.protein}
-          step={0.5}
-          min={0}
-          suffix="g"
-          onChange={(protein) => set({ protein })}
-        />
-        <Stepper label="Carbs" value={draft.carbs} step={0.5} min={0} suffix="g" onChange={(carbs) => set({ carbs })} />
-        <Stepper label="Fat" value={draft.fat} step={0.5} min={0} suffix="g" onChange={(fat) => set({ fat })} />
-        <Stepper
-          label="Fiber"
-          value={draft.fiber ?? 0}
-          step={0.5}
-          min={0}
-          suffix="g"
-          onChange={(fiber) => set({ fiber })}
-        />
+        <div className="grid grid-cols-2 gap-3">
+          <Stepper label="קלוריות (kcal)" value={draft.calories} min={0} onChange={(calories) => set({ calories })} />
+          <Stepper
+            label="חלבון (גרם)"
+            value={draft.protein}
+            step={0.5}
+            min={0}
+            suffix="g"
+            onChange={(protein) => set({ protein })}
+          />
+          <Stepper label="פחמימות (גרם)" value={draft.carbs} step={0.5} min={0} suffix="g" onChange={(carbs) => set({ carbs })} />
+          <Stepper label="שומן (גרם)" value={draft.fat} step={0.5} min={0} suffix="g" onChange={(fat) => set({ fat })} />
+          <Stepper
+            label="סיבים תזונתיים"
+            value={draft.fiber ?? 0}
+            step={0.5}
+            min={0}
+            suffix="g"
+            onChange={(fiber) => set({ fiber })}
+          />
+        </div>
+
+        <label className="block">
+          <span className={labelCls}>הערות ומידע נוסף</span>
+          <textarea
+            rows={2}
+            className={field}
+            value={draft.notes ?? ""}
+            onChange={(e) => set({ notes: e.target.value })}
+            placeholder="מידע על המותג או הערות..."
+          />
+        </label>
+
+        <button
+          type="button"
+          onClick={onSave}
+          className="mt-2 flex h-14 w-full items-center justify-center gap-2 rounded-xl bg-primary text-base font-semibold text-primary-foreground active:scale-[0.98] shadow-md"
+        >
+          <Check className="h-5 w-5" /> שמור מאכל בספרייה
+        </button>
+
+        {!isNew && existing ? (
+          <>
+            <button
+              type="button"
+              onClick={() => setShowSwaps((v) => !v)}
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-secondary py-3 text-sm font-semibold text-foreground"
+            >
+              <Shuffle className="h-4 w-4" /> הצג מאכלים דומים (רעיונות להחלפה)
+            </button>
+
+            {showSwaps ? (
+              <div className="space-y-2">
+                <input
+                  value={swapQuery}
+                  onChange={(e) => setSwapQuery(e.target.value)}
+                  placeholder="סינון מועמדים להחלפה..."
+                  className={field}
+                />
+                {replacements.map((item) => (
+                  <Link
+                    key={item.food.id}
+                    to="/nutrition/foods/$foodId"
+                    params={{ foodId: item.food.id }}
+                    className="surface-card block p-3.5"
+                  >
+                    <p className="font-semibold text-foreground">{item.food.name}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {item.food.calories} קלוריות · חלבון {item.food.protein}g · הפרש קלורי: Δ
+                      {Math.abs(item.food.calories - existing.calories)} קלוריות
+                    </p>
+                  </Link>
+                ))}
+              </div>
+            ) : null}
+
+            <button
+              type="button"
+              onClick={onDelete}
+              className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-secondary font-semibold text-destructive active:scale-[0.98]"
+            >
+              <Trash2 className="h-5 w-5" /> מחק מאכל מהספרייה
+            </button>
+          </>
+        ) : null}
       </div>
-
-      <label className="mt-3 block">
-        <span className={labelCls}>Notes</span>
-        <textarea
-          rows={2}
-          className={field}
-          value={draft.notes ?? ""}
-          onChange={(e) => set({ notes: e.target.value })}
-        />
-      </label>
-
-      {!isNew && existing ? (
-        <>
-          <button
-            type="button"
-            onClick={() => setShowSwaps((v) => !v)}
-            className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-secondary py-3 text-sm font-semibold"
-          >
-            <Shuffle className="h-4 w-4" /> Similar foods (swap ideas)
-          </button>
-
-          {showSwaps ? (
-            <div className="mt-3 space-y-2">
-              <input
-                value={swapQuery}
-                onChange={(e) => setSwapQuery(e.target.value)}
-                placeholder="Filter swaps…"
-                className={field}
-              />
-              {replacements.map((food) => (
-                <Link
-                  key={food.id}
-                  to="/nutrition/foods/$foodId"
-                  params={{ foodId: food.id }}
-                  className="surface-card block p-3"
-                >
-                  <p className="font-semibold">{food.name}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {food.calories} kcal · P {food.protein}g · Δ
-                    {Math.abs(food.calories - existing.calories)} kcal
-                  </p>
-                </Link>
-              ))}
-            </div>
-          ) : null}
-
-          <button
-            type="button"
-            onClick={onDelete}
-            className="mt-5 flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-secondary font-semibold text-destructive"
-          >
-            <Trash2 className="h-5 w-5" /> Delete from library
-          </button>
-        </>
-      ) : null}
     </AppShell>
   );
 }

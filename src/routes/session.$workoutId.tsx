@@ -9,16 +9,12 @@ import type { Exercise, HistoryEntry, LoggedSet, WorkoutItem } from "@/lib/gym-t
 export const Route = createFileRoute("/session/$workoutId")({
   head: () => ({
     meta: [
-      { title: "Active Workout — GymTrack" },
+      { title: "אימון פעיל — הרוטינה שלי" },
       {
         name: "description",
-        content: "Log sets, adjust weight and reps live, and rest between sets.",
+        content: "רשום סטים, משקלים וחזרות בזמן אמת במהלך האימון.",
       },
-      { property: "og:title", content: "Active Workout — GymTrack" },
-      {
-        property: "og:description",
-        content: "Log sets, adjust weight and reps live, and rest between sets.",
-      },
+      { property: "og:title", content: "אימון פעיל — הרוטינה שלי" },
     ],
   }),
   component: Session,
@@ -86,7 +82,7 @@ function Session() {
       }));
       return {
         exerciseId: item.exerciseId,
-        exerciseName: ex?.name ?? "Removed exercise",
+        exerciseName: ex?.name ?? "תרגיל שהוסר",
         equipment: ex?.equipment,
         notes: item.notes,
         targetSets: item.sets,
@@ -117,9 +113,9 @@ function Session() {
 
   if (!workout) {
     return (
-      <AppShell title="Not found">
-        <p className="surface-card p-5 text-muted-foreground">
-          This workout no longer exists.
+      <AppShell title="אימון לא נמצא">
+        <p className="surface-card p-5 text-muted-foreground text-start">
+          אימון זה אינו קיים עוד בספרייה.
         </p>
       </AppShell>
     );
@@ -158,11 +154,11 @@ function Session() {
   return (
     <AppShell
       title={workout.name}
-      subtitle={`${doneSets}/${totalSets} working sets completed`}
+      subtitle={`הושלמו ${doneSets} מתוך ${totalSets} סטים`}
       action={
         <Link
           to="/programs"
-          aria-label="Quit workout"
+          aria-label="יציאה מהאימון"
           className="grid h-11 w-11 place-items-center rounded-xl bg-secondary active:scale-95"
         >
           <X className="h-5 w-5" />
@@ -176,7 +172,7 @@ function Session() {
         />
       </div>
 
-      <div className="mt-5 space-y-4">
+      <div className="mt-4 space-y-4 text-start">
         {entries.map((entry, ei) => {
           const item = workout.items[ei];
           const last = lastPerformance(history, entry.exerciseId);
@@ -184,45 +180,45 @@ function Session() {
           const supersetLabel = labels[ei];
           const fullExercise = exercises.find((e) => e.id === entry.exerciseId);
           return (
-            <div key={`${entry.exerciseId}-${ei}`} className={`surface-card p-4 ${supersetLabel ? "border-l-4 border-l-primary/60" : ""}`}>
-              <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-2">
+            <div key={`${entry.exerciseId}-${ei}`} className={`surface-card p-4 ${supersetLabel ? "border-r-4 border-r-primary/70" : ""}`}>
+              <div className="grid grid-cols-[1fr_auto] items-start gap-2">
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
                     {supersetLabel ? <span className="shrink-0 rounded-md bg-primary px-1.5 py-0.5 text-[11px] font-bold text-primary-foreground">{supersetLabel}</span> : null}
                     <button
                       type="button"
                       onClick={() => fullExercise && setCardExercise(fullExercise)}
-                      className="truncate text-left font-semibold underline-offset-4 hover:underline"
+                      className="truncate text-start font-semibold text-foreground underline-offset-4 hover:underline cursor-pointer"
                     >
                       {entry.exerciseName}
                     </button>
                   </div>
                   <p className="mt-0.5 text-xs text-muted-foreground">
                     {entry.equipment ? `${entry.equipment} · ` : ""}
-                    {entry.targetSets ?? entry.sets.filter((s) => !s.warmup).length} × {targetLabel} reps
+                    {entry.targetSets ?? entry.sets.filter((s) => !s.warmup).length} × {targetLabel} חזרות
                   </p>
                 </div>
                 <span className="num-pill shrink-0 px-2.5 py-1 text-xs text-muted-foreground">
-                  rest {item?.rest ?? 60}s
+                  מנוחה {item?.rest ?? 60} ש׳
                 </span>
               </div>
 
               {entry.notes ? (
-                <p className="mt-2 rounded-lg bg-secondary/70 px-3 py-2 text-sm text-muted-foreground">{entry.notes}</p>
+                <p className="mt-2 rounded-lg bg-secondary/70 px-3 py-2 text-xs sm:text-sm text-muted-foreground">{entry.notes}</p>
               ) : null}
 
               {last ? (
                 <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                  <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Last</span>
+                  <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">אימון קודם</span>
                   {last.sets.slice(0, 5).map((s, i) => (
-                    <span key={i} className="rounded-md bg-secondary px-2 py-0.5 text-xs tabular-nums text-muted-foreground">
-                      {s.weight}×{s.reps}
+                    <span key={i} className="rounded-md bg-secondary px-2 py-0.5 text-xs tabular-nums text-muted-foreground" dir="ltr">
+                      {s.weight}kg × {s.reps}
                     </span>
                   ))}
                 </div>
               ) : null}
 
-              <div className="mt-3 space-y-3">
+              <div className="mt-3 space-y-2.5">
                 {entry.sets.map((s, si) => {
                   const workingIndex = entry.sets.slice(0, si + 1).filter((x) => !x.warmup).length;
                   return (
@@ -239,12 +235,12 @@ function Session() {
                       <div className="mb-2 flex items-center justify-between">
                         <span className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
                           {s.warmup ? (
-                            <><Flame className="h-3.5 w-3.5 text-primary" /> Warm-up</>
+                            <><Flame className="h-3.5 w-3.5 text-primary" /> סט חימום</>
                           ) : (
-                            <>Set #{workingIndex}{s.dropSet ? " · Drop set" : ""}
+                            <>סט #{workingIndex}{s.dropSet ? " · דרופ סט" : ""}
                               {s.targetReps != null ? (
-                                <span className="font-normal text-muted-foreground/70">
-                                  · target {s.targetRepMax != null ? `${s.targetReps}–${s.targetRepMax}` : s.targetReps}
+                                <span className="font-normal text-muted-foreground/70 ms-1">
+                                  (מטרה: {s.targetRepMax != null ? `${s.targetReps}–${s.targetRepMax}` : s.targetReps})
                                 </span>
                               ) : null}
                             </>
@@ -253,7 +249,8 @@ function Session() {
                         <div className="flex items-center gap-1.5">
                           {si > 0 ? (
                             <button
-                              aria-label={`Copy weight from previous set`}
+                              type="button"
+                              aria-label="העתק משקל מסט קודם"
                               onClick={() => patchSet(ei, si, { weight: entry.sets[si - 1]!.weight })}
                               className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-background text-muted-foreground active:scale-95"
                             >
@@ -261,15 +258,16 @@ function Session() {
                             </button>
                           ) : null}
                           <button
-                            aria-label={`Complete set ${si + 1}`}
+                            type="button"
+                            aria-label={`סמן סט ${si + 1}`}
                             onClick={() => {
                               patchSet(ei, si, { done: !s.done });
                               if (!s.done && !s.warmup) setRest(item?.rest ?? 60);
                             }}
-                            className={`grid h-10 w-10 shrink-0 place-items-center rounded-lg ${
+                            className={`grid h-10 w-10 shrink-0 place-items-center rounded-lg transition-transform active:scale-95 ${
                               s.done
-                                ? "bg-primary text-primary-foreground"
-                                : "bg-background text-muted-foreground"
+                                ? "bg-primary text-primary-foreground shadow-sm"
+                                : "bg-background text-muted-foreground border border-border"
                             }`}
                           >
                             <Check className="h-5 w-5" />
@@ -278,14 +276,14 @@ function Session() {
                       </div>
                       <div className="grid min-w-0 grid-cols-2 gap-2">
                         <Stepper
-                          label="Weight"
+                          label="משקל בפועל"
                           value={s.weight}
                           step={2.5}
-                          suffix="kg"
+                          suffix="ק״ג"
                           onChange={(v) => patchSet(ei, si, { weight: v })}
                         />
                         <Stepper
-                          label="Reps"
+                          label="חזרות בפועל"
                           value={s.reps}
                           min={0}
                           onChange={(v) => patchSet(ei, si, { reps: v })}
@@ -297,62 +295,63 @@ function Session() {
               </div>
 
               <div className="mt-3 grid grid-cols-2 gap-2">
-              <button
-                onClick={() =>
-                  setEntries((prev) =>
-                    prev.map((e, i) =>
-                      i === ei
-                        ? {
-                            ...e,
-                            sets: [
-                              ...e.sets,
-                              {
-                                reps: e.sets[e.sets.length - 1]?.reps ?? 10,
-                                weight: e.sets[e.sets.length - 1]?.weight ?? 20,
-                                done: false,
-                                targetReps: e.targetReps,
-                                targetRepMax: e.targetRepMax,
-                                warmup: false,
-                              },
-                            ],
-                          }
-                        : e,
-                    ),
-                  )
-                }
-                className="flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-secondary text-sm font-semibold"
-              >
-                <Plus className="h-4 w-4" /> Add set
-              </button>
-              <button
-                type="button"
-                onClick={() =>
-                  setEntries((prev) =>
-                    prev.map((e, i) =>
-                      i === ei
-                        ? {
-                            ...e,
-                            sets: [
-                              ...e.sets,
-                              {
-                                reps: e.sets[e.sets.length - 1]?.reps ?? 10,
-                                weight: Math.max(0, (e.sets[e.sets.length - 1]?.weight ?? 20) * 0.8),
-                                done: false,
-                                targetReps: e.targetReps,
-                                targetRepMax: e.targetRepMax,
-                                warmup: false,
-                                dropSet: true,
-                              },
-                            ],
-                          }
-                        : e,
-                    ),
-                  )
-                }
-                className="flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-primary/10 text-sm font-semibold text-primary"
-              >
-                <Plus className="h-4 w-4" /> Add drop set
-              </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setEntries((prev) =>
+                      prev.map((e, i) =>
+                        i === ei
+                          ? {
+                              ...e,
+                              sets: [
+                                ...e.sets,
+                                {
+                                  reps: e.sets[e.sets.length - 1]?.reps ?? 10,
+                                  weight: e.sets[e.sets.length - 1]?.weight ?? 20,
+                                  done: false,
+                                  targetReps: e.targetReps,
+                                  targetRepMax: e.targetRepMax,
+                                  warmup: false,
+                                },
+                              ],
+                            }
+                          : e,
+                      ),
+                    )
+                  }
+                  className="flex h-11 w-full items-center justify-center gap-1.5 rounded-xl bg-secondary text-xs font-semibold text-foreground"
+                >
+                  <Plus className="h-4 w-4" /> הוסף סט
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setEntries((prev) =>
+                      prev.map((e, i) =>
+                        i === ei
+                          ? {
+                              ...e,
+                              sets: [
+                                ...e.sets,
+                                {
+                                  reps: e.sets[e.sets.length - 1]?.reps ?? 10,
+                                  weight: Math.max(0, Math.round(((e.sets[e.sets.length - 1]?.weight ?? 20) * 0.8) * 2) / 2),
+                                  done: false,
+                                  targetReps: e.targetReps,
+                                  targetRepMax: e.targetRepMax,
+                                  warmup: false,
+                                  dropSet: true,
+                                },
+                              ],
+                            }
+                          : e,
+                      ),
+                    )
+                  }
+                  className="flex h-11 w-full items-center justify-center gap-1.5 rounded-xl bg-primary/10 text-xs font-semibold text-primary"
+                >
+                  <Plus className="h-4 w-4" /> הוסף דרופ סט
+                </button>
               </div>
             </div>
           );
@@ -360,78 +359,84 @@ function Session() {
       </div>
 
       <button
+        type="button"
         onClick={finish}
-        className="mt-5 h-14 w-full rounded-xl bg-primary text-base font-semibold text-primary-foreground active:scale-[0.98]"
+        className="mt-6 h-14 w-full rounded-xl bg-primary text-base font-semibold text-primary-foreground active:scale-[0.98] shadow-md"
       >
-        Finish & save workout
+        סיים ושמור אימון
       </button>
 
+      {/* Timer Overlay */}
       {rest > 0 && (
-        <div className="fixed inset-x-0 bottom-20 z-40 mx-auto max-w-2xl rounded-2xl border border-border bg-card px-4 py-3 shadow-lg">
-          <div className="flex items-center gap-3">
-            <Timer className="h-5 w-5 shrink-0 text-primary" />
-            <p className="flex-1 text-lg font-semibold tabular-nums">{rest}s rest</p>
-            <button
-              onClick={() => setRest(0)}
-              className="rounded-lg bg-secondary px-3 py-2 text-sm font-medium"
-            >
-              Skip
-            </button>
-          </div>
-          <div className="mt-3 flex items-center gap-2 overflow-x-auto">
-            {[30, 60, 90, 120].map((seconds) => (
+        <div className="fixed inset-x-0 bottom-20 z-40 mx-auto max-w-lg px-4">
+          <div className="rounded-2xl border border-border bg-card p-4 shadow-xl">
+            <div className="flex items-center gap-3">
+              <Timer className="h-5 w-5 shrink-0 text-primary" />
+              <p className="flex-1 text-lg font-bold tabular-nums text-foreground">{rest} שניות מנוחה</p>
               <button
-                key={seconds}
                 type="button"
-                onClick={() => setRest(seconds)}
-                className="shrink-0 rounded-lg bg-secondary px-3 py-2 text-xs font-semibold"
+                onClick={() => setRest(0)}
+                className="rounded-xl bg-secondary px-3.5 py-2 text-xs font-semibold text-foreground"
               >
-                {seconds}s
+                דלג
               </button>
-            ))}
-            <input
-              inputMode="numeric"
-              aria-label="Custom rest seconds"
-              value={customRest}
-              onChange={(event) => setCustomRest(event.target.value.replace(/\D/g, ""))}
-              placeholder="Custom"
-              className="h-9 w-20 shrink-0 rounded-lg border border-border bg-background px-2 text-center text-xs outline-none focus:border-primary"
-            />
-            <button
-              type="button"
-              onClick={() => {
-                const seconds = Number(customRest);
-                if (seconds > 0) setRest(seconds);
-              }}
-              className="shrink-0 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground"
-            >
-              Start
-            </button>
+            </div>
+            <div className="mt-3 flex items-center gap-2 overflow-x-auto no-scrollbar">
+              {[30, 60, 90, 120].map((seconds) => (
+                <button
+                  key={seconds}
+                  type="button"
+                  onClick={() => setRest(seconds)}
+                  className="shrink-0 rounded-lg bg-secondary px-3 py-1.5 text-xs font-semibold text-muted-foreground"
+                >
+                  {seconds}ש׳
+                </button>
+              ))}
+              <input
+                inputMode="numeric"
+                aria-label="שניות מנוחה מותאמות אישית"
+                value={customRest}
+                onChange={(event) => setCustomRest(event.target.value.replace(/\D/g, ""))}
+                placeholder="אישי"
+                className="h-8 w-16 shrink-0 rounded-lg border border-border bg-background px-2 text-center text-xs outline-none focus:border-primary"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  const seconds = Number(customRest);
+                  if (seconds > 0) setRest(seconds);
+                }}
+                className="shrink-0 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground"
+              >
+                התחל
+              </button>
+            </div>
           </div>
         </div>
       )}
 
+      {/* Exercise Details Card Modal */}
       {cardExercise ? (
         <div
           className="fixed inset-0 z-50 flex flex-col justify-end bg-foreground/30 backdrop-blur-sm"
           onClick={() => setCardExercise(null)}
         >
           <div
-            className="max-h-[85vh] overflow-y-auto rounded-t-3xl border-t border-border bg-card p-5"
+            className="max-h-[85vh] overflow-y-auto rounded-t-3xl border-t border-border bg-card p-5 text-start"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="mb-4 flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <p className="section-kicker">Exercise card</p>
-                <h2 className="font-display text-xl font-semibold">{cardExercise.name}</h2>
-                <p className="mt-1 text-sm text-muted-foreground">
+                <p className="section-kicker">כרטיס תרגיל</p>
+                <h2 className="font-display text-xl font-semibold text-foreground">{cardExercise.name}</h2>
+                <p className="mt-0.5 text-xs text-muted-foreground">
                   {cardExercise.muscleGroup}
                   {cardExercise.equipment ? ` · ${cardExercise.equipment}` : ""}
                 </p>
               </div>
               <button
                 type="button"
-                aria-label="Close"
+                aria-label="סגור"
                 onClick={() => setCardExercise(null)}
                 className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-secondary"
               >
@@ -449,29 +454,29 @@ function Session() {
 
             {cardExercise.tips ? (
               <div className="mb-3 rounded-xl bg-primary/10 p-3">
-                <p className="text-[11px] font-semibold uppercase tracking-wide text-primary">Cues / tips</p>
-                <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed">{cardExercise.tips}</p>
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-primary">דגשים וביצוע</p>
+                <p className="mt-1 whitespace-pre-wrap text-xs sm:text-sm leading-relaxed text-foreground">{cardExercise.tips}</p>
               </div>
             ) : null}
 
             {cardExercise.notes ? (
               <div className="mb-3 rounded-xl bg-secondary p-3">
-                <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Personal notes</p>
-                <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed">{cardExercise.notes}</p>
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">הערות אישיות</p>
+                <p className="mt-1 whitespace-pre-wrap text-xs sm:text-sm leading-relaxed text-foreground">{cardExercise.notes}</p>
               </div>
             ) : null}
 
             {cardExercise.description ? (
               <div className="mb-3 rounded-xl border border-border p-3">
-                <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Description</p>
-                <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed">{cardExercise.description}</p>
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">תיאור התרגיל</p>
+                <p className="mt-1 whitespace-pre-wrap text-xs sm:text-sm leading-relaxed text-foreground">{cardExercise.description}</p>
               </div>
             ) : null}
 
             {cardExercise.instructions ? (
               <div className="mb-3 rounded-xl border border-border p-3">
-                <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Instructions</p>
-                <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed">{cardExercise.instructions}</p>
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">הוראות ביצוע</p>
+                <p className="mt-1 whitespace-pre-wrap text-xs sm:text-sm leading-relaxed text-foreground">{cardExercise.instructions}</p>
               </div>
             ) : null}
 
@@ -480,14 +485,10 @@ function Session() {
                 href={cardExercise.videoUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="mb-3 block rounded-xl bg-secondary p-3 text-sm font-medium text-primary"
+                className="mb-3 block rounded-xl bg-secondary p-3 text-xs sm:text-sm font-semibold text-primary"
               >
-                Watch technique video
+                צפה בסרטון טכניקה
               </a>
-            ) : null}
-
-            {!cardExercise.tips && !cardExercise.notes && !cardExercise.description && !cardExercise.instructions ? (
-              <p className="text-sm text-muted-foreground">No notes or cues saved for this exercise yet.</p>
             ) : null}
 
             <Link
@@ -495,7 +496,7 @@ function Session() {
               params={{ exerciseId: cardExercise.id }}
               className="mt-4 flex h-12 w-full items-center justify-center rounded-xl bg-primary font-semibold text-primary-foreground"
             >
-              Open full exercise page
+              פתח עמוד תרגיל מלא
             </Link>
           </div>
         </div>

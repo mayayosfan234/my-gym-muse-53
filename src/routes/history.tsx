@@ -6,27 +6,37 @@ import { deleteSession, useGym } from "@/lib/gym-store";
 export const Route = createFileRoute("/history")({
   head: () => ({
     meta: [
-      { title: "Workout History — GymTrack" },
+      { title: "היסטוריית אימונים — הרוטינה שלי" },
       {
         name: "description",
-        content: "Every logged session with the sets, reps and weights you used.",
+        content: "כל האימונים שנשמרו כולל סטים, חזרות ומשקלים שבוצעו בפועל.",
       },
-      { property: "og:title", content: "Workout History — GymTrack" },
-      {
-        property: "og:description",
-        content: "Every logged session with the sets, reps and weights you used.",
-      },
+      { property: "og:title", content: "היסטוריית אימונים — הרוטינה שלי" },
     ],
   }),
   component: HistoryPage,
 });
 
+function formatRelativeDate(dateIso: string) {
+  const date = new Date(dateIso);
+  const now = new Date();
+  const diffTime = Math.abs(now.getTime() - date.getTime());
+  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+  if (diffDays === 0) return "היום";
+  if (diffDays === 1) return "אתמול";
+  if (diffDays === 2) return "לפני יומיים";
+  if (diffDays <= 6) return `לפני ${diffDays} ימים`;
+  if (diffDays <= 30) return "החודש";
+  return date.toLocaleDateString("he-IL");
+}
+
 function HistoryPage() {
   const { history } = useGym();
 
   return (
-    <AppShell title="Workout History" subtitle={`${history.length} sessions`}>
-      <div className="space-y-4">
+    <AppShell title="היסטוריית אימונים" subtitle={`${history.length} אימונים תועדו`}>
+      <div className="space-y-3.5 text-start">
         {history.map((s) => {
           const volume = s.entries.reduce(
             (v, e) =>
@@ -38,37 +48,39 @@ function HistoryPage() {
           );
           return (
             <div key={s.id} className="surface-card p-4">
-              <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
+              <div className="grid grid-cols-[1fr_auto] items-start gap-3">
                 <div className="min-w-0">
-                  <p className="truncate text-lg font-semibold">{s.workoutName}</p>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="truncate text-lg font-bold text-foreground">{s.workoutName}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
                     {s.programName ? `${s.programName} · ` : ""}
-                    {new Date(s.date).toLocaleString()} ·{" "}
-                    {Math.round(s.durationSec / 60)} min · {volume} kg
+                    <span className="font-semibold text-primary">{formatRelativeDate(s.date)}</span> (
+                    {new Date(s.date).toLocaleDateString("he-IL")}) ·{" "}
+                    {Math.round(s.durationSec / 60)} דקות · נפח {Math.round(volume)} ק"ג
                   </p>
                 </div>
                 <button
-                  aria-label="Delete session"
-                  onClick={() => deleteSession(s.id)}
-                  className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-secondary text-destructive"
+                  type="button"
+                  aria-label="מחק אימון מההיסטוריה"
+                  onClick={() => window.confirm(`האם למחוק את האימון מההיסטוריה?`) && deleteSession(s.id)}
+                  className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-secondary text-destructive active:scale-95"
                 >
                   <Trash2 className="h-4 w-4" />
                 </button>
               </div>
 
-              <div className="mt-3 space-y-3">
+              <div className="mt-3.5 space-y-3 border-t border-border/60 pt-3">
                 {s.entries.map((e, i) => (
                   <div key={i}>
-                    <p className="text-sm font-semibold">{e.exerciseName}</p>
-                    <div className="mt-1 flex flex-wrap gap-2">
+                    <p className="text-xs sm:text-sm font-semibold text-foreground">{e.exerciseName}</p>
+                    <div className="mt-1 flex flex-wrap gap-1.5" dir="ltr">
                       {e.sets.map((set, j) => (
-                        <span key={j} className="num-pill px-3 py-1 text-sm">
-                          {set.weight}kg × {set.reps}
+                        <span key={j} className={`num-pill px-2.5 py-1 text-xs font-semibold ${set.dropSet ? "bg-primary/10 text-primary border-primary/30" : ""}`}>
+                          {set.weight}kg × {set.reps}{set.dropSet ? " (Drop)" : ""}
                         </span>
                       ))}
                       {e.sets.length === 0 && (
-                        <span className="text-sm text-muted-foreground">
-                          No sets completed
+                        <span className="text-xs text-muted-foreground">
+                          לא בוצעו סטים
                         </span>
                       )}
                     </div>
@@ -79,9 +91,9 @@ function HistoryPage() {
           );
         })}
         {history.length === 0 && (
-          <p className="surface-card p-5 text-sm text-muted-foreground">
-            No sessions yet. Start a workout and tap “Finish & save”.
-          </p>
+          <div className="surface-card p-8 text-center text-sm text-muted-foreground">
+            עדיין לא נרשמו אימונים. התחל אימון ראשון ולחץ על "סיים ושמור אימון".
+          </div>
         )}
       </div>
     </AppShell>

@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { ArrowLeft, GripVertical, Plus, Trash2, X } from "lucide-react";
+import { ArrowRight, GripVertical, Plus, Trash2, X } from "lucide-react";
 import { useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { Stepper } from "@/components/Stepper";
@@ -15,16 +15,8 @@ import type { Workout, WorkoutItem } from "@/lib/gym-types";
 export const Route = createFileRoute("/workouts/$workoutId")({
   head: () => ({
     meta: [
-      { title: "Workout Builder — GymTrack" },
-      {
-        name: "description",
-        content: "Build a routine: pick exercises and set sets, reps, weight and rest.",
-      },
-      { property: "og:title", content: "Workout Builder — GymTrack" },
-      {
-        property: "og:description",
-        content: "Build a routine: pick exercises and set sets, reps, weight and rest.",
-      },
+      { title: "עורך אימון — הרוטינה שלי" },
+      { property: "og:title", content: "עורך אימון — הרוטינה שלי" },
     ],
   }),
   component: Builder,
@@ -45,15 +37,15 @@ function Builder() {
 
   if (!isNew && !existing) {
     return (
-      <AppShell title="Not found">
-        <p className="surface-card p-5 text-muted-foreground">
-          This workout no longer exists.
+      <AppShell title="אימון לא נמצא">
+        <p className="surface-card p-5 text-muted-foreground text-start">
+          אימון זה אינו קיים עוד.
         </p>
       </AppShell>
     );
   }
 
-  const nameOf = (id: string) => exercises.find((e) => e.id === id)?.name ?? "Removed";
+  const nameOf = (id: string) => exercises.find((e) => e.id === id)?.name ?? "תרגיל שהוסר";
   const patchItem = (id: string, patch: Partial<WorkoutItem>) =>
     setDraft({
       ...draft,
@@ -70,22 +62,22 @@ function Builder() {
   };
 
   const onSave = () => {
-    const w = { ...draft, name: draft.name.trim() || "Untitled workout" };
+    const w = { ...draft, name: draft.name.trim() || "אימון ללא שם" };
     saveWorkout(w);
-    navigate({ to: "/workouts" });
+    navigate({ to: "/programs" });
   };
 
   return (
     <AppShell
-      title={isNew ? "New Workout" : "Edit Workout"}
-      subtitle={`${draft.items.length} exercises`}
+      title={isNew ? "אימון חדש" : "עריכת אימון"}
+      subtitle={`${draft.items.length} תרגילים`}
       action={
         <Link
-          to="/workouts"
-          aria-label="Back"
+          to="/programs"
+          aria-label="חזרה"
           className="grid h-11 w-11 place-items-center rounded-xl bg-secondary active:scale-95"
         >
-          <ArrowLeft className="h-5 w-5" />
+          <ArrowRight className="h-5 w-5" />
         </Link>
       }
     >
@@ -93,30 +85,32 @@ function Builder() {
         className={field}
         value={draft.name}
         onChange={(e) => setDraft({ ...draft, name: e.target.value })}
-        placeholder="Workout name"
+        placeholder="שם האימון"
       />
       <textarea
         rows={2}
         className={`${field} mt-3`}
         value={draft.notes}
         onChange={(e) => setDraft({ ...draft, notes: e.target.value })}
-        placeholder="Workout notes"
+        placeholder="הערות ודגשים לאימון..."
       />
 
-      <div className="mt-5 space-y-4">
+      <div className="mt-5 space-y-3.5 text-start">
         {draft.items.map((item, index) => (
           <div key={item.id} className="surface-card p-4">
-            <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2">
+            <div className="grid grid-cols-[auto_1fr_auto] items-center gap-2">
               <button
-                aria-label="Move up"
+                type="button"
+                aria-label="שנה סדר"
                 onClick={() => move(index, -1)}
                 className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-secondary text-muted-foreground"
               >
                 <GripVertical className="h-4 w-4" />
               </button>
-              <p className="truncate font-semibold">{nameOf(item.exerciseId)}</p>
+              <p className="truncate font-semibold text-foreground">{nameOf(item.exerciseId)}</p>
               <button
-                aria-label="Remove exercise"
+                type="button"
+                aria-label="הסר תרגיל"
                 onClick={() =>
                   setDraft({
                     ...draft,
@@ -131,29 +125,29 @@ function Builder() {
 
             <div className="mt-3 grid grid-cols-2 gap-3">
               <Stepper
-                label="Sets"
+                label="סטים"
                 value={item.sets}
                 min={1}
                 onChange={(v) => patchItem(item.id, { sets: v })}
               />
               <Stepper
-                label="Reps"
+                label="חזרות"
                 value={item.reps}
                 min={1}
                 onChange={(v) => patchItem(item.id, { reps: v })}
               />
               <Stepper
-                label="Weight"
+                label="משקל"
                 value={item.weight}
                 step={2.5}
-                suffix="kg"
+                suffix="ק״ג"
                 onChange={(v) => patchItem(item.id, { weight: v })}
               />
               <Stepper
-                label="Rest"
+                label="מנוחה"
                 value={item.rest}
                 step={15}
-                suffix="s"
+                suffix="ש׳"
                 onChange={(v) => patchItem(item.id, { rest: v })}
               />
             </div>
@@ -162,45 +156,49 @@ function Builder() {
               className={`${field} mt-3`}
               value={item.notes}
               onChange={(e) => patchItem(item.id, { notes: e.target.value })}
-              placeholder="Notes for this exercise"
+              placeholder="הערה לתרגיל זה..."
             />
           </div>
         ))}
       </div>
 
       <button
+        type="button"
         onClick={() => setPicker(true)}
         className="mt-4 flex h-14 w-full items-center justify-center gap-2 rounded-xl border border-dashed border-border bg-secondary font-semibold active:scale-[0.98]"
       >
-        <Plus className="h-5 w-5" /> Add exercise
+        <Plus className="h-5 w-5" /> הוסף תרגיל
       </button>
 
       <button
+        type="button"
         onClick={onSave}
         className="mt-3 h-14 w-full rounded-xl bg-primary text-base font-semibold text-primary-foreground active:scale-[0.98]"
       >
-        Save workout
+        שמור אימון
       </button>
 
       {!isNew && (
         <button
+          type="button"
           onClick={() => {
             deleteWorkout(draft.id);
-            navigate({ to: "/workouts" });
+            navigate({ to: "/programs" });
           }}
           className="mt-3 flex h-14 w-full items-center justify-center gap-2 rounded-xl bg-secondary font-semibold text-destructive active:scale-[0.98]"
         >
-          <Trash2 className="h-5 w-5" /> Delete workout
+          <Trash2 className="h-5 w-5" /> מחק אימון
         </button>
       )}
 
       {picker && (
         <div className="fixed inset-0 z-40 flex flex-col justify-end bg-background/70 backdrop-blur-sm">
-          <div className="max-h-[75vh] overflow-y-auto rounded-t-3xl border-t border-border bg-card p-5">
+          <div className="max-h-[75vh] overflow-y-auto rounded-t-3xl border-t border-border bg-card p-5 text-start">
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-lg font-semibold">Pick an exercise</h2>
+              <h2 className="text-lg font-semibold">בחר תרגיל</h2>
               <button
-                aria-label="Close"
+                type="button"
+                aria-label="סגור"
                 onClick={() => setPicker(false)}
                 className="grid h-10 w-10 place-items-center rounded-xl bg-secondary"
               >
@@ -211,21 +209,22 @@ function Builder() {
               {exercises.map((e) => (
                 <button
                   key={e.id}
+                  type="button"
                   onClick={() => {
                     setDraft({ ...draft, items: [...draft.items, emptyItem(e.id)] });
                     setPicker(false);
                   }}
-                  className="w-full rounded-xl bg-secondary p-4 text-left active:scale-[0.99]"
+                  className="w-full rounded-xl bg-secondary p-4 text-start active:scale-[0.99]"
                 >
-                  <p className="font-semibold">{e.name}</p>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="font-semibold text-foreground">{e.name}</p>
+                  <p className="text-xs text-muted-foreground">
                     {e.muscleGroup} · {e.equipment}
                   </p>
                 </button>
               ))}
               {exercises.length === 0 && (
                 <p className="text-sm text-muted-foreground">
-                  Add exercises to your library first.
+                  הוסף תרגילים לספרייה קודם לכן.
                 </p>
               )}
             </div>
