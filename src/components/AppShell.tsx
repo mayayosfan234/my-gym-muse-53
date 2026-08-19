@@ -26,18 +26,18 @@ export function AppShell({
   return (
     <div className="min-h-[100dvh] w-full bg-background text-foreground" dir="rtl">
       <header
-        className="sticky top-0 z-30 border-b border-border/30 bg-background/80 backdrop-blur-xl"
+        className="sticky top-0 z-30 border-b border-border/30 bg-background/85 backdrop-blur-xl"
         style={{ paddingTop: "max(0.6rem, env(safe-area-inset-top))" }}
       >
-        <div className="mx-auto w-full max-w-xl px-5 pb-3.5 pt-1">
+        <div className="mx-auto w-full max-w-md px-5 pb-3.5 pt-1">
           <div className="flex items-start gap-3">
             <div className="min-w-0 flex-1 text-start">
               {kicker ? (
-                <p className="mb-1 text-[11px] font-semibold tracking-[0.14em] text-primary uppercase">
+                <p className="mb-1 text-[11px] font-bold tracking-[0.14em] text-primary uppercase">
                   {kicker}
                 </p>
               ) : null}
-              <h1 className="truncate font-display text-[26px] font-semibold leading-[1.1] tracking-tight text-ink">
+              <h1 className="truncate font-display text-[26px] font-extrabold leading-[1.1] tracking-tight text-ink">
                 {title}
               </h1>
               {subtitle ? (
@@ -46,15 +46,15 @@ export function AppShell({
                 </p>
               ) : null}
             </div>
-            {action ? <div className="flex shrink-0 items-center gap-2 pt-1">{action}</div> : null}
+            {action ? <div className="flex shrink-0 items-center gap-2 pt-0.5">{action}</div> : null}
           </div>
         </div>
       </header>
 
       <main
-        className="page-enter mx-auto w-full max-w-xl px-4 pb-6 pt-4 sm:px-5"
+        className="page-enter mx-auto w-full max-w-md px-4 pb-8 pt-4 sm:px-5"
         style={{
-          paddingBottom: "calc(6rem + env(safe-area-inset-bottom))",
+          paddingBottom: "calc(6.5rem + env(safe-area-inset-bottom))",
         }}
       >
         {children}
@@ -62,23 +62,23 @@ export function AppShell({
 
       <nav
         aria-label="ניווט ראשי"
-        className="pointer-events-none fixed inset-x-0 bottom-0 z-40 px-3 sm:px-4"
-        style={{ paddingBottom: "max(0.6rem, env(safe-area-inset-bottom))" }}
+        className="pointer-events-none fixed inset-x-0 bottom-0 z-40 px-3.5 sm:px-4"
+        style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}
       >
-        <div className="pointer-events-auto mx-auto flex max-w-xl items-center justify-between rounded-[1.85rem] border border-white/60 bg-white/80 p-1.5 shadow-[0_8px_32px_oklch(0.2_0.02_145/0.10),0_2px_8px_oklch(0.2_0.02_145/0.04)] backdrop-blur-2xl">
+        <div className="pointer-events-auto mx-auto flex max-w-md items-center justify-between rounded-[2rem] border border-white/70 bg-white/85 p-1.5 shadow-[0_12px_36px_oklch(0.22_0.02_145/0.12),0_2px_10px_oklch(0.22_0.02_145/0.05)] backdrop-blur-2xl">
           {NAV.map(({ to, label, id, icon: Icon }) => (
             <Link
               key={to}
               to={to}
               activeOptions={{ exact: to === "/" }}
               data-testid={`link-nav-${id}`}
-              className="group relative flex min-h-[3.5rem] min-w-[3.5rem] flex-1 flex-col items-center justify-center gap-0.5 rounded-[1.4rem] py-1.5 text-muted-foreground transition-all duration-200 data-[status=active]:bg-primary/10 data-[status=active]:text-primary hover:text-foreground"
+              className="group relative flex min-h-[3.6rem] min-w-[3.4rem] flex-1 flex-col items-center justify-center gap-0.5 rounded-[1.4rem] py-1 text-muted-foreground transition-all duration-200 data-[status=active]:bg-primary/12 data-[status=active]:text-primary hover:text-foreground"
             >
               <Icon
-                className="h-[22px] w-[22px] transition-transform duration-200 group-data-[status=active]:scale-110"
-                strokeWidth={2}
+                className="h-[21px] w-[21px] transition-transform duration-200 group-data-[status=active]:scale-110"
+                strokeWidth={2.2}
               />
-              <span className="text-[11px] font-semibold leading-none">{label}</span>
+              <span className="text-[10.5px] font-bold leading-none">{label}</span>
               <span className="absolute -bottom-0.5 h-1 w-1 rounded-full bg-primary opacity-0 transition-opacity duration-200 group-data-[status=active]:opacity-100" />
             </Link>
           ))}
