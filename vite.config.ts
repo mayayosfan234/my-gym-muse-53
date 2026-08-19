@@ -1,22 +1,15 @@
-// codeam preview host-allow shim — auto-generated, restored on preview stop.
-import __codeamUser from './vite.config.codeam-orig.ts';
+// @lovable.dev/vite-tanstack-config already includes the following — do NOT add them manually
+// or the app will break with duplicate plugins:
+//   - TanStack devtools (dev-only, first), tanstackStart, viteReact, tailwindcss, tsConfigPaths,
+//     nitro (build-only using cloudflare as a default target), VITE_* env injection, @ path alias,
+//     React/TanStack dedupe, error logger plugins, and sandbox detection (port/host/strictPort).
+// You can pass additional config via defineConfig({ vite: { ... }, etc... }) if needed.
+import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 
-function __codeamWithAllow(cfg) {
-  var c = cfg && typeof cfg === 'object' ? Object.assign({}, cfg) : {};
-  var server = Object.assign({}, c.server || {});
-  if (server.allowedHosts === true) { c.server = server; return c; }
-  var existing = Array.isArray(server.allowedHosts) ? server.allowedHosts : [];
-  server.allowedHosts = Array.from(new Set(existing.concat([".trycloudflare.com",".preview.codeagent-mobile.com",".codeagent-mobile.com"])));
-  c.server = server;
-  return c;
-}
-function __codeamMerge(base) {
-  if (typeof base === 'function') {
-    return function () {
-      var r = base.apply(null, arguments);
-      return r && typeof r.then === 'function' ? r.then(__codeamWithAllow) : __codeamWithAllow(r);
-    };
-  }
-  return base && typeof base.then === 'function' ? base.then(__codeamWithAllow) : __codeamWithAllow(base);
-}
-export default __codeamMerge(__codeamUser);
+export default defineConfig({
+  tanstackStart: {
+    // Redirect TanStack Start's bundled server entry to src/server.ts (our SSR error wrapper).
+    // nitro/vite builds from this
+    server: { entry: "server" },
+  },
+});
