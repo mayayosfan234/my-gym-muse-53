@@ -38,7 +38,7 @@ export function ListRow({
   const inner = (
     <div className="flex items-center gap-3.5">
       {leading ? (
-        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-cream text-primary">
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-secondary text-primary">
           {leading}
         </div>
       ) : null}
@@ -91,10 +91,10 @@ export function Pill({
 }) {
   const styles = {
     neutral: "bg-secondary text-secondary-foreground",
-    sage: "bg-sage-soft text-primary",
+    sage: "bg-rose-soft text-primary",
     rose: "bg-rose-soft text-rose",
     ink: "bg-ink text-primary-foreground",
-    cream: "bg-cream text-ink-soft",
+    cream: "bg-secondary text-ink-soft",
   } as const;
   const interactive = Boolean(onClick);
   return (
@@ -124,7 +124,7 @@ export function IconButton({
   variant?: "default" | "primary" | "ghost";
 }) {
   const styles = {
-    default: "bg-white/80 border border-border/60 text-ink hover:bg-white shadow-sm",
+    default: "bg-white/90 border border-border/60 text-ink hover:bg-white shadow-sm",
     primary: "bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm",
     ghost: "bg-transparent text-ink hover:bg-secondary",
   } as const;
@@ -181,9 +181,9 @@ export function StatTile({
   tone?: "sage" | "rose" | "cream" | "ink";
 }) {
   const tones = {
-    sage: "bg-sage-soft text-primary",
+    sage: "bg-rose-soft text-primary",
     rose: "bg-rose-soft text-rose",
-    cream: "bg-cream text-ink-soft",
+    cream: "bg-secondary text-ink-soft",
     ink: "bg-ink text-primary-foreground",
   } as const;
   return (
@@ -217,7 +217,7 @@ export function EmptyState({
   return (
     <div className="surface-card mx-auto flex max-w-sm flex-col items-center px-6 py-10 text-center">
       {Icon ? (
-        <div className="grid h-16 w-16 place-items-center rounded-2xl bg-sage-soft text-primary">
+        <div className="grid h-16 w-16 place-items-center rounded-2xl bg-rose-soft text-primary">
           <Icon className="h-7 w-7" strokeWidth={1.8} />
         </div>
       ) : null}
@@ -245,7 +245,7 @@ export function PrimaryButton({
     <button
       type="button"
       className={cn(
-        "press inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-primary px-5 text-[14.5px] font-bold text-primary-foreground shadow-[0_8px_20px_oklch(0.55_0.06_155/0.25)] hover:bg-primary/90 disabled:opacity-50",
+        "press inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-primary px-5 text-[14.5px] font-bold text-primary-foreground shadow-[0_8px_20px_oklch(0.55_0.16_350/0.25)] hover:bg-primary/90 disabled:opacity-50",
         className,
       )}
       {...props}
@@ -301,7 +301,7 @@ export function LinkPill({
     <Comp
       href={href}
       className={cn(
-        "inline-flex items-center gap-1 rounded-full bg-secondary/70 px-3 py-1.5 text-[12px] font-bold text-primary",
+        "inline-flex items-center gap-1 rounded-full bg-secondary/80 px-3 py-1.5 text-[12px] font-bold text-primary",
         className,
       )}
     >

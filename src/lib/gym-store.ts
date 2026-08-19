@@ -2,6 +2,8 @@ import { useSyncExternalStore } from "react";
 import { ISRAELI_FOOD_DATABASE } from "./israeli-food-db";
 import {
   DEFAULT_MEALS,
+  type BodyWeightLog,
+  type CardioLog,
   type Exercise,
   type FoodItem,
   type GymData,
@@ -10,6 +12,8 @@ import {
   type NutritionDay,
   type NutritionTargets,
   type Program,
+  type SavedRecipe,
+  type UserProfile,
   type WarmupSet,
   type Workout,
   type WorkoutItem,
@@ -125,7 +129,7 @@ const seed = (): GymData => {
     },
     {
       id: "ex-ohp",
-      name: "לחיצת כתפיים בבעמידה כנגד מוט",
+      name: "לחיצת כתפיים בעמידה כנגד מוט",
       muscleGroup: "כתפיים",
       muscleGroups: ["כתפיים", "כתף קדמית", "טריצפס (יד אחורית)"],
       secondaryMuscles: ["טריצפס (יד אחורית)", "בטן"],
@@ -219,8 +223,8 @@ const seed = (): GymData => {
   const programs: Program[] = [
     {
       id: "p-default",
-      name: "תכנית האימונים שלי",
-      notes: "תבנית 4 ימי אימון (פלג גוף תחתון/עליון)",
+      name: "תכנית אימונים 4 ימים",
+      notes: "חלוקת פלג גוף תחתון / פלג גוף עליון",
       dayIds: workouts.map((w) => w.id),
     },
   ];
@@ -234,6 +238,12 @@ const seed = (): GymData => {
     nutritionDays: [],
     nutritionTargets: { calories: 2000, protein: 140, carbs: 200, fat: 65 },
     mealTemplate: [...DEFAULT_MEALS],
+    recipes: [],
+    recentFoods: [],
+    favoriteFoods: [],
+    bodyWeightLogs: [{ id: uid(), date: todayKey(), weight: 65 }],
+    cardioLogs: [],
+    userProfile: { weight: 65, height: 165, age: 26, gender: "female", workoutsPerWeek: 4 },
   };
 };
 
@@ -269,6 +279,14 @@ function migrate(d: Partial<GymData>): GymData {
     nutritionDays: d.nutritionDays ?? [],
     nutritionTargets: d.nutritionTargets ?? seed().nutritionTargets,
     mealTemplate: d.mealTemplate?.length ? d.mealTemplate : [...DEFAULT_MEALS],
+    recipes: d.recipes ?? [],
+    recentFoods: d.recentFoods ?? [],
+    favoriteFoods: d.favoriteFoods ?? [],
+    bodyWeightLogs: d.bodyWeightLogs?.length
+      ? d.bodyWeightLogs
+      : [{ id: uid(), date: todayKey(), weight: d.userProfile?.weight ?? 65 }],
+    cardioLogs: d.cardioLogs ?? [],
+    userProfile: d.userProfile ?? seed().userProfile,
   };
 }
 
@@ -318,7 +336,6 @@ export function useGym(): GymData {
 }
 
 /* ---------- rep helpers ---------- */
-/** Human-readable programmed reps for an item (fixed or range). */
 export function repLabel(item: Pick<WorkoutItem, "reps" | "repType" | "repMin" | "repMax">) {
   if (item.repType === "range" && item.repMin != null && item.repMax != null) {
     return `${item.repMin}–${item.repMax}`;
@@ -375,7 +392,6 @@ export function saveWorkout(w: Workout) {
   });
 }
 
-/** Save a workout day and make sure it belongs to the given program. */
 export function saveWorkoutInProgram(programId: string, w: Workout) {
   const exists = data.workouts.some((x) => x.id === w.id);
   const workouts = exists
@@ -531,7 +547,6 @@ export function lastPerformance(history: HistorySession[], exerciseId: string) {
   return null;
 }
 
-/** Simple personal records for an exercise across all history. */
 export function personalRecords(history: HistorySession[], exerciseId: string) {
   let heaviest = 0;
   let bestRepsAtHeaviest = 0;
@@ -560,6 +575,93 @@ export function personalRecords(history: HistorySession[], exerciseId: string) {
   };
 }
 
+/* ---------- User Profile, Weight & RMR ---------- */
+
+export function saveUserProfile(profile: UserProfile) {
+  const updatedWeight = profile.weight;
+  const logs = [...(data.bodyWeightLogs ?? [])];
+  const today = todayKey();
+  const existingIdx = logs.findIndex((l) => l.date === today);
+  if (existingIdx >= 0) {
+    logs[existingIdx] = { ...logs[existingIdx]!, weight: updatedWeight };
+  } else {
+    logs.unshift({ id: uid(), date: today, weight: updatedWeight });
+  }
+  set({ ...data, userProfile: profile, bodyWeightLogs: logs });
+}
+
+export function saveBodyWeight(weight: number, dateStr = todayKey()) {
+  const logs = [...(data.bodyWeightLogs ?? [])];
+  const idx = logs.findIndex((l) => l.date === dateStr);
+  if (idx >= 0) {
+    logs[idx] = { ...logs[idx]!, weight };
+  } else {
+    logs.unshift({ id: uid(), date: dateStr, weight });
+  }
+  const profile = { ...(data.userProfile ?? { weight: 65 }), weight };
+  set({ ...data, bodyWeightLogs: logs, userProfile: profile });
+}
+
+/** RMR Calculation using Mifflin-St Jeor formula */
+export function calculateRmr(profile?: UserProfile) {
+  const p = profile ?? data.userProfile ?? { weight: 65, height: 165, age: 26, gender: "female" };
+  const w = p.weight || 65;
+  const h = p.height || 165;
+  const a = p.age || 26;
+  const isFemale = p.gender !== "male";
+
+  // Mifflin-St Jeor Formula
+  const baseRmr = 10 * w + 6.25 * h - 5 * a + (isFemale ? -161 : 5);
+  const rmr = Math.round(baseRmr);
+
+  // Daily Energy Expenditure estimate based on weekly workouts
+  const frequency = p.workoutsPerWeek ?? 4;
+  let mult = 1.2; // sedentary
+  if (frequency >= 1 && frequency <= 2) mult = 1.375;
+  else if (frequency >= 3 && frequency <= 4) mult = 1.55;
+  else if (frequency >= 5) mult = 1.725;
+
+  const tdee = Math.round(rmr * mult);
+  return { rmr, tdee, weight: w };
+}
+
+/* ---------- Cardio Logger ---------- */
+
+export function saveCardioLog(log: Omit<CardioLog, "id">) {
+  const entry: CardioLog = { id: uid(), ...log };
+  set({ ...data, cardioLogs: [entry, ...(data.cardioLogs ?? [])] });
+}
+
+export function calculateCardioCalories(
+  type: string,
+  durationMin: number,
+  weightKg = 65,
+  speedKmH = 8,
+  inclinePct = 0,
+): number {
+  if (durationMin <= 0) return 0;
+  let met = 5; // default moderate MET
+
+  if (type.includes("הליכון") || type.includes("Treadmill") || type.includes("ריצה")) {
+    met = speedKmH >= 10 ? 10 : speedKmH >= 8 ? 8 : 4.5;
+    if (inclinePct > 0) met += inclinePct * 0.4;
+  } else if (type.includes("הליכה")) {
+    met = 3.8;
+  } else if (type.includes("אופניים")) {
+    met = 6.8;
+  } else if (type.includes("מדרגות")) {
+    met = 8.5;
+  } else if (type.includes("שחייה")) {
+    met = 7;
+  } else if (type.includes("HIIT")) {
+    met = 9;
+  }
+
+  // Calories = MET * weight_kg * duration_hours
+  const calories = met * weightKg * (durationMin / 60);
+  return Math.round(calories);
+}
+
 /* ---------- nutrition: food library ---------- */
 export function saveFood(food: FoodItem) {
   const exists = data.foods.some((f) => f.id === food.id);
@@ -567,6 +669,13 @@ export function saveFood(food: FoodItem) {
     ...data,
     foods: exists ? data.foods.map((f) => (f.id === food.id ? food : f)) : [...data.foods, food],
   });
+}
+
+export function toggleFavoriteFood(foodId: string) {
+  const favorites = new Set(data.favoriteFoods ?? []);
+  if (favorites.has(foodId)) favorites.delete(foodId);
+  else favorites.add(foodId);
+  set({ ...data, favoriteFoods: Array.from(favorites) });
 }
 
 export function deleteFood(id: string) {
@@ -579,6 +688,14 @@ export function emptyFood(): FoodItem {
 
 export function saveNutritionTargets(targets: NutritionTargets) {
   set({ ...data, nutritionTargets: targets });
+}
+
+/* ---------- recipes ---------- */
+
+export function saveRecipe(name: string, foods: MealFood[]) {
+  const recipes = data.recipes ?? [];
+  const recipe: SavedRecipe = { id: uid(), name: name.trim() || "מתכון שמור", foods };
+  set({ ...data, recipes: [recipe, ...recipes] });
 }
 
 /* ---------- nutrition: days & meals ---------- */
@@ -604,6 +721,46 @@ function withDay(date: string, updater: (day: NutritionDay) => NutritionDay) {
   set({ ...data, nutritionDays: days });
 }
 
+/** Determine meal index based on time logged (08:30 -> Breakfast, 13:15 -> Lunch, 19:30 -> Dinner) */
+export function autoMealIndexForTime(timeStr?: string): number {
+  const now = new Date();
+  const hours = timeStr ? parseInt(timeStr.split(":")[0] ?? "12", 10) : now.getHours();
+
+  if (hours < 10) return 0; // ארוחת בוקר
+  if (hours < 12) return 1; // נשנוש בוקר
+  if (hours < 15) return 2; // ארוחת צהריים
+  if (hours < 18) return 3; // נשנוש אחה"צ
+  if (hours < 21) return 4; // ארוחת ערב
+  return 5; // נשנוש לילה
+}
+
+export function addFoodAutoMeal(date: string, food: MealFood) {
+  const time =
+    food.timeLogged ||
+    new Date().toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit" });
+  const foodWithTime = { ...food, timeLogged: time };
+  const mealIdx = autoMealIndexForTime(time);
+
+  withDay(date, (day) => {
+    const meals = [...day.meals];
+    if (meals[mealIdx]) {
+      meals[mealIdx] = {
+        ...meals[mealIdx]!,
+        foods: [...meals[mealIdx]!.foods, foodWithTime],
+      };
+    } else {
+      meals[0] = { ...meals[0]!, foods: [...meals[0]!.foods, foodWithTime] };
+    }
+    return { ...day, meals };
+  });
+
+  // Track as recent food
+  if (food.foodId) {
+    const recent = [food.foodId, ...(data.recentFoods ?? []).filter((id) => id !== food.foodId)];
+    set({ ...data, recentFoods: recent.slice(0, 20) });
+  }
+}
+
 export function addMeal(date: string, name: string) {
   withDay(date, (day) => ({
     ...day,
@@ -622,37 +779,16 @@ export function renameMeal(date: string, mealId: string, name: string) {
   }));
 }
 
-export function reorderMeals(date: string, mealIds: string[]) {
-  withDay(date, (day) => ({
-    ...day,
-    meals: mealIds
-      .map((id) => day.meals.find((m) => m.id === id))
-      .filter((m): m is NutritionDay["meals"][number] => Boolean(m)),
-  }));
-}
-
-export function duplicateMeal(date: string, mealId: string) {
-  withDay(date, (day) => {
-    const meal = day.meals.find((m) => m.id === mealId);
-    if (!meal) return day;
-    const index = day.meals.findIndex((m) => m.id === mealId);
-    const copy = {
-      ...meal,
-      id: uid(),
-      name: `${meal.name} (עותק)`,
-      foods: meal.foods.map((f) => ({ ...f, id: uid() })),
-    };
-    const meals = [...day.meals];
-    meals.splice(index + 1, 0, copy);
-    return { ...day, meals };
-  });
-}
-
 export function addFoodToMeal(date: string, mealId: string, food: MealFood) {
   withDay(date, (day) => ({
     ...day,
     meals: day.meals.map((m) => (m.id === mealId ? { ...m, foods: [...m.foods, food] } : m)),
   }));
+
+  if (food.foodId) {
+    const recent = [food.foodId, ...(data.recentFoods ?? []).filter((id) => id !== food.foodId)];
+    set({ ...data, recentFoods: recent.slice(0, 20) });
+  }
 }
 
 export function updateMealFood(date: string, mealId: string, food: MealFood) {
@@ -673,19 +809,17 @@ export function removeMealFood(date: string, mealId: string, foodId: string) {
   }));
 }
 
-export function duplicateMealFood(date: string, mealId: string, foodId: string) {
-  withDay(date, (day) => ({
-    ...day,
-    meals: day.meals.map((m) => {
-      if (m.id !== mealId) return m;
-      const food = m.foods.find((f) => f.id === foodId);
-      if (!food) return m;
-      const index = m.foods.findIndex((f) => f.id === foodId);
-      const foods = [...m.foods];
-      foods.splice(index + 1, 0, { ...food, id: uid() });
-      return { ...m, foods };
-    }),
+export function copyPreviousDayNutrition(fromDate: string, targetDate: string) {
+  const sourceDay = data.nutritionDays.find((d) => d.date === fromDate);
+  if (!sourceDay) return;
+
+  const copiedMeals = sourceDay.meals.map((m) => ({
+    ...m,
+    id: uid(),
+    foods: m.foods.map((f) => ({ ...f, id: uid() })),
   }));
+
+  withDay(targetDate, (day) => ({ ...day, meals: copiedMeals }));
 }
 
 export function emptyMealFood(): MealFood {
@@ -723,36 +857,52 @@ function normalizeSearch(s: string) {
     .toLocaleLowerCase()
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
+    .replace(/['"-]/g, "")
     .trim();
 }
 
 /**
+ * Forgiving Hebrew food search (e.g., "קוטג" matches "קוטג'", "ביצה" matches "ביצים").
+ */
+export function searchFoods(foods: FoodItem[], query: string) {
+  const normalized = normalizeSearch(query);
+  if (!normalized) return foods;
+  const tokens = normalized.split(/\s+/).filter(Boolean);
+
+  return foods.filter((food) => {
+    const name = normalizeSearch(food.name);
+    const category = normalizeSearch(food.category ?? "");
+    const english = normalizeSearch(food.englishName ?? "");
+    const terms = (food.searchTerms ?? []).map(normalizeSearch);
+
+    return tokens.every(
+      (token) =>
+        name.includes(token) ||
+        category.includes(token) ||
+        english.includes(token) ||
+        terms.some((t) => t.includes(token)),
+    );
+  });
+}
+
+/**
  * Finds food replacements with EXACT calorie matching formula.
- * Calculate replacement quantity (in grams or serving multiplier) to preserve target calories!
- * formula: replacementGrams = (targetCalories * 100) / replacementCaloriesPer100g
  */
 export function findFoodReplacements(
   foods: FoodItem[],
   current: Pick<MealFood, "foodId" | "name" | "calories" | "protein" | "quantity">,
   query = "",
 ) {
-  const normalized = normalizeSearch(query);
-  const tokens = normalized.split(/\s+/).filter(Boolean);
   const targetCal = (current.calories ?? 0) * (current.quantity ?? 1);
+  const searchResults = searchFoods(foods, query);
 
-  return foods
+  return searchResults
     .filter((food) => {
       if (current.foodId && food.id === current.foodId) return false;
       if (!current.foodId && current.name && food.name === current.name) return false;
       return true;
     })
-    .filter((food) => {
-      if (!tokens.length) return true;
-      const name = normalizeSearch(food.name);
-      return tokens.every((t) => name.includes(t));
-    })
     .map((food) => {
-      // Calculate required quantity to match target calories
       const requiredQty = food.calories > 0 ? targetCal / food.calories : 1;
       return {
         food,

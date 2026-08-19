@@ -128,7 +128,7 @@ export type HistorySession = {
   entries: HistoryEntry[];
 };
 
-/* ---------- nutrition ---------- */
+/* ---------- nutrition & user profile ---------- */
 
 /** A reusable food in the personal food library, with macros per reference serving. */
 export type FoodItem = {
@@ -145,6 +145,7 @@ export type FoodItem = {
   fiber?: number;
   notes?: string;
   searchTerms?: string[];
+  favorite?: boolean;
 };
 
 /** A food logged inside a meal. Macros are per single serving; totals scale by quantity. */
@@ -162,6 +163,7 @@ export type MealFood = {
   fat: number;
   fiber?: number;
   notes?: string;
+  timeLogged?: string; // HH:MM
 };
 
 export type Meal = {
@@ -183,6 +185,37 @@ export type NutritionTargets = {
   fat?: number;
 };
 
+export type SavedRecipe = {
+  id: string;
+  name: string;
+  foods: MealFood[];
+};
+
+export type BodyWeightLog = {
+  id: string;
+  date: string; // YYYY-MM-DD
+  weight: number; // kg
+};
+
+export type CardioLog = {
+  id: string;
+  date: string; // YYYY-MM-DD
+  type: string; // Treadmill, Walking, Running, Stationary bike, Elliptical, StairMaster, Rowing, Swimming, Tennis, HIIT
+  durationMin: number;
+  speed?: number; // km/h
+  incline?: number; // %
+  distanceKm?: number;
+  calories: number;
+};
+
+export type UserProfile = {
+  weight: number; // kg
+  height?: number; // cm
+  age?: number;
+  gender?: "female" | "male";
+  workoutsPerWeek?: number;
+};
+
 export type GymData = {
   exercises: Exercise[];
   workouts: Workout[];
@@ -194,6 +227,12 @@ export type GymData = {
   nutritionTargets: NutritionTargets;
   /** Default meal names used when a new day is created. */
   mealTemplate: string[];
+  recipes?: SavedRecipe[];
+  recentFoods?: string[]; // foodIds
+  favoriteFoods?: string[]; // foodIds
+  bodyWeightLogs?: BodyWeightLog[];
+  cardioLogs?: CardioLog[];
+  userProfile?: UserProfile;
 };
 
 export const MUSCLE_GROUPS = [
@@ -257,4 +296,17 @@ export const DEFAULT_MEALS = [
   'נשנוש אחה"צ',
   "ארוחת ערב",
   "נשנוש לילה",
+];
+
+export const CARDIO_TYPES = [
+  "הליכון (Treadmill)",
+  "הליכה",
+  "ריצה",
+  "אופני כושר",
+  "אליפטיקל",
+  "מדרגות (StairMaster)",
+  "חתירה (Rowing)",
+  "שחייה",
+  "טניס",
+  "אימון אינטרוולים (HIIT)",
 ];

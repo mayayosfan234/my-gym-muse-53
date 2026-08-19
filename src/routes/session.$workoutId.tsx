@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { Check, ChevronLeft, Info, Pause, Play, Plus, Timer, X } from "lucide-react";
+import { Check, ChevronLeft, Copy, Info, Pause, Play, Plus, RefreshCw, Search, Timer, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { Stepper } from "@/components/Stepper";
@@ -63,6 +63,10 @@ function Session() {
   const workout = workouts.find((w) => w.id === workoutId);
   const currentProgram = programs.find((program) => program.dayIds.includes(workoutId));
   const [cardExercise, setCardExercise] = useState<Exercise | null>(null);
+
+  // Exercise replacement modal state
+  const [replacingIndex, setReplacingIndex] = useState<number | null>(null);
+  const [replaceSearch, setReplaceSearch] = useState("");
 
   const initial = useMemo<HistoryEntry[]>(() => {
     if (!workout) return [];
@@ -138,6 +142,44 @@ function Session() {
       ),
     );
 
+  const toggleSetDone = (ei: number, si: number) => {
+    const currentSet = entries[ei]?.sets[si];
+    if (!currentSet) return;
+    const isNowDone = !currentSet.done;
+    patchSet(ei, si, { done: isNowDone });
+
+    // Auto trigger rest timer on completing a working set
+    if (isNowDone && !currentSet.warmup) {
+      const restSec = workout.items[ei]?.rest ?? 60;
+      setRest(restSec);
+    }
+  };
+
+  const copySetValues = (ei: number, si: number) => {
+    if (si <= 0) return;
+    const prevSet = entries[ei]?.sets[si - 1];
+    if (prevSet) {
+      patchSet(ei, si, { weight: prevSet.weight, reps: prevSet.reps });
+    }
+  };
+
+  const replaceExercise = (ei: number, newEx: Exercise) => {
+    setEntries((prev) =>
+      prev.map((e, i) =>
+        i === ei
+          ? {
+              ...e,
+              exerciseId: newEx.id,
+              exerciseName: newEx.name,
+              equipment: newEx.equipment,
+            }
+          : e,
+      ),
+    );
+    setReplacingIndex(null);
+    setReplaceSearch("");
+  };
+
   const totalSets = entries.reduce((a, e) => a + e.sets.filter((s) => !s.warmup).length, 0);
   const doneSets = entries.reduce(
     (a, e) => a + e.sets.filter((s) => s.done && !s.warmup).length,
@@ -159,11 +201,18 @@ function Session() {
 
   const progress = totalSets ? (doneSets / totalSets) * 100 : 0;
 
+  const filteredExercisesForReplace = exercises.filter(
+    (ex) =>
+      ex.name.toLowerCase().includes(replaceSearch.toLowerCase()) ||
+      ex.muscleGroup.toLowerCase().includes(replaceSearch.toLowerCase()) ||
+      (ex.equipment && ex.equipment.toLowerCase().includes(replaceSearch.toLowerCase())),
+  );
+
   return (
     <AppShell
       kicker={currentProgram?.name ?? "אימון"}
       title={workout.name}
-      subtitle={`${doneSets} מתוך ${totalSets} סטים · שלב טוב!`}
+      subtitle={`${doneSets} מתוך ${totalSets} סטים · בהצלחה!`}
       action={
         <IconButton aria-label="יציאה מהאימון" onClick={() => setPendingExit(true)}>
           <X className="h-5 w-5" />
@@ -178,7 +227,7 @@ function Session() {
         <div className="min-w-0 flex-1">
           <div className="mb-1 flex items-center justify-between gap-2">
             <p className="text-[11px] font-semibold tracking-[0.14em] text-muted-foreground uppercase">
-              התקדמות
+              התקדמות אימון
             </p>
             <p className="text-[11.5px] font-semibold tabular-nums text-ink">
               {Math.round(progress)}%
@@ -236,15 +285,27 @@ function Session() {
                     {entry.targetSets ?? workingCount}× {targetLabel} חזרות
                   </p>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setRest(item?.rest ?? 60)}
-                  className="press flex shrink-0 items-center gap-1 rounded-full bg-secondary px-3 py-2 text-[12px] font-semibold text-ink"
-                  aria-label="התחל מנוחה"
-                >
-                  <Timer className="h-3.5 w-3.5 text-primary" />
-                  {item?.rest ?? 60}ש׳
-                </button>
+
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setReplacingIndex(ei)}
+                    className="press grid h-9 w-9 place-items-center rounded-full bg-secondary text-muted-foreground hover:text-primary"
+                    title="החליפי תרגיל"
+                    aria-label="החליפי תרגיל"
+                  >
+                    <RefreshCw className="h-3.5 w-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setRest(item?.rest ?? 60)}
+                    className="press flex shrink-0 items-center gap-1 rounded-full bg-secondary px-3 py-2 text-[12px] font-semibold text-ink"
+                    aria-label="התחל מנוחה"
+                  >
+                    <Timer className="h-3.5 w-3.5 text-primary" />
+                    {item?.rest ?? 60}ש׳
+                  </button>
+                </div>
               </div>
 
               {entry.notes ? (
@@ -310,10 +371,23 @@ function Session() {
                             ) : null}
                           </p>
                         </div>
+
+                        {si > 0 ? (
+                          <button
+                            type="button"
+                            onClick={() => copySetValues(ei, si)}
+                            className="press flex items-center gap-1 rounded-xl bg-secondary px-2 py-1 text-[11px] font-medium text-muted-foreground hover:text-ink"
+                            title="העתק משקל וחזרות מסט קודם"
+                          >
+                            <Copy className="h-3 w-3" />
+                            <span className="hidden sm:inline">העתקי</span>
+                          </button>
+                        ) : null}
+
                         {!s.warmup ? (
                           <button
                             type="button"
-                            onClick={() => patchSet(ei, si, { done: !s.done })}
+                            onClick={() => toggleSetDone(ei, si)}
                             className={`press grid h-11 w-11 place-items-center rounded-2xl text-[13px] font-bold transition-colors ${
                               s.done
                                 ? "bg-primary text-primary-foreground"
@@ -469,7 +543,7 @@ function Session() {
           inputMode="numeric"
           value={customRest}
           onChange={(e) => setCustomRest(e.target.value.replace(/\D/g, ""))}
-          placeholder="מנוחה מותאמת..."
+          placeholder="מנוחה מותאמת (שניות)..."
           className="min-w-0 flex-1 bg-transparent text-[13px] outline-none placeholder:text-muted-foreground"
         />
         <button
@@ -556,6 +630,66 @@ function Session() {
             >
               פתח עמוד תרגיל מלא
             </Link>
+          </div>
+        </div>
+      ) : null}
+
+      {/* Replace Exercise Modal */}
+      {replacingIndex !== null ? (
+        <div
+          className="fade-in fixed inset-0 z-50 flex items-end justify-center bg-foreground/40 backdrop-blur-sm"
+          onClick={() => setReplacingIndex(null)}
+          style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+        >
+          <div
+            className="scale-in max-h-[85dvh] w-full max-w-xl overflow-y-auto rounded-t-[2rem] border-t border-border/40 bg-card p-5 text-start shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-border" />
+            <div className="flex items-center justify-between">
+              <h2 className="font-display text-[18px] font-bold text-ink">
+                החליפי תרגיל במקום: {entries[replacingIndex]?.exerciseName}
+              </h2>
+              <IconButton
+                aria-label="סגור"
+                onClick={() => setReplacingIndex(null)}
+                variant="ghost"
+              >
+                <X className="h-5 w-5" />
+              </IconButton>
+            </div>
+
+            <div className="mt-3 flex items-center gap-2 rounded-2xl bg-secondary px-3.5 py-2.5">
+              <Search className="h-4 w-4 text-muted-foreground shrink-0" />
+              <input
+                type="text"
+                value={replaceSearch}
+                onChange={(e) => setReplaceSearch(e.target.value)}
+                placeholder="חפשי תרגיל חלופי..."
+                className="min-w-0 flex-1 bg-transparent text-[13.5px] outline-none placeholder:text-muted-foreground"
+              />
+            </div>
+
+            <div className="mt-4 space-y-2 pb-6">
+              {filteredExercisesForReplace.map((ex) => (
+                <button
+                  key={ex.id}
+                  type="button"
+                  onClick={() => replaceExercise(replacingIndex, ex)}
+                  className="press flex w-full items-center justify-between rounded-2xl bg-secondary p-3.5 text-start hover:bg-secondary/80"
+                >
+                  <div>
+                    <p className="font-semibold text-ink text-[14px]">{ex.name}</p>
+                    <p className="text-[12px] text-muted-foreground">
+                      {ex.muscleGroup} {ex.equipment ? `· ${ex.equipment}` : ""}
+                    </p>
+                  </div>
+                  <span className="rounded-xl bg-primary/10 px-2.5 py-1 text-[12px] font-semibold text-primary">
+                    בחר
+                  </span>
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       ) : null}
