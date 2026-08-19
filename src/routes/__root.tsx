@@ -1,11 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import {
-  Outlet,
-  Link,
-  createRootRouteWithContext,
-  useRouter,
-  useRouterState,
-} from "@tanstack/react-router";
+import { Outlet, Link, createRootRouteWithContext, useRouter } from "@tanstack/react-router";
 import { useEffect } from "react";
 
 import { reportLovableError } from "../lib/lovable-error-reporting";
@@ -101,16 +95,33 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   errorComponent: ErrorComponent,
 });
 
+/**
+ * Reset window scroll position to the top after every navigation. Subscribes
+ * to the router's `onResolved` event so the reset runs at the end of the
+ * router's own pipeline (after matchers + loaders) rather than racing against
+ * it the way an effect-on-pathname-change did. With `scrollRestoration: false`
+ * on the router, this is the single source of truth for "scroll to top on
+ * navigation", which is what fixes detail pages opening at the bottom when
+ * the user was deep-scrolled on a list page.
+ *
+ * Note: `behavior: 'instant'` is non-standard; browsers may fall back to
+ * smooth. A bare `scrollTo(0, 0)` is synchronous on every modern engine.
+ */
 function ScrollToTop() {
-  const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const search = useRouterState({ select: (s) => s.location.searchStr });
+  const router = useRouter();
 
   useEffect(() => {
-    // Force the food / exercise detail pages (and every route) to open at the top.
-    window.scrollTo({ top: 0, left: 0, behavior: "instant" as ScrollBehavior });
-    document.documentElement.scrollTop = 0;
-    document.body.scrollTop = 0;
-  }, [pathname, search]);
+    const resetScroll = () => {
+      window.scrollTo(0, 0);
+      // Belt-and-braces for engines where `window.scrollTo` doesn't reach
+      // document scrolling element when the html/body set `overflow: clip`.
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+    };
+
+    resetScroll();
+    return router.subscribe("onResolved", resetScroll);
+  }, [router]);
 
   return null;
 }

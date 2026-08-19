@@ -1,11 +1,37 @@
-import { closestCenter, DndContext, PointerSensor, TouchSensor, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
-import { SortableContext, arrayMove, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import {
+  closestCenter,
+  DndContext,
+  PointerSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  arrayMove,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { ArrowRight, Copy, GripVertical, Play, Plus, Trash2 } from "lucide-react";
+import { ArrowRight, Copy, GripVertical, Pencil, Play, Plus, Save, Trash2, X } from "lucide-react";
 import { useState } from "react";
 import { AppShell } from "@/components/AppShell";
-import { deleteWorkout, duplicateWorkoutDay, reorderProgramDays, saveProgram, useGym } from "@/lib/gym-store";
+import { ConfirmSheet } from "@/components/ui-app/ConfirmSheet";
+import {
+  EmptyState,
+  IconButton,
+  PrimaryButton,
+  SectionHeader,
+} from "@/components/ui-app/primitives";
+import {
+  deleteWorkout,
+  duplicateWorkoutDay,
+  reorderProgramDays,
+  saveProgram,
+  useGym,
+} from "@/lib/gym-store";
 import type { Program, Workout } from "@/lib/gym-types";
 
 export const Route = createFileRoute("/programs/$programId")({
@@ -20,19 +46,44 @@ function ProgramDetail() {
   const program = programs.find((item) => item.id === programId);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState<Program | null>(null);
-  const sensors = useSensors(useSensor(TouchSensor, { activationConstraint: { delay: 120, tolerance: 8 } }), useSensor(PointerSensor));
+  const [pendingDelete, setPendingDelete] = useState<{ id: string; name: string } | null>(null);
+  const sensors = useSensors(
+    useSensor(TouchSensor, { activationConstraint: { delay: 120, tolerance: 8 } }),
+    useSensor(PointerSensor),
+  );
 
   if (!program) {
-    return <AppShell title="תכנית לא נמצאה"><p className="surface-card p-5 text-muted-foreground text-start">תכנית זו אינה קיימת עוד.</p></AppShell>;
+    return (
+      <AppShell
+        title="תכנית לא נמצאה"
+        action={
+          <Link
+            to="/programs"
+            aria-label="חזרה לתוכניות"
+            className="press grid h-11 w-11 place-items-center rounded-2xl bg-secondary"
+          >
+            <ArrowRight className="h-5 w-5" />
+          </Link>
+        }
+      >
+        <p className="surface-card p-5 text-muted-foreground text-start">
+          תכנית זו אינה קיימת עוד.
+        </p>
+      </AppShell>
+    );
   }
 
-  const days = program.dayIds.map((id) => workouts.find((workout) => workout.id === id)).filter((day): day is Workout => Boolean(day));
+  const days = program.dayIds
+    .map((id) => workouts.find((workout) => workout.id === id))
+    .filter((day): day is Workout => Boolean(day));
   const current = draft ?? program;
   const onDragEnd = ({ active, over }: DragEndEvent) => {
     if (!over || active.id === over.id) return;
     const oldIndex = program.dayIds.indexOf(String(active.id));
     const newIndex = program.dayIds.indexOf(String(over.id));
-    if (oldIndex !== -1 && newIndex !== -1) reorderProgramDays(program.id, arrayMove(program.dayIds, oldIndex, newIndex));
+    if (oldIndex !== -1 && newIndex !== -1) {
+      reorderProgramDays(program.id, arrayMove(program.dayIds, oldIndex, newIndex));
+    }
   };
   const save = () => {
     if (!current.name.trim()) return;
@@ -41,71 +92,228 @@ function ProgramDetail() {
     setDraft(null);
   };
 
+  const totalExercises = days.reduce((sum, d) => sum + d.items.length, 0);
+
   return (
     <AppShell
+      kicker="תכנית"
       title={program.name}
-      subtitle={`${days.length} ימי אימון`}
-      action={<Link to="/programs" aria-label="חזרה לתוכניות" className="grid h-11 w-11 place-items-center rounded-xl bg-secondary active:scale-95"><ArrowRight className="h-5 w-5" /></Link>}
+      subtitle={`${days.length} ימי אימון · ${totalExercises} תרגילים`}
+      action={
+        <IconButton
+          onClick={() => setEditing((value) => !value)}
+          aria-label="ערוך תכנית"
+          variant={editing ? "primary" : "default"}
+        >
+          {editing ? <X className="h-5 w-5" /> : <Pencil className="h-4 w-4" strokeWidth={2} />}
+        </IconButton>
+      }
     >
-      <section className="surface-card p-5 sm:p-6 text-start">
-        {editing ? (
-          <div className="space-y-3">
-            <label className="section-kicker block" htmlFor="program-title">שם התכנית</label>
-            <input id="program-title" value={current.name} onChange={(event) => setDraft({ ...current, name: event.target.value })} className="w-full rounded-xl border border-border bg-secondary px-4 py-3 text-lg font-semibold outline-none focus:border-primary" />
-            <label className="section-kicker block" htmlFor="program-notes">הערות / דגשים</label>
-            <textarea id="program-notes" rows={3} value={current.notes} onChange={(event) => setDraft({ ...current, notes: event.target.value })} className="w-full rounded-xl border border-border bg-secondary px-4 py-3 outline-none focus:border-primary" />
-            <div className="flex gap-2">
-              <button type="button" onClick={save} className="rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground">שמור שינויים</button>
-              <button type="button" onClick={() => { setEditing(false); setDraft(null); }} className="rounded-xl bg-secondary px-4 py-3 text-sm font-semibold">ביטול</button>
-            </div>
+      {editing ? (
+        <div className="surface-card p-4">
+          <p className="text-[11px] font-semibold tracking-[0.14em] text-muted-foreground uppercase">
+            שם התכנית
+          </p>
+          <input
+            value={current.name}
+            onChange={(event) => setDraft({ ...current, name: event.target.value })}
+            className="mt-2 w-full rounded-2xl border border-border/60 bg-secondary px-4 py-3.5 text-base outline-none focus:border-primary"
+          />
+          <p className="mt-4 text-[11px] font-semibold tracking-[0.14em] text-muted-foreground uppercase">
+            הערות
+          </p>
+          <textarea
+            value={current.notes}
+            onChange={(event) => setDraft({ ...current, notes: event.target.value })}
+            rows={3}
+            className="mt-2 w-full rounded-2xl border border-border/60 bg-secondary px-4 py-3.5 text-base outline-none focus:border-primary"
+          />
+          <div className="mt-4 flex gap-2">
+            <PrimaryButton onClick={save} leading={<Save className="h-4 w-4" />}>
+              שמור שינויים
+            </PrimaryButton>
+            <button
+              type="button"
+              onClick={() => {
+                setEditing(false);
+                setDraft(null);
+              }}
+              className="press h-12 rounded-2xl bg-secondary px-5 text-[14.5px] font-semibold text-secondary-foreground"
+            >
+              ביטול
+            </button>
           </div>
+        </div>
+      ) : program.notes ? (
+        <div className="ink-card-soft p-4">
+          <p className="text-start text-[13px] leading-relaxed text-ink-soft">{program.notes}</p>
+        </div>
+      ) : null}
+
+      <section className="mt-6">
+        <SectionHeader
+          title="ימי אימון"
+          subtitle="גרורי כדי לסדר מחדש. לחצי על אימון כדי לפתוח או לערוך."
+          action={
+            <button
+              type="button"
+              onClick={() =>
+                navigate({
+                  to: "/programs/$programId/$dayId",
+                  params: { programId: program.id, dayId: "new" },
+                })
+              }
+              className="press inline-flex h-9 items-center gap-1.5 rounded-full bg-primary px-3.5 text-[12.5px] font-semibold text-primary-foreground"
+            >
+              <Plus className="h-3.5 w-3.5" strokeWidth={2.4} />
+              הוסיפי יום
+            </button>
+          }
+        />
+
+        {days.length > 0 ? (
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+            <SortableContext items={program.dayIds} strategy={verticalListSortingStrategy}>
+              <div className="space-y-3">
+                {days.map((day, index) => (
+                  <SortableDayCard
+                    key={day.id}
+                    day={day}
+                    index={index}
+                    programId={program.id}
+                    onRequestDelete={(id, name) => setPendingDelete({ id, name })}
+                  />
+                ))}
+              </div>
+            </SortableContext>
+          </DndContext>
         ) : (
-          <div className="flex items-start gap-4">
-            <div className="min-w-0 flex-1">
-              <p className="section-kicker">דגשים ותיאור</p>
-              <p className="mt-1.5 text-xs sm:text-sm leading-relaxed text-muted-foreground">{program.notes || "אין הערות מיוחדות לתכנית זו."}</p>
-            </div>
-            <button type="button" onClick={() => { setDraft(program); setEditing(true); }} className="rounded-xl bg-secondary px-3.5 py-2 text-xs font-semibold active:scale-95">ערוך</button>
-          </div>
+          <EmptyState
+            title="עדיין אין ימי אימון"
+            description="הוסיפי את יום האימון הראשון שלך לתכנית ובני בתוכו תרגילים."
+            action={
+              <button
+                type="button"
+                onClick={() =>
+                  navigate({
+                    to: "/programs/$programId/$dayId",
+                    params: { programId: program.id, dayId: "new" },
+                  })
+                }
+                className="press inline-flex h-11 items-center gap-2 rounded-full bg-primary px-5 text-[13.5px] font-semibold text-primary-foreground"
+              >
+                <Plus className="h-4 w-4" strokeWidth={2.4} />
+                הוסיפי יום אימון
+              </button>
+            }
+          />
         )}
       </section>
 
-      <div className="mt-6 flex items-end justify-between text-start">
-        <div>
-          <p className="section-kicker">ימי אימון בתכנית</p>
-          <h2 className="mt-0.5 font-display text-2xl font-semibold">סדר הימים</h2>
-        </div>
-        <Link to="/programs/$programId/$dayId" params={{ programId: program.id, dayId: "new" }} className="flex items-center gap-1.5 rounded-xl bg-primary px-3.5 py-2.5 text-xs sm:text-sm font-semibold text-primary-foreground active:scale-95"><Plus className="h-4 w-4" /> הוסף יום</Link>
-      </div>
-
-      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
-        <SortableContext items={days.map((day) => day.id)} strategy={verticalListSortingStrategy}>
-          <div className="mt-3.5 space-y-3">
-            {days.map((day, index) => (
-              <SortableDay key={day.id} day={day} index={index} programId={program.id} onDelete={() => window.confirm(`האם למחוק את "${day.name}"?`) && deleteWorkout(day.id)} onDuplicate={() => duplicateWorkoutDay(program.id, day.id)} onStart={() => navigate({ to: "/session/$workoutId", params: { workoutId: day.id } })} />
-            ))}
-          </div>
-        </SortableContext>
-      </DndContext>
-      {days.length === 0 ? <div className="surface-card mt-4 p-8 text-center text-sm text-muted-foreground">עדיין אין ימי אימון בתכנית זו. לחץ על "הוסף יום" כדי להתחיל.</div> : null}
+      <ConfirmSheet
+        open={pendingDelete !== null}
+        title="למחוק את יום האימון?"
+        description={
+          pendingDelete
+            ? `הפעולה תמחק את "${pendingDelete.name}" ואת כל התרגילים שבו. לא ניתן לשחזר.`
+            : undefined
+        }
+        confirmLabel="מחק יום"
+        cancelLabel="חזרה"
+        destructive
+        onConfirm={() => {
+          if (pendingDelete) deleteWorkout(pendingDelete.id);
+          setPendingDelete(null);
+        }}
+        onCancel={() => setPendingDelete(null)}
+      />
     </AppShell>
   );
 }
 
-function SortableDay({ day, index, programId, onDelete, onDuplicate, onStart }: { day: Workout; index: number; programId: string; onDelete: () => void; onDuplicate: () => void; onStart: () => void }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: day.id });
+function SortableDayCard({
+  day,
+  index,
+  programId,
+  onRequestDelete,
+}: {
+  day: Workout;
+  index: number;
+  programId: string;
+  onRequestDelete: (id: string, name: string) => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: day.id,
+  });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.6 : 1,
+  };
+  const navigate = useNavigate();
+  const goStart = () => navigate({ to: "/session/$workoutId", params: { workoutId: day.id } });
+  const onDuplicate = () => duplicateWorkoutDay(day.id, programId);
+
   return (
-    <article ref={setNodeRef} style={{ transform: CSS.Transform.toString(transform), transition }} className={`surface-card p-4 text-start ${isDragging ? "relative z-10 opacity-75 shadow-lg" : ""}`}>
+    <article ref={setNodeRef} style={style} className="surface-card p-4">
       <div className="flex items-center gap-3">
-        <button type="button" {...attributes} {...listeners} aria-label={`שנה סדר ${day.name}`} className="grid h-10 w-9 shrink-0 touch-none place-items-center rounded-xl bg-secondary text-muted-foreground"><GripVertical className="h-4 w-4" /></button>
-        <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary/10 font-display font-semibold text-primary">{String(index + 1).padStart(2, "0")}</div>
-        <Link to="/programs/$programId/$dayId" params={{ programId, dayId: day.id }} className="min-w-0 flex-1"><p className="truncate font-display text-lg font-semibold text-foreground">{day.name || "יום ללא שם"}</p><p className="text-xs text-muted-foreground">{day.items.length} תרגילים</p></Link>
-        <button type="button" onClick={onStart} aria-label={`התחל את ${day.name}`} className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground active:scale-95"><Play className="h-4 w-4 fill-current" /></button>
+        <button
+          type="button"
+          aria-label="גרור לסידור מחדש"
+          className="press grid h-10 w-7 shrink-0 cursor-grab place-items-center rounded-lg text-muted-foreground/60 active:cursor-grabbing"
+          {...attributes}
+          {...listeners}
+        >
+          <GripVertical className="h-4 w-4" />
+        </button>
+        <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-sage-soft font-display text-[15px] font-semibold text-primary">
+          {String(index + 1).padStart(2, "0")}
+        </div>
+        <Link
+          to="/programs/$programId/$dayId"
+          params={{ programId, dayId: day.id }}
+          className="min-w-0 flex-1 text-start"
+        >
+          <p className="truncate font-display text-[16px] font-semibold text-ink">
+            {day.name || "יום ללא שם"}
+          </p>
+          <p className="mt-0.5 text-[12.5px] text-muted-foreground">{day.items.length} תרגילים</p>
+        </Link>
+        <button
+          type="button"
+          onClick={goStart}
+          aria-label={`התחל את ${day.name}`}
+          className="press grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-primary text-primary-foreground"
+        >
+          <Play className="h-4 w-4 fill-current" />
+        </button>
       </div>
-      <div className="mt-3 flex justify-end gap-1.5 border-t border-border/60 pt-2.5">
-        <Link to="/programs/$programId/$dayId" params={{ programId, dayId: day.id }} className="rounded-lg px-3 py-1.5 text-xs font-semibold text-muted-foreground hover:bg-secondary">ערוך יום</Link>
-        <button type="button" onClick={onDuplicate} className="rounded-lg p-1.5 text-muted-foreground hover:bg-secondary" aria-label={`שכפל ${day.name}`}><Copy className="h-4 w-4" /></button>
-        <button type="button" onClick={onDelete} className="rounded-lg p-1.5 text-muted-foreground hover:bg-secondary hover:text-destructive" aria-label={`מחק ${day.name}`}><Trash2 className="h-4 w-4" /></button>
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-1.5 border-t border-border/50 pt-3">
+        <div className="flex gap-1">
+          <Link
+            to="/programs/$programId/$dayId"
+            params={{ programId, dayId: day.id }}
+            className="press rounded-full px-3 py-1.5 text-[12px] font-semibold text-muted-foreground hover:bg-secondary"
+          >
+            עריכה
+          </Link>
+          <button
+            type="button"
+            onClick={onDuplicate}
+            aria-label={`שכפל ${day.name}`}
+            className="press rounded-full px-3 py-1.5 text-[12px] font-semibold text-muted-foreground hover:bg-secondary"
+          >
+            שכפול
+          </button>
+        </div>
+        <button
+          type="button"
+          onClick={() => onRequestDelete(day.id, day.name)}
+          aria-label={`מחק ${day.name}`}
+          className="press grid h-11 w-11 shrink-0 place-items-center rounded-full text-muted-foreground hover:bg-secondary hover:text-destructive"
+        >
+          <Trash2 className="h-4 w-4" />
+        </button>
       </div>
     </article>
   );

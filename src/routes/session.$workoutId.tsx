@@ -1,8 +1,16 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { Check, Copy, Flame, Plus, Timer, X } from "lucide-react";
+import { Check, ChevronLeft, Info, Pause, Play, Plus, Timer, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { Stepper } from "@/components/Stepper";
+import { ConfirmSheet } from "@/components/ui-app/ConfirmSheet";
+import {
+  IconButton,
+  Pill,
+  PrimaryButton,
+  SecondaryButton,
+  SectionHeader,
+} from "@/components/ui-app/primitives";
 import { lastPerformance, repLabel, saveSession, uid, useGym } from "@/lib/gym-store";
 import type { Exercise, HistoryEntry, LoggedSet, WorkoutItem } from "@/lib/gym-types";
 
@@ -20,7 +28,6 @@ export const Route = createFileRoute("/session/$workoutId")({
   component: Session,
 });
 
-/** Assign A1/A2… labels to adjacent items sharing a supersetId. */
 function supersetLabels(items: WorkoutItem[]) {
   const labels: Record<number, string> = {};
   let group = -1;
@@ -63,7 +70,7 @@ function Session() {
       const ex = exercises.find((e) => e.id === item.exerciseId);
       const last = lastPerformance(history, item.exerciseId);
       const isRange = item.repType === "range";
-      const targetReps = isRange ? item.repMin ?? item.reps : item.reps;
+      const targetReps = isRange ? (item.repMin ?? item.reps) : item.reps;
       const targetRepMax = isRange ? item.repMax : undefined;
       const warmups: LoggedSet[] = (item.warmups ?? []).map((w) => ({
         reps: w.reps,
@@ -99,6 +106,7 @@ function Session() {
   const [startedAt] = useState(() => Date.now());
   const [rest, setRest] = useState(0);
   const [customRest, setCustomRest] = useState("");
+  const [pendingExit, setPendingExit] = useState(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => setEntries(initial), [initial]);
@@ -126,9 +134,7 @@ function Session() {
   const patchSet = (ei: number, si: number, patch: Partial<LoggedSet>) =>
     setEntries((prev) =>
       prev.map((e, i) =>
-        i === ei
-          ? { ...e, sets: e.sets.map((s, j) => (j === si ? { ...s, ...patch } : s)) }
-          : e,
+        i === ei ? { ...e, sets: e.sets.map((s, j) => (j === si ? { ...s, ...patch } : s)) } : e,
       ),
     );
 
@@ -151,132 +157,177 @@ function Session() {
     navigate({ to: "/history" });
   };
 
+  const progress = totalSets ? (doneSets / totalSets) * 100 : 0;
+
   return (
     <AppShell
+      kicker={currentProgram?.name ?? "אימון"}
       title={workout.name}
-      subtitle={`הושלמו ${doneSets} מתוך ${totalSets} סטים`}
+      subtitle={`${doneSets} מתוך ${totalSets} סטים · שלב טוב!`}
       action={
-        <Link
-          to="/programs"
-          aria-label="יציאה מהאימון"
-          className="grid h-11 w-11 place-items-center rounded-xl bg-secondary active:scale-95"
-        >
+        <IconButton aria-label="יציאה מהאימון" onClick={() => setPendingExit(true)}>
           <X className="h-5 w-5" />
-        </Link>
+        </IconButton>
       }
     >
-      <div className="h-2 w-full overflow-hidden rounded-full bg-secondary">
-        <div
-          className="h-full rounded-full bg-primary transition-all"
-          style={{ width: `${totalSets ? (doneSets / totalSets) * 100 : 0}%` }}
-        />
+      {/* Progress bar */}
+      <div className="surface-card flex items-center gap-3 px-4 py-3">
+        <div className="grid h-9 w-9 place-items-center rounded-xl bg-primary text-primary-foreground">
+          <Play className="h-3.5 w-3.5 fill-current" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="mb-1 flex items-center justify-between gap-2">
+            <p className="text-[11px] font-semibold tracking-[0.14em] text-muted-foreground uppercase">
+              התקדמות
+            </p>
+            <p className="text-[11.5px] font-semibold tabular-nums text-ink">
+              {Math.round(progress)}%
+            </p>
+          </div>
+          <div className="h-2 overflow-hidden rounded-full bg-secondary">
+            <div
+              className="h-full rounded-full bg-primary transition-all duration-500"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+        </div>
       </div>
 
-      <div className="mt-4 space-y-4 text-start">
+      <div className="mt-5 space-y-4">
         {entries.map((entry, ei) => {
           const item = workout.items[ei];
           const last = lastPerformance(history, entry.exerciseId);
           const targetLabel = item ? repLabel(item) : String(entry.targetReps ?? "");
           const supersetLabel = labels[ei];
           const fullExercise = exercises.find((e) => e.id === entry.exerciseId);
+          const workingCount = entry.sets.filter((s) => !s.warmup).length;
+          const doneCount = entry.sets.filter((s) => s.done && !s.warmup).length;
           return (
-            <div key={`${entry.exerciseId}-${ei}`} className={`surface-card p-4 ${supersetLabel ? "border-r-4 border-r-primary/70" : ""}`}>
-              <div className="grid grid-cols-[1fr_auto] items-start gap-2">
-                <div className="min-w-0">
+            <article
+              key={`${entry.exerciseId}-${ei}`}
+              className={`surface-card p-4 ${supersetLabel ? "border-s-4 border-s-primary rounded-s-none" : ""}`}
+            >
+              <div className="flex items-start gap-3">
+                <button
+                  type="button"
+                  onClick={() => fullExercise && setCardExercise(fullExercise)}
+                  className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-sage-soft text-primary press"
+                  aria-label={`פתח פרטי ${entry.exerciseName}`}
+                >
+                  <Info className="h-4 w-4" strokeWidth={2} />
+                </button>
+                <div className="min-w-0 flex-1 text-start">
                   <div className="flex items-center gap-2">
-                    {supersetLabel ? <span className="shrink-0 rounded-md bg-primary px-1.5 py-0.5 text-[11px] font-bold text-primary-foreground">{supersetLabel}</span> : null}
+                    {supersetLabel ? (
+                      <span className="shrink-0 rounded-lg bg-primary px-2 py-0.5 text-[11px] font-bold text-primary-foreground">
+                        {supersetLabel}
+                      </span>
+                    ) : null}
                     <button
                       type="button"
                       onClick={() => fullExercise && setCardExercise(fullExercise)}
-                      className="truncate text-start font-semibold text-foreground underline-offset-4 hover:underline cursor-pointer"
+                      className="min-w-0 truncate text-start font-display text-[15.5px] font-semibold text-ink hover:text-primary"
                     >
                       {entry.exerciseName}
                     </button>
                   </div>
-                  <p className="mt-0.5 text-xs text-muted-foreground">
+                  <p className="mt-0.5 text-[12px] text-muted-foreground">
                     {entry.equipment ? `${entry.equipment} · ` : ""}
-                    {entry.targetSets ?? entry.sets.filter((s) => !s.warmup).length} × {targetLabel} חזרות
+                    {entry.targetSets ?? workingCount}× {targetLabel} חזרות
                   </p>
                 </div>
-                <span className="num-pill shrink-0 px-2.5 py-1 text-xs text-muted-foreground">
-                  מנוחה {item?.rest ?? 60} ש׳
-                </span>
+                <button
+                  type="button"
+                  onClick={() => setRest(item?.rest ?? 60)}
+                  className="press flex shrink-0 items-center gap-1 rounded-full bg-secondary px-3 py-2 text-[12px] font-semibold text-ink"
+                  aria-label="התחל מנוחה"
+                >
+                  <Timer className="h-3.5 w-3.5 text-primary" />
+                  {item?.rest ?? 60}ש׳
+                </button>
               </div>
 
               {entry.notes ? (
-                <p className="mt-2 rounded-lg bg-secondary/70 px-3 py-2 text-xs sm:text-sm text-muted-foreground">{entry.notes}</p>
+                <p className="mt-3 rounded-2xl bg-secondary/70 px-3 py-2 text-[12.5px] text-muted-foreground text-start">
+                  {entry.notes}
+                </p>
               ) : null}
 
               {last ? (
-                <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                  <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">אימון קודם</span>
+                <div className="mt-3 flex flex-wrap items-center gap-1.5 text-start">
+                  <span className="text-[10.5px] font-semibold tracking-[0.14em] text-muted-foreground uppercase">
+                    אימון קודם
+                  </span>
                   {last.sets.slice(0, 5).map((s, i) => (
-                    <span key={i} className="rounded-md bg-secondary px-2 py-0.5 text-xs tabular-nums text-muted-foreground" dir="ltr">
+                    <span
+                      key={i}
+                      className="num-pill px-2 py-0.5 text-[11.5px] tabular-nums text-ink-soft"
+                      dir="ltr"
+                    >
                       {s.weight}kg × {s.reps}
                     </span>
                   ))}
                 </div>
               ) : null}
 
-              <div className="mt-3 space-y-2.5">
+              <div className="mt-3 space-y-2">
                 {entry.sets.map((s, si) => {
                   const workingIndex = entry.sets.slice(0, si + 1).filter((x) => !x.warmup).length;
                   return (
                     <div
                       key={si}
-                      className={`rounded-xl border p-3 transition-colors ${
+                      className={`rounded-2xl border p-3 transition-all ${
                         s.done
-                          ? "border-primary bg-primary/10"
+                          ? "border-primary bg-primary/10 shadow-sm"
                           : s.warmup
                             ? "border-dashed border-border bg-secondary/40"
-                            : "border-border bg-secondary"
+                            : "border-border/60 bg-secondary/60"
                       }`}
                     >
-                      <div className="mb-2 flex items-center justify-between">
-                        <span className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
-                          {s.warmup ? (
-                            <><Flame className="h-3.5 w-3.5 text-primary" /> סט חימום</>
-                          ) : (
-                            <>סט #{workingIndex}{s.dropSet ? " · דרופ סט" : ""}
-                              {s.targetReps != null ? (
-                                <span className="font-normal text-muted-foreground/70 ms-1">
-                                  (מטרה: {s.targetRepMax != null ? `${s.targetReps}–${s.targetRepMax}` : s.targetReps})
-                                </span>
-                              ) : null}
-                            </>
-                          )}
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={`grid h-7 w-7 place-items-center rounded-lg text-[11px] font-bold ${
+                            s.warmup
+                              ? "bg-secondary text-muted-foreground"
+                              : s.done
+                                ? "bg-primary text-primary-foreground"
+                                : "bg-primary/15 text-primary"
+                          }`}
+                        >
+                          {s.warmup ? "W" : workingIndex}
                         </span>
-                        <div className="flex items-center gap-1.5">
-                          {si > 0 ? (
-                            <button
-                              type="button"
-                              aria-label="העתק משקל מסט קודם"
-                              onClick={() => patchSet(ei, si, { weight: entry.sets[si - 1]!.weight })}
-                              className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-background text-muted-foreground active:scale-95"
-                            >
-                              <Copy className="h-4 w-4" />
-                            </button>
-                          ) : null}
+                        <div className="min-w-0 flex-1 text-start">
+                          <p className="truncate text-[12.5px] font-semibold text-ink">
+                            {s.warmup ? "סט חימום" : s.dropSet ? "Drop Set" : `סט ${workingIndex}`}
+                            {s.targetRepMax ? (
+                              <span className="ms-1 text-[11px] font-normal text-muted-foreground">
+                                · יעד {s.targetReps}-{s.targetRepMax}
+                              </span>
+                            ) : s.targetReps ? (
+                              <span className="ms-1 text-[11px] font-normal text-muted-foreground">
+                                · יעד {s.targetReps}
+                              </span>
+                            ) : null}
+                          </p>
+                        </div>
+                        {!s.warmup ? (
                           <button
                             type="button"
-                            aria-label={`סמן סט ${si + 1}`}
-                            onClick={() => {
-                              patchSet(ei, si, { done: !s.done });
-                              if (!s.done && !s.warmup) setRest(item?.rest ?? 60);
-                            }}
-                            className={`grid h-10 w-10 shrink-0 place-items-center rounded-lg transition-transform active:scale-95 ${
+                            onClick={() => patchSet(ei, si, { done: !s.done })}
+                            className={`press grid h-11 w-11 place-items-center rounded-2xl text-[13px] font-bold transition-colors ${
                               s.done
-                                ? "bg-primary text-primary-foreground shadow-sm"
-                                : "bg-background text-muted-foreground border border-border"
+                                ? "bg-primary text-primary-foreground"
+                                : "bg-secondary text-muted-foreground hover:bg-secondary/80"
                             }`}
+                            aria-label={s.done ? "בטל סיום סט" : "סמן סט כבוצע"}
                           >
-                            <Check className="h-5 w-5" />
+                            <Check className="h-5 w-5" strokeWidth={2.6} />
                           </button>
-                        </div>
+                        ) : null}
                       </div>
-                      <div className="grid min-w-0 grid-cols-2 gap-2">
+                      <div className="mt-2 grid grid-cols-2 gap-2">
                         <Stepper
-                          label="משקל בפועל"
+                          label="משקל"
                           value={s.weight}
                           step={2.5}
                           suffix="ק״ג"
@@ -319,9 +370,10 @@ function Session() {
                       ),
                     )
                   }
-                  className="flex h-11 w-full items-center justify-center gap-1.5 rounded-xl bg-secondary text-xs font-semibold text-foreground"
+                  className="press flex h-11 items-center justify-center gap-1.5 rounded-2xl bg-secondary text-[12.5px] font-semibold text-ink"
                 >
-                  <Plus className="h-4 w-4" /> הוסף סט
+                  <Plus className="h-4 w-4" strokeWidth={2.2} />
+                  הוסף סט
                 </button>
                 <button
                   type="button"
@@ -335,7 +387,12 @@ function Session() {
                                 ...e.sets,
                                 {
                                   reps: e.sets[e.sets.length - 1]?.reps ?? 10,
-                                  weight: Math.max(0, Math.round(((e.sets[e.sets.length - 1]?.weight ?? 20) * 0.8) * 2) / 2),
+                                  weight: Math.max(
+                                    0,
+                                    Math.round(
+                                      (e.sets[e.sets.length - 1]?.weight ?? 20) * 0.8 * 2,
+                                    ) / 2,
+                                  ),
                                   done: false,
                                   targetReps: e.targetReps,
                                   targetRepMax: e.targetRepMax,
@@ -348,135 +405,134 @@ function Session() {
                       ),
                     )
                   }
-                  className="flex h-11 w-full items-center justify-center gap-1.5 rounded-xl bg-primary/10 text-xs font-semibold text-primary"
+                  className="press flex h-11 items-center justify-center gap-1.5 rounded-2xl bg-primary/12 text-[12.5px] font-semibold text-primary"
                 >
-                  <Plus className="h-4 w-4" /> הוסף דרופ סט
+                  <Plus className="h-4 w-4" strokeWidth={2.2} />
+                  הוסף דרופ סט
                 </button>
               </div>
-            </div>
+
+              {doneCount > 0 && doneCount < workingCount ? (
+                <p className="mt-2 text-[11px] font-medium text-muted-foreground text-start">
+                  {doneCount}/{workingCount} הושלמו
+                </p>
+              ) : doneCount === workingCount && workingCount > 0 ? (
+                <p className="mt-2 text-[11px] font-semibold text-primary text-start">
+                  ✓ כל הסטים הושלמו
+                </p>
+              ) : null}
+            </article>
           );
         })}
       </div>
 
-      <button
-        type="button"
-        onClick={finish}
-        className="mt-6 h-14 w-full rounded-xl bg-primary text-base font-semibold text-primary-foreground active:scale-[0.98] shadow-md"
-      >
-        סיים ושמור אימון
-      </button>
+      <div className="mt-6">
+        <PrimaryButton onClick={finish} leading={<Check className="h-4 w-4" strokeWidth={2.4} />}>
+          סיים ושמור אימון
+        </PrimaryButton>
+      </div>
 
-      {/* Timer Overlay */}
-      {rest > 0 && (
-        <div className="fixed inset-x-0 bottom-20 z-40 mx-auto max-w-lg px-4">
-          <div className="rounded-2xl border border-border bg-card p-4 shadow-xl">
-            <div className="flex items-center gap-3">
-              <Timer className="h-5 w-5 shrink-0 text-primary" />
-              <p className="flex-1 text-lg font-bold tabular-nums text-foreground">{rest} שניות מנוחה</p>
-              <button
-                type="button"
-                onClick={() => setRest(0)}
-                className="rounded-xl bg-secondary px-3.5 py-2 text-xs font-semibold text-foreground"
-              >
-                דלג
-              </button>
+      {/* Timer floating bar */}
+      {rest > 0 ? (
+        <div
+          className="scale-in fixed inset-x-0 z-40 mx-auto max-w-xl px-4"
+          style={{ bottom: "calc(5.5rem + env(safe-area-inset-bottom))" }}
+        >
+          <div className="ink-card flex items-center gap-3 p-4">
+            <div className="grid h-10 w-10 place-items-center rounded-full bg-white/15">
+              <Timer className="h-4 w-4 text-primary-foreground" />
             </div>
-            <div className="mt-3 flex items-center gap-2 overflow-x-auto no-scrollbar">
-              {[30, 60, 90, 120].map((seconds) => (
-                <button
-                  key={seconds}
-                  type="button"
-                  onClick={() => setRest(seconds)}
-                  className="shrink-0 rounded-lg bg-secondary px-3 py-1.5 text-xs font-semibold text-muted-foreground"
-                >
-                  {seconds}ש׳
-                </button>
-              ))}
-              <input
-                inputMode="numeric"
-                aria-label="שניות מנוחה מותאמות אישית"
-                value={customRest}
-                onChange={(event) => setCustomRest(event.target.value.replace(/\D/g, ""))}
-                placeholder="אישי"
-                className="h-8 w-16 shrink-0 rounded-lg border border-border bg-background px-2 text-center text-xs outline-none focus:border-primary"
-              />
-              <button
-                type="button"
-                onClick={() => {
-                  const seconds = Number(customRest);
-                  if (seconds > 0) setRest(seconds);
-                }}
-                className="shrink-0 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground"
-              >
-                התחל
-              </button>
+            <div className="flex-1 text-start">
+              <p className="text-[10.5px] font-semibold tracking-[0.14em] text-primary-foreground/80 uppercase">
+                מנוחה
+              </p>
+              <p className="font-display text-[22px] font-semibold tabular-nums text-primary-foreground">
+                {Math.floor(rest / 60)}:{String(rest % 60).padStart(2, "0")}
+              </p>
             </div>
+            <button
+              type="button"
+              onClick={() => setRest(0)}
+              className="press grid h-11 w-11 place-items-center rounded-full bg-white/15 text-primary-foreground hover:bg-white/25"
+              aria-label="עצור מנוחה"
+            >
+              <Pause className="h-4 w-4" fill="currentColor" />
+            </button>
           </div>
         </div>
-      )}
+      ) : null}
 
-      {/* Exercise Details Card Modal */}
+      {/* Custom rest input */}
+      <div className="mt-4 flex items-center gap-2 rounded-2xl bg-secondary px-3 py-2.5">
+        <Timer className="h-4 w-4 text-primary" />
+        <input
+          inputMode="numeric"
+          value={customRest}
+          onChange={(e) => setCustomRest(e.target.value.replace(/\D/g, ""))}
+          placeholder="מנוחה מותאמת..."
+          className="min-w-0 flex-1 bg-transparent text-[13px] outline-none placeholder:text-muted-foreground"
+        />
+        <button
+          type="button"
+          onClick={() => {
+            const seconds = Number(customRest);
+            if (seconds > 0) setRest(seconds);
+          }}
+          className="press rounded-full bg-primary px-3 py-1.5 text-[12px] font-semibold text-primary-foreground"
+        >
+          התחל
+        </button>
+      </div>
+
+      {/* Exercise detail sheet */}
       {cardExercise ? (
         <div
-          className="fixed inset-0 z-50 flex flex-col justify-end bg-foreground/30 backdrop-blur-sm"
+          className="fade-in fixed inset-0 z-50 flex items-end justify-center bg-foreground/40 backdrop-blur-sm"
           onClick={() => setCardExercise(null)}
+          style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
         >
           <div
-            className="max-h-[85vh] overflow-y-auto rounded-t-3xl border-t border-border bg-card p-5 text-start"
+            className="scale-in max-h-[88dvh] w-full max-w-xl overflow-y-auto rounded-t-[2rem] border-t border-border/40 bg-card p-5 text-start shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="mb-4 flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <p className="section-kicker">כרטיס תרגיל</p>
-                <h2 className="font-display text-xl font-semibold text-foreground">{cardExercise.name}</h2>
-                <p className="mt-0.5 text-xs text-muted-foreground">
-                  {cardExercise.muscleGroup}
-                  {cardExercise.equipment ? ` · ${cardExercise.equipment}` : ""}
+            <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-border" />
+            <div className="flex items-start gap-3">
+              <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-sage-soft text-primary">
+                <Info className="h-5 w-5" strokeWidth={1.8} />
+              </div>
+              <div className="min-w-0 flex-1">
+                <h2 className="font-display text-[20px] font-semibold leading-tight text-ink">
+                  {cardExercise.name}
+                </h2>
+                <p className="mt-0.5 text-[12.5px] text-muted-foreground">
+                  {cardExercise.equipment}
+                  {cardExercise.muscleGroup ? ` · ${cardExercise.muscleGroup}` : ""}
                 </p>
               </div>
-              <button
-                type="button"
-                aria-label="סגור"
-                onClick={() => setCardExercise(null)}
-                className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-secondary"
-              >
+              <IconButton aria-label="סגור" onClick={() => setCardExercise(null)} variant="ghost">
                 <X className="h-5 w-5" />
-              </button>
+              </IconButton>
             </div>
 
-            {(cardExercise.secondaryMuscles ?? []).length > 0 ? (
-              <div className="mb-3 flex flex-wrap gap-1.5">
-                {cardExercise.secondaryMuscles!.map((m) => (
-                  <span key={m} className="rounded-full bg-secondary px-2.5 py-1 text-xs text-muted-foreground">{m}</span>
-                ))}
-              </div>
-            ) : null}
-
-            {cardExercise.tips ? (
-              <div className="mb-3 rounded-xl bg-primary/10 p-3">
-                <p className="text-[11px] font-semibold uppercase tracking-wide text-primary">דגשים וביצוע</p>
-                <p className="mt-1 whitespace-pre-wrap text-xs sm:text-sm leading-relaxed text-foreground">{cardExercise.tips}</p>
-              </div>
-            ) : null}
-
-            {cardExercise.notes ? (
-              <div className="mb-3 rounded-xl bg-secondary p-3">
-                <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">הערות אישיות</p>
-                <p className="mt-1 whitespace-pre-wrap text-xs sm:text-sm leading-relaxed text-foreground">{cardExercise.notes}</p>
-              </div>
-            ) : null}
-
             {cardExercise.description ? (
-              <div className="mb-3 rounded-xl border border-border p-3">
-                <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">תיאור התרגיל</p>
-                <p className="mt-1 whitespace-pre-wrap text-xs sm:text-sm leading-relaxed text-foreground">{cardExercise.description}</p>
+              <div className="mt-4 rounded-2xl bg-secondary p-3.5">
+                <p className="text-[11px] font-semibold tracking-[0.14em] text-muted-foreground uppercase">
+                  תיאור
+                </p>
+                <p className="mt-1 whitespace-pre-wrap text-[13px] leading-relaxed text-ink">
+                  {cardExercise.description}
+                </p>
               </div>
             ) : null}
 
             {cardExercise.instructions ? (
-              <div className="mb-3 rounded-xl border border-border p-3">
-                <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">הוראות ביצוע</p>
-                <p className="mt-1 whitespace-pre-wrap text-xs sm:text-sm leading-relaxed text-foreground">{cardExercise.instructions}</p>
+              <div className="mt-3 rounded-2xl bg-secondary p-3.5">
+                <p className="text-[11px] font-semibold tracking-[0.14em] text-muted-foreground uppercase">
+                  הוראות ביצוע
+                </p>
+                <p className="mt-1 whitespace-pre-wrap text-[13px] leading-relaxed text-ink">
+                  {cardExercise.instructions}
+                </p>
               </div>
             ) : null}
 
@@ -485,22 +541,42 @@ function Session() {
                 href={cardExercise.videoUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="mb-3 block rounded-xl bg-secondary p-3 text-xs sm:text-sm font-semibold text-primary"
+                className="press mt-3 flex items-center justify-center gap-2 rounded-2xl bg-secondary p-3.5 text-[13px] font-semibold text-primary"
               >
-                צפה בסרטון טכניקה
+                <ChevronLeft className="h-4 w-4" />
+                צפי בסרטון טכניקה
               </a>
             ) : null}
 
             <Link
               to="/exercises/$exerciseId"
               params={{ exerciseId: cardExercise.id }}
-              className="mt-4 flex h-12 w-full items-center justify-center rounded-xl bg-primary font-semibold text-primary-foreground"
+              onClick={() => setCardExercise(null)}
+              className="press mt-4 flex h-12 w-full items-center justify-center rounded-2xl bg-primary text-[14px] font-semibold text-primary-foreground"
             >
               פתח עמוד תרגיל מלא
             </Link>
           </div>
         </div>
       ) : null}
+
+      <ConfirmSheet
+        open={pendingExit}
+        title="לצאת מהאימון?"
+        description="הסטים שתיעדת עד כה לא יישמרו. אם תרצי לשמור את ההתקדמות, לחצי על ״סיים ושמור אימון״ במקום."
+        confirmLabel="צאי בלי לשמור"
+        cancelLabel="המשיכי באימון"
+        destructive
+        onConfirm={() => {
+          setPendingExit(false);
+          navigate({ to: "/programs" });
+        }}
+        onCancel={() => setPendingExit(false)}
+      />
     </AppShell>
   );
 }
+
+void Pill;
+void SecondaryButton;
+void SectionHeader;

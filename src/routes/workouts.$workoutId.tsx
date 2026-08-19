@@ -3,13 +3,7 @@ import { ArrowRight, GripVertical, Plus, Trash2, X } from "lucide-react";
 import { useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { Stepper } from "@/components/Stepper";
-import {
-  deleteWorkout,
-  emptyItem,
-  emptyWorkout,
-  saveWorkout,
-  useGym,
-} from "@/lib/gym-store";
+import { deleteWorkout, emptyItem, emptyWorkout, saveWorkout, useGym } from "@/lib/gym-store";
 import type { Workout, WorkoutItem } from "@/lib/gym-types";
 
 export const Route = createFileRoute("/workouts/$workoutId")({
@@ -38,9 +32,7 @@ function Builder() {
   if (!isNew && !existing) {
     return (
       <AppShell title="אימון לא נמצא">
-        <p className="surface-card p-5 text-muted-foreground text-start">
-          אימון זה אינו קיים עוד.
-        </p>
+        <p className="surface-card p-5 text-muted-foreground text-start">אימון זה אינו קיים עוד.</p>
       </AppShell>
     );
   }
@@ -223,9 +215,7 @@ function Builder() {
                 </button>
               ))}
               {exercises.length === 0 && (
-                <p className="text-sm text-muted-foreground">
-                  הוסף תרגילים לספרייה קודם לכן.
-                </p>
+                <p className="text-sm text-muted-foreground">הוסף תרגילים לספרייה קודם לכן.</p>
               )}
             </div>
           </div>

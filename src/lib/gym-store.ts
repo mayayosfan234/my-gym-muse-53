@@ -37,7 +37,8 @@ const seed = (): GymData => {
       secondaryMuscles: ["טריצפס (יד אחורית)", "כתפיים"],
       category: "מורכב",
       equipment: "מוט",
-      description: "שכב על ספה שטוחה, אחוז במוט ברוחב מעט רחב מהכתפיים, הורד אל מרכז החזה ולחץ כלפי מעלה.",
+      description:
+        "שכב על ספה שטוחה, אחוז במוט ברוחב מעט רחב מהכתפיים, הורד אל מרכז החזה ולחץ כלפי מעלה.",
       instructions: "שמור על שכמות צמודות, כפות רגליים יציבות על הרצפה וקשת קלה בגב התחתון.",
       videoUrl: "",
       images: [],
@@ -52,11 +53,12 @@ const seed = (): GymData => {
       secondaryMuscles: ["ישבן", "בטן"],
       category: "מורכב",
       equipment: "מוט",
-      description: "הנח את המוט על הגב העליון, רד עם האגן אחורה ולמטה עד זווית 90 מעלות לפחות ולחץ חזרה מעלה.",
+      description:
+        "הנח את המוט על הגב העליון, רד עם האגן אחורה ולמטה עד זווית 90 מעלות לפחות ולחץ חזרה מעלה.",
       instructions: "שמור על חזה מורם וברכיים בקו אחד עם כפות הרגליים.",
       videoUrl: "",
       images: [],
-      notes: "חגורת גב מעל 100 ק\"ג.",
+      notes: 'חגורת גב מעל 100 ק"ג.',
       tips: "דחיפה דרך מרכז כף הרגל.",
     },
     {
@@ -82,7 +84,8 @@ const seed = (): GymData => {
       secondaryMuscles: ["אמות"],
       category: "בידוד",
       equipment: "משקוליות יד",
-      description: "עמוד יציב, כפוף את המרפקים והרם את המשקוליות תוך סיבוב קל של כף היד, והורד באיטיות.",
+      description:
+        "עמוד יציב, כפוף את המרפקים והרם את המשקוליות תוך סיבוב קל של כף היד, והורד באיטיות.",
       instructions: "מרפקים צמודים לצדי הגוף, ללא הנדנוד של הגב.",
       videoUrl: "",
       images: [],
@@ -97,7 +100,8 @@ const seed = (): GymData => {
       secondaryMuscles: ["המסטרינג", "ארבע ראשי"],
       category: "מורכב",
       equipment: "מוט",
-      description: "הנח גב עליון על ספסל, מוט על האגן, הרם את האגן מעלה וכווץ את הישבן בשיא התנועה.",
+      description:
+        "הנח גב עליון על ספסל, מוט על האגן, הרם את האגן מעלה וכווץ את הישבן בשיא התנועה.",
       instructions: "מבט קדימה, כיווץ מלא של הישבן בשיא הגובה לשנייה אחת.",
       videoUrl: "",
       images: [],
@@ -142,7 +146,8 @@ const seed = (): GymData => {
       secondaryMuscles: ["ישבן", "גב תחתון"],
       category: "מורכב",
       equipment: "מוט",
-      description: "אחוז במוט, קח את האגן אחורנית תוך כפיפה קלה בברכיים והורד את המוט לאורך הרגליים.",
+      description:
+        "אחוז במוט, קח את האגן אחורנית תוך כפיפה קלה בברכיים והורד את המוט לאורך הרגליים.",
       instructions: "גב ישר לחלוטין, מתיחה חזקה בחלק האחורי של הירכיים.",
       videoUrl: "",
       images: [],
@@ -253,9 +258,7 @@ function migrate(d: Partial<GymData>): GymData {
   const workouts = d.workouts ?? [];
   let programs = d.programs ?? [];
   if (!programs.length && workouts.length) {
-    programs = [
-      { id: uid(), name: "תכנית אימונים", notes: "", dayIds: workouts.map((w) => w.id) },
-    ];
+    programs = [{ id: uid(), name: "תכנית אימונים", notes: "", dayIds: workouts.map((w) => w.id) }];
   }
   return {
     exercises: d.exercises?.length ? d.exercises : seed().exercises,
@@ -368,9 +371,7 @@ export function saveWorkout(w: Workout) {
   const exists = data.workouts.some((x) => x.id === w.id);
   set({
     ...data,
-    workouts: exists
-      ? data.workouts.map((x) => (x.id === w.id ? w : x))
-      : [...data.workouts, w],
+    workouts: exists ? data.workouts.map((x) => (x.id === w.id ? w : x)) : [...data.workouts, w],
   });
 }
 
@@ -381,9 +382,7 @@ export function saveWorkoutInProgram(programId: string, w: Workout) {
     ? data.workouts.map((x) => (x.id === w.id ? w : x))
     : [...data.workouts, w];
   const programs = data.programs.map((p) =>
-    p.id === programId && !p.dayIds.includes(w.id)
-      ? { ...p, dayIds: [...p.dayIds, w.id] }
-      : p,
+    p.id === programId && !p.dayIds.includes(w.id) ? { ...p, dayIds: [...p.dayIds, w.id] } : p,
   );
   set({ ...data, workouts, programs });
 }
@@ -459,9 +458,7 @@ export function saveProgram(p: Program) {
   const exists = data.programs.some((x) => x.id === p.id);
   set({
     ...data,
-    programs: exists
-      ? data.programs.map((x) => (x.id === p.id ? p : x))
-      : [...data.programs, p],
+    programs: exists ? data.programs.map((x) => (x.id === p.id ? p : x)) : [...data.programs, p],
   });
 }
 
@@ -568,9 +565,7 @@ export function saveFood(food: FoodItem) {
   const exists = data.foods.some((f) => f.id === food.id);
   set({
     ...data,
-    foods: exists
-      ? data.foods.map((f) => (f.id === food.id ? food : f))
-      : [...data.foods, food],
+    foods: exists ? data.foods.map((f) => (f.id === food.id ? food : f)) : [...data.foods, food],
   });
 }
 
@@ -598,11 +593,10 @@ export function nutritionDay(d: GymData, date: string): NutritionDay {
 
 function withDay(date: string, updater: (day: NutritionDay) => NutritionDay) {
   const existing = data.nutritionDays.find((x) => x.date === date);
-  const base: NutritionDay =
-    existing ?? {
-      date,
-      meals: data.mealTemplate.map((name) => ({ id: uid(), name, foods: [] })),
-    };
+  const base: NutritionDay = existing ?? {
+    date,
+    meals: data.mealTemplate.map((name) => ({ id: uid(), name, foods: [] })),
+  };
   const next = updater(base);
   const days = existing
     ? data.nutritionDays.map((x) => (x.date === date ? next : x))
@@ -657,9 +651,7 @@ export function duplicateMeal(date: string, mealId: string) {
 export function addFoodToMeal(date: string, mealId: string, food: MealFood) {
   withDay(date, (day) => ({
     ...day,
-    meals: day.meals.map((m) =>
-      m.id === mealId ? { ...m, foods: [...m.foods, food] } : m,
-    ),
+    meals: day.meals.map((m) => (m.id === mealId ? { ...m, foods: [...m.foods, food] } : m)),
   }));
 }
 
@@ -667,9 +659,7 @@ export function updateMealFood(date: string, mealId: string, food: MealFood) {
   withDay(date, (day) => ({
     ...day,
     meals: day.meals.map((m) =>
-      m.id === mealId
-        ? { ...m, foods: m.foods.map((f) => (f.id === food.id ? food : f)) }
-        : m,
+      m.id === mealId ? { ...m, foods: m.foods.map((f) => (f.id === food.id ? food : f)) } : m,
     ),
   }));
 }

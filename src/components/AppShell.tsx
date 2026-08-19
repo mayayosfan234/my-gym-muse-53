@@ -1,74 +1,85 @@
 import { Link } from "@tanstack/react-router";
-import { Apple, Dumbbell, History, Home, LayoutGrid, type LucideIcon } from "lucide-react";
+import { Apple, Dumbbell, History, Home, LayoutGrid } from "lucide-react";
 import type { ReactNode } from "react";
 
-const NAV: { to: string; label: string; id: string; icon: LucideIcon }[] = [
+const NAV: { to: string; label: string; id: string; icon: typeof Home }[] = [
   { to: "/", label: "בית", id: "home", icon: Home },
   { to: "/programs", label: "תוכניות", id: "programs", icon: LayoutGrid },
-  { to: "/nutrition", label: "תזונה", id: "nutrition", icon: Apple },
   { to: "/exercises", label: "תרגילים", id: "exercises", icon: Dumbbell },
+  { to: "/nutrition", label: "תזונה", id: "nutrition", icon: Apple },
   { to: "/history", label: "היסטוריה", id: "history", icon: History },
 ];
 
 export function AppShell({
   title,
   subtitle,
+  kicker,
   action,
   children,
 }: {
   title: string;
   subtitle?: string | undefined;
+  kicker?: string | undefined;
   action?: ReactNode | undefined;
   children: ReactNode;
 }) {
   return (
-    <div className="min-h-[100dvh] bg-background" dir="rtl">
+    <div className="min-h-[100dvh] w-full bg-background text-foreground" dir="rtl">
       <header
-        className="sticky top-0 z-20 bg-background/90 backdrop-blur-xl border-b border-border/40"
-        style={{ paddingTop: "max(0.85rem, env(safe-area-inset-top))" }}
+        className="sticky top-0 z-30 border-b border-border/30 bg-background/80 backdrop-blur-xl"
+        style={{ paddingTop: "max(0.6rem, env(safe-area-inset-top))" }}
       >
-        <div className="mx-auto flex max-w-lg items-start gap-3 px-5 pb-3 pt-1">
-          <div className="min-w-0 flex-1 text-start">
-            <div className="mb-1 flex items-center gap-1.5">
-              <span className="h-2 w-2 rounded-full bg-primary" />
-              <span className="font-display text-[11px] font-bold tracking-wider text-primary uppercase">
-                הרוטינה שלי
-              </span>
+        <div className="mx-auto w-full max-w-xl px-5 pb-3.5 pt-1">
+          <div className="flex items-start gap-3">
+            <div className="min-w-0 flex-1 text-start">
+              {kicker ? (
+                <p className="mb-1 text-[11px] font-semibold tracking-[0.14em] text-primary uppercase">
+                  {kicker}
+                </p>
+              ) : null}
+              <h1 className="truncate font-display text-[26px] font-semibold leading-[1.1] tracking-tight text-ink">
+                {title}
+              </h1>
+              {subtitle ? (
+                <p className="mt-1 truncate text-[13px] leading-snug text-muted-foreground">
+                  {subtitle}
+                </p>
+              ) : null}
             </div>
-            <h1 className="truncate text-[24px] sm:text-[26px] font-semibold leading-[1.2] tracking-tight">{title}</h1>
-            {subtitle ? (
-              <p className="mt-0.5 truncate text-xs sm:text-sm text-muted-foreground">{subtitle}</p>
-            ) : null}
+            {action ? <div className="flex shrink-0 items-center gap-2 pt-1">{action}</div> : null}
           </div>
-          {action ? <div className="flex shrink-0 items-center gap-1.5 pt-1">{action}</div> : null}
         </div>
       </header>
 
       <main
-        className="page-enter mx-auto max-w-lg px-4 sm:px-5 pt-3"
+        className="page-enter mx-auto w-full max-w-xl px-4 pb-6 pt-4 sm:px-5"
         style={{
-          paddingBottom: "calc(5.5rem + env(safe-area-inset-bottom))",
+          paddingBottom: "calc(6rem + env(safe-area-inset-bottom))",
         }}
       >
         {children}
       </main>
 
-      {/* Floating pill navigation — Mobile-first, RTL */}
       <nav
-        className="pointer-events-none fixed inset-x-0 bottom-0 z-30 px-3 sm:px-4"
-        style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}
+        aria-label="ניווט ראשי"
+        className="pointer-events-none fixed inset-x-0 bottom-0 z-40 px-3 sm:px-4"
+        style={{ paddingBottom: "max(0.6rem, env(safe-area-inset-bottom))" }}
       >
-        <div className="pointer-events-auto soft-lift mx-auto flex max-w-md rounded-[1.75rem] border border-border/60 bg-card/95 px-1 py-1.5 backdrop-blur-xl">
+        <div className="pointer-events-auto mx-auto flex max-w-xl items-center justify-between rounded-[1.85rem] border border-white/60 bg-white/80 p-1.5 shadow-[0_8px_32px_oklch(0.2_0.02_145/0.10),0_2px_8px_oklch(0.2_0.02_145/0.04)] backdrop-blur-2xl">
           {NAV.map(({ to, label, id, icon: Icon }) => (
             <Link
               key={to}
               to={to}
               activeOptions={{ exact: to === "/" }}
               data-testid={`link-nav-${id}`}
-              className="flex min-h-[3.25rem] flex-1 flex-col items-center justify-center gap-0.5 rounded-2xl py-1.5 text-muted-foreground transition-colors data-[status=active]:bg-secondary data-[status=active]:text-primary"
+              className="group relative flex min-h-[3.5rem] min-w-[3.5rem] flex-1 flex-col items-center justify-center gap-0.5 rounded-[1.4rem] py-1.5 text-muted-foreground transition-all duration-200 data-[status=active]:bg-primary/10 data-[status=active]:text-primary hover:text-foreground"
             >
-              <Icon className="h-5 w-5" strokeWidth={2} />
-              <span className="text-[11px] font-medium leading-none">{label}</span>
+              <Icon
+                className="h-[22px] w-[22px] transition-transform duration-200 group-data-[status=active]:scale-110"
+                strokeWidth={2}
+              />
+              <span className="text-[11px] font-semibold leading-none">{label}</span>
+              <span className="absolute -bottom-0.5 h-1 w-1 rounded-full bg-primary opacity-0 transition-opacity duration-200 group-data-[status=active]:opacity-100" />
             </Link>
           ))}
         </div>

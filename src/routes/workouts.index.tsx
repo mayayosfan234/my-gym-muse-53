@@ -19,7 +19,9 @@ function Workouts() {
   }, [navigate]);
   return (
     <AppShell title="תוכניות אימון" subtitle="מעביר אותך למתחם התוכניות...">
-      <div className="surface-card animate-pulse p-5 text-sm text-muted-foreground text-start">טוען תוכניות אימון…</div>
+      <div className="surface-card animate-pulse p-5 text-sm text-muted-foreground text-start">
+        טוען תוכניות אימון…
+      </div>
     </AppShell>
   );
 }
