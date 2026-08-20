@@ -149,6 +149,7 @@ function RootComponent() {
       <ScrollToTop />
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
       <Outlet />
+      <Scripts />
     </QueryClientProvider>
   );
 }
