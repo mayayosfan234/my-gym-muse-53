@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from "react";
+import { EXPANDED_EXERCISES } from "./expanded-exercise-db";
 import { ISRAELI_FOOD_DATABASE } from "./israeli-food-db";
 import {
   DEFAULT_MEALS,
@@ -32,340 +33,7 @@ export const todayKey = (d: Date = new Date()) => {
 };
 
 const seed = (): GymData => {
-  const ex: Exercise[] = [
-    // --- Chest (חזה) ---
-    {
-      id: "ex-bench",
-      name: "לחיצת חזה כנגד מוט",
-      muscleGroup: "חזה",
-      muscleGroups: ["חזה", "טריצפס (יד אחורית)", "כתף קדמית"],
-      secondaryMuscles: ["טריצפס (יד אחורית)", "כתפיים"],
-      category: "מורכב",
-      equipment: "מוט",
-      description: "שכב על ספה שטוחה, אחוז במוט ברוחב מעט רחב מהכתפיים, הורד אל מרכז החזה ולחץ כלפי מעלה.",
-      instructions: "שמור על שכמות צמודות, כפות רגליים יציבות על הרצפה וקשת קלה בגב התחתון.",
-      videoUrl: "",
-      images: [],
-      notes: "לשמור על שכמות צמודות ומכווצות לאורך כל התנועה.",
-      tips: "ללחוץ דרך העקבים ולשמור על מסלול מוט יציב.",
-    },
-    {
-      id: "ex-incline-db-press",
-      name: "לחיצת חזה בשיפוע חיובי עם משקוליות",
-      muscleGroup: "חזה",
-      muscleGroups: ["חזה", "כתף קדמית", "טריצפס (יד אחורית)"],
-      secondaryMuscles: ["כתפיים", "טריצפס (יד אחורית)"],
-      category: "מורכב",
-      equipment: "משקוליות יד",
-      description: "שב על ספסל בשיפוע חיובי (30-45 מעלות), הורד את המשקוליות לצדי החזה ולחץ מעלה.",
-      instructions: "שכמות מכווצות לאחור, מרפקים בזווית 45 מעלות מהגוף.",
-      videoUrl: "",
-      images: [],
-      notes: "שיפוע 30 מעלות מתמקד בחזה העליון.",
-      tips: "",
-    },
-    {
-      id: "ex-cable-flyes",
-      name: "פרפר בכבלים (Cable Flyes)",
-      muscleGroup: "חזה",
-      muscleGroups: ["חזה"],
-      secondaryMuscles: ["כתף קדמית"],
-      category: "בידוד",
-      equipment: "פולי / כבלים",
-      description: "עמוד במרכז מכשיר הקרוס-אובר, קח את הידיות קדימה בתנועת חיבוק תוך כיווץ החזה.",
-      instructions: "מרפקים כפופים קלות לאורך כל התנועה, כיווץ מלא במפגש הידיים.",
-      videoUrl: "",
-      images: [],
-      notes: "",
-      tips: "",
-    },
-
-    // --- Quads (ארבע ראשי) ---
-    {
-      id: "ex-squat",
-      name: "סקואט כנגד מוט (Back Squat)",
-      muscleGroup: "ארבע ראשי",
-      muscleGroups: ["ארבע ראשי", "ישבן", "גב תחתון"],
-      secondaryMuscles: ["ישבן", "בטן"],
-      category: "מורכב",
-      equipment: "מוט",
-      description: "הנח את המוט על הגב העליון, רד עם האגן אחורה ולמטה עד זווית 90 מעלות לפחות ולחץ חזרה מעלה.",
-      instructions: "שמור על חזה מורם וברכיים בקו אחד עם כפות הרגליים.",
-      videoUrl: "",
-      images: [],
-      notes: 'חגורת גב מעל 100 ק"ג.',
-      tips: "דחיפה דרך מרכז כף הרגל.",
-    },
-    {
-      id: "ex-leg-press",
-      name: "לחיצת רגליים במכונה (Leg Press)",
-      muscleGroup: "ארבע ראשי",
-      muscleGroups: ["ארבע ראשי", "ישבן"],
-      secondaryMuscles: ["ישבן", "המסטרינג"],
-      category: "מורכב",
-      equipment: "מכשיר / מכונה",
-      description: "שב במכונת לחיצת הרגליים, הנח כפות רגליים ברוחב כתפיים ולחץ את המשטח מעלה.",
-      instructions: "לא לנעול ברכיים לחלוטין בחלק העליון.",
-      videoUrl: "",
-      images: [],
-      notes: "לשמור על הגב הגמיש צמוד למשענת.",
-      tips: "",
-    },
-    {
-      id: "ex-leg-extension",
-      name: "פשטת ברכיים במכונה (Leg Extension)",
-      muscleGroup: "ארבע ראשי",
-      muscleGroups: ["ארבע ראשי"],
-      secondaryMuscles: [],
-      category: "בידוד",
-      equipment: "מכשיר / מכונה",
-      description: "שב במכונה, ישר את הברכיים מעלה תוך כיווץ חזק של הארבע ראשי.",
-      instructions: "כיווץ לשנייה בשיא התנועה והורדה מבוקרת.",
-      videoUrl: "",
-      images: [],
-      notes: "",
-      tips: "",
-    },
-
-    // --- Glutes (ישבן) ---
-    {
-      id: "ex-hipthrust",
-      name: "דחיקת אגן כנגד מוט (Hip Thrust)",
-      muscleGroup: "ישבן",
-      muscleGroups: ["ישבן", "המסטרינג"],
-      secondaryMuscles: ["המסטרינג", "ארבע ראשי"],
-      category: "מורכב",
-      equipment: "מוט",
-      description: "הנח גב עליון על ספסל, מוט על האגן, הרם את האגן מעלה וכווץ את הישבן בשיא התנועה.",
-      instructions: "מבט קדימה, כיווץ מלא של הישבן בשיא הגובה לשנייה אחת.",
-      videoUrl: "",
-      images: [],
-      notes: "לעצור לשנייה אחת בחלק העליון.",
-      tips: "",
-    },
-    {
-      id: "ex-bulgarian-lunge",
-      name: "מכרעיים בולגריים (Bulgarian Split Squat)",
-      muscleGroup: "ישבן",
-      muscleGroups: ["ישבן", "ארבע ראשי"],
-      secondaryMuscles: ["המסטרינג"],
-      category: "מורכב",
-      equipment: "משקוליות יד",
-      description: "הנח רגל אחת לאחור על ספסל, רד עם הברך האחורית לכיוון הרצפה ולחץ מעלה.",
-      instructions: "חזה נטוי קלות קדימה למעורבות ישבן מקסימלית.",
-      videoUrl: "",
-      images: [],
-      notes: "",
-      tips: "",
-    },
-
-    // --- Hamstrings (המסטרינג) ---
-    {
-      id: "ex-rdl",
-      name: "דדליפט רומני (RDL)",
-      muscleGroup: "המסטרינג",
-      muscleGroups: ["המסטרינג", "ישבן", "גב תחתון"],
-      secondaryMuscles: ["ישבן", "גב תחתון"],
-      category: "מורכב",
-      equipment: "מוט",
-      description: "אחוז במוט, קח את האגן אחורנית תוך כפיפה קלה בברכיים והורד את המוט לאורך הרגליים.",
-      instructions: "גב ישר לחלוטין, מתיחה חזקה בחלק האחורי של הירכיים.",
-      videoUrl: "",
-      images: [],
-      notes: "מתיחה מורגשת בהמסטרינג.",
-      tips: "",
-    },
-    {
-      id: "ex-lying-leg-curl",
-      name: "כפילת ברכיים בשכיבה במכונה (Leg Curl)",
-      muscleGroup: "המסטרינג",
-      muscleGroups: ["המסטרינג"],
-      secondaryMuscles: ["תאומים"],
-      category: "בידוד",
-      equipment: "מכשיר / מכונה",
-      description: "שכב על הבטן במכונה, כפוף את הברכיים לכיוון הישבן תוך כיווץ ההמסטרינג.",
-      instructions: "שמור על האגן צמוד למשטח.",
-      videoUrl: "",
-      images: [],
-      notes: "",
-      tips: "",
-    },
-
-    // --- Back (גב) ---
-    {
-      id: "ex-row",
-      name: "חתירה בכבלים בישיבה",
-      muscleGroup: "גב",
-      muscleGroups: ["גב", "גב רחב", "ביצפס (יד קדמית)"],
-      secondaryMuscles: ["ביצפס (יד קדמית)"],
-      category: "מורכב",
-      equipment: "פולי / כבלים",
-      description: "שב מול הכבל, משוך את הידית לכיוון הטבור והדק את השכמות בסוף התנועה.",
-      instructions: "גב זקוף, מתיחה מלאה קדימה וכיווץ חזק בגב לאחור.",
-      videoUrl: "",
-      images: [],
-      notes: "להקפיד לא להשתמש בתנופה מוגזמת של הגב.",
-      tips: "למשוך דרך המרפקים ולא דרך כפות הידיים.",
-    },
-    {
-      id: "ex-lat-pulldown",
-      name: "פולי עליון באחיזה רחבה (Lat Pulldown)",
-      muscleGroup: "גב",
-      muscleGroups: ["גב", "גב רחב", "ביצפס (יד קדמית)"],
-      secondaryMuscles: ["ביצפס (יד קדמית)"],
-      category: "מורכב",
-      equipment: "פולי / כבלים",
-      description: "אחוז במוט הפולי ברוחב רחב, משוך את המוט מטה אל מרכז החזה העליון.",
-      instructions: "חזה מורם, כיווץ השכמות כלפי מטה לאורך המשיכה.",
-      videoUrl: "",
-      images: [],
-      notes: "",
-      tips: "",
-    },
-    {
-      id: "ex-pullups",
-      name: "עליות מתח (Pull-Ups)",
-      muscleGroup: "גב",
-      muscleGroups: ["גב", "ביצפס (יד קדמית)"],
-      secondaryMuscles: ["ביצפס (יד קדמית)", "בטן"],
-      category: "מורכב",
-      equipment: "משקל גוף",
-      description: "אחוז במוט המתח באחיזה עילית, משוך את הגוף מעלה עד שהסנטר עובר את המוט.",
-      instructions: "עבודה מלאה ללא תנופה.",
-      videoUrl: "",
-      images: [],
-      notes: "",
-      tips: "",
-    },
-
-    // --- Biceps (ביצפס / יד קדמית) ---
-    {
-      id: "ex-curl",
-      name: "כפילת מרפקים עם משקוליות",
-      muscleGroup: "ביצפס (יד קדמית)",
-      muscleGroups: ["ביצפס (יד קדמית)", "אמות"],
-      secondaryMuscles: ["אמות"],
-      category: "בידוד",
-      equipment: "משקוליות יד",
-      description: "עמוד יציב, כפוף את המרפקים והרם את המשקוליות תוך סיבוב קל של כף היד, והורד באיטיות.",
-      instructions: "מרפקים צמודים לצדי הגוף, ללא הנדנוד של הגב.",
-      videoUrl: "",
-      images: [],
-      notes: "עבודה נקייה ומבוקרת בחלק השלילי (ירידה).",
-      tips: "",
-    },
-    {
-      id: "ex-hammer-curl",
-      name: "כפילת מרפקים אחיזת פטיש (Hammer Curl)",
-      muscleGroup: "ביצפס (יד קדמית)",
-      muscleGroups: ["ביצפס (יד קדמית)", "אמות"],
-      secondaryMuscles: ["אמות"],
-      category: "בידוד",
-      equipment: "משקוליות יד",
-      description: "אחוז במשקוליות כשאגודלים פונים קדימה (אחיזה ניטרלית) וכפוף את הזרוע מעלה.",
-      instructions: "שמור מרפקים קבועים לצד הגוף.",
-      videoUrl: "",
-      images: [],
-      notes: "",
-      tips: "",
-    },
-
-    // --- Triceps (טריצפס / יד אחורית) ---
-    {
-      id: "ex-tricep-pushdown",
-      name: "פשטת מרפקים בפולי עם חבל (Tricep Pushdown)",
-      muscleGroup: "טריצפס (יד אחורית)",
-      muscleGroups: ["טריצפס (יד אחורית)"],
-      secondaryMuscles: [],
-      category: "בידוד",
-      equipment: "פולי / כבלים",
-      description: "עמוד מול הפולי, דחף את החבל מטה עד יישור מלא של המרפקים ופרוס את החבל בצדדים.",
-      instructions: "מרפקים צמודים לצדי הגוף לאורך כל הסט.",
-      videoUrl: "",
-      images: [],
-      notes: "",
-      tips: "",
-    },
-    {
-      id: "ex-skull-crusher",
-      name: "לחיצה צרפתית בשכיבה (Skull Crusher)",
-      muscleGroup: "טריצפס (יד אחורית)",
-      muscleGroups: ["טריצפס (יד אחורית)"],
-      secondaryMuscles: [],
-      category: "בידוד",
-      equipment: "מוט",
-      description: "שכב על ספסל, הורד מוט EZ לכיוון המצח וכפוף מרפקים בלבד, ולחץ חזרה מעלה.",
-      instructions: "זרועות יציבות, תנועה מהזרוע התחתונה בלבד.",
-      videoUrl: "",
-      images: [],
-      notes: "",
-      tips: "",
-    },
-
-    // --- Shoulders (כתפיים) ---
-    {
-      id: "ex-ohp",
-      name: "לחיצת כתפיים בעמידה כנגד מוט",
-      muscleGroup: "כתפיים",
-      muscleGroups: ["כתפיים", "כתף קדמית", "טריצפס (יד אחורית)"],
-      secondaryMuscles: ["טריצפס (יד אחורית)", "בטן"],
-      category: "מורכב",
-      equipment: "מוט",
-      description: "עמוד יציב, לחץ את המוט מגובה החזה העליון מעלה מעל הראש עד נעילה.",
-      instructions: "בטן מהודקת וישבן מכווץ לשמירה על הגב.",
-      videoUrl: "",
-      images: [],
-      notes: "",
-      tips: "",
-    },
-    {
-      id: "ex-lateral-raises",
-      name: "הרחקת זרועות לצדדים עם משקוליות",
-      muscleGroup: "כתפיים",
-      muscleGroups: ["כתפיים", "כתף צדית"],
-      secondaryMuscles: ["טרפזים"],
-      category: "בידוד",
-      equipment: "משקוליות יד",
-      description: "עמוד יציב, הרם את המשקוליות לצדדים עד גובה הכתפיים והורד באיטיות.",
-      instructions: "מרפקים כפופים קלות, לא להרים מעבר לגובה הכתף.",
-      videoUrl: "",
-      images: [],
-      notes: "",
-      tips: "",
-    },
-
-    // --- Cardio & Core (אירובי / בטן) ---
-    {
-      id: "ex-plank",
-      name: "פלאנק (Plank)",
-      muscleGroup: "בטן",
-      muscleGroups: ["בטן", "אלכסונים", "גב תחתון"],
-      secondaryMuscles: ["כתפיים"],
-      category: "בידוד",
-      equipment: "משקל גוף",
-      description: "החזק גוף ישר על האמות וקצות האצבעות תוך כיווץ חזק של הבטן והישבן.",
-      instructions: "גוף בקו ישר אחד מהראש ועד העקבים.",
-      videoUrl: "",
-      images: [],
-      notes: "",
-      tips: "",
-    },
-    {
-      id: "ex-treadmill",
-      name: "ריצה / הליכה על הליכון",
-      muscleGroup: "אירובי",
-      muscleGroups: ["אירובי", "ארבע ראשי", "תאומים"],
-      secondaryMuscles: [],
-      category: "אירובי",
-      equipment: "אירובי",
-      description: "פעילות אירובית לשריפת קלוריות ושיפור סבולת לב ריאה.",
-      instructions: "קצב מבוקר ושיפוע מותאם.",
-      videoUrl: "",
-      images: [],
-      notes: "",
-      tips: "",
-    },
-  ];
+  const ex: Exercise[] = [...EXPANDED_EXERCISES];
 
   type SeedItem = {
     exerciseId: string;
@@ -1077,6 +745,36 @@ function normalizeSearch(s: string) {
     .replace(/[\u0300-\u036f]/g, "")
     .replace(/['"-]/g, "")
     .trim();
+}
+
+/**
+ * Forgiving exercise search supporting Hebrew names, English names, and aliases.
+ */
+export function searchExercises(exercises: Exercise[], query: string) {
+  const normalized = normalizeSearch(query);
+  if (!normalized) return exercises;
+  const tokens = normalized.split(/\s+/).filter(Boolean);
+
+  return exercises.filter((ex) => {
+    const name = normalizeSearch(ex.name);
+    const english = normalizeSearch(ex.englishName ?? "");
+    const muscle = normalizeSearch(ex.muscleGroup);
+    const equipment = normalizeSearch(ex.equipment);
+    const category = normalizeSearch(ex.category ?? "");
+    const customMuscle = normalizeSearch(ex.customMuscleGroup ?? "");
+    const terms = (ex.searchTerms ?? []).map(normalizeSearch);
+
+    return tokens.every(
+      (token) =>
+        name.includes(token) ||
+        english.includes(token) ||
+        muscle.includes(token) ||
+        equipment.includes(token) ||
+        category.includes(token) ||
+        customMuscle.includes(token) ||
+        terms.some((t) => t.includes(token)),
+    );
+  });
 }
 
 /**

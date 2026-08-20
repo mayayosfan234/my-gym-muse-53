@@ -26,7 +26,7 @@ import {
   SecondaryButton,
   SectionHeader,
 } from "@/components/ui-app/primitives";
-import { lastPerformance, repLabel, saveSession, uid, useGym } from "@/lib/gym-store";
+import { lastPerformance, repLabel, saveSession, searchExercises, uid, useGym } from "@/lib/gym-store";
 import type { Exercise, HistoryEntry, LoggedSet, WorkoutItem } from "@/lib/gym-types";
 
 export const Route = createFileRoute("/session/$workoutId")({
@@ -158,13 +158,28 @@ function Session() {
     }
   }, [entries, workoutId]);
 
+  const previousRestRef = useRef(rest);
   useEffect(() => {
-    if (rest <= 0) return;
+    if (rest <= 0) {
+      if (previousRestRef.current > 0) {
+        // Rest timer reached 0:00 -> trigger haptic vibration feedback if supported
+        if (typeof navigator !== "undefined" && "vibrate" in navigator) {
+          try {
+            navigator.vibrate([100, 50, 100]);
+          } catch {
+            /* ignore */
+          }
+        }
+      }
+      previousRestRef.current = 0;
+      return;
+    }
+    previousRestRef.current = rest;
     timerRef.current = setInterval(() => setRest((r) => Math.max(0, r - 1)), 1000);
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [rest > 0]);
+  }, [rest]);
 
   if (!workout) {
     return (
@@ -253,12 +268,7 @@ function Session() {
 
   const progress = totalSets ? (doneSets / totalSets) * 100 : 0;
 
-  const filteredExercisesForReplace = exercises.filter(
-    (ex) =>
-      ex.name.toLowerCase().includes(replaceSearch.toLowerCase()) ||
-      ex.muscleGroup.toLowerCase().includes(replaceSearch.toLowerCase()) ||
-      (ex.equipment && ex.equipment.toLowerCase().includes(replaceSearch.toLowerCase())),
-  );
+  const filteredExercisesForReplace = searchExercises(exercises, replaceSearch);
 
   return (
     <AppShell
@@ -409,7 +419,7 @@ function Session() {
                         >
                           {s.warmup ? "W" : workingIndex}
                         </span>
-                        <div className="min-w-0 flex-1 text-start">
+                        <div className="min-w-0 flex-1 text-start flex items-center gap-2">
                           <p className="truncate text-[12.5px] font-semibold text-ink">
                             {s.warmup ? "סט חימום" : s.dropSet ? "Drop Set" : `סט ${workingIndex}`}
                             {s.targetRepMax ? (
@@ -422,6 +432,19 @@ function Session() {
                               </span>
                             ) : null}
                           </p>
+                          {!s.warmup ? (
+                            <button
+                              type="button"
+                              onClick={() => patchSet(ei, si, { dropSet: !s.dropSet })}
+                              className={`press rounded-lg px-2 py-0.5 text-[10.5px] font-bold transition-colors ${
+                                s.dropSet
+                                  ? "bg-primary text-primary-foreground"
+                                  : "bg-secondary text-muted-foreground hover:text-ink"
+                              }`}
+                            >
+                              {s.dropSet ? "✓ דרופ סט" : "+ דרופ"}
+                            </button>
+                          ) : null}
                         </div>
 
                         {si > 0 ? (

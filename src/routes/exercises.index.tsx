@@ -3,7 +3,7 @@ import { ChevronLeft, Dumbbell, Plus, Search, SlidersHorizontal } from "lucide-r
 import { useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { EmptyState, Pill, SectionHeader } from "@/components/ui-app/primitives";
-import { useGym } from "@/lib/gym-store";
+import { searchExercises, useGym } from "@/lib/gym-store";
 import { EQUIPMENT, MUSCLE_GROUPS } from "@/lib/gym-types";
 
 export const Route = createFileRoute("/exercises/")({
@@ -27,16 +27,11 @@ function Library() {
   const [equipment, setEquipment] = useState("הכל");
   const [filtersOpen, setFiltersOpen] = useState(false);
 
-  const query = q.toLowerCase();
-  const list = exercises.filter(
+  const searched = searchExercises(exercises, q);
+  const list = searched.filter(
     (e) =>
       (group === "הכל" || e.muscleGroup === group || (e.muscleGroups ?? []).includes(group)) &&
-      (equipment === "הכל" || e.equipment === equipment) &&
-      (e.name.toLowerCase().includes(query) ||
-        e.equipment.toLowerCase().includes(query) ||
-        e.muscleGroup.toLowerCase().includes(query) ||
-        (e.customMuscleGroup ?? "").toLowerCase().includes(query) ||
-        (e.category ?? "").toLowerCase().includes(query)),
+      (equipment === "הכל" || e.equipment === equipment),
   );
 
   const activeFilters = (group !== "הכל" ? 1 : 0) + (equipment !== "הכל" ? 1 : 0);

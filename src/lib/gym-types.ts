@@ -1,6 +1,7 @@
 export type Exercise = {
   id: string;
   name: string;
+  englishName?: string;
   muscleGroup: string;
   /** Primary and secondary muscle groups worked (multi-select). */
   muscleGroups?: string[];
@@ -19,6 +20,8 @@ export type Exercise = {
   notes: string;
   /** Optional technique tips / cues. */
   tips?: string;
+  /** Search terms/aliases in Hebrew and English. */
+  searchTerms?: string[];
 };
 
 /** How the programmed reps are expressed for a workout item. */

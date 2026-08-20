@@ -574,11 +574,14 @@ function MacroPill({
 
 function CalRing({ pct }: { pct: number }) {
   const dash = 132;
-  const offset = dash - (dash * (pct || 0)) / 100;
+  const visualPct = Math.min(100, Math.max(0, pct || 0));
+  const isSurplus = pct > 100;
+  const offset = dash - (dash * visualPct) / 100;
+
   return (
     <div className="relative grid h-24 w-24 place-items-center">
       <svg width="96" height="96" viewBox="0 0 96 96" className="-rotate-90">
-        <circle cx="48" cy="48" r="42" fill="none" stroke="oklch(0.93 0.04 25)" strokeWidth="8" />
+        <circle cx="48" cy="48" r="42" fill="none" stroke="oklch(0.94 0.03 350)" strokeWidth="8" />
         <circle
           cx="48"
           cy="48"
@@ -589,13 +592,16 @@ function CalRing({ pct }: { pct: number }) {
           strokeLinecap="round"
           strokeDasharray={dash}
           strokeDashoffset={offset}
-          className="text-primary transition-all duration-500"
+          className={`transition-all duration-500 ${isSurplus ? "text-rose" : "text-primary"}`}
         />
       </svg>
-      <div className="absolute inset-0 grid place-items-center">
-        <span className="font-display text-[14px] font-semibold tabular-nums text-ink">
+      <div className="absolute inset-0 flex flex-col items-center justify-center">
+        <span className="font-display text-[14px] font-bold tabular-nums text-ink">
           {Math.round(pct)}%
         </span>
+        {isSurplus ? (
+          <span className="text-[9.5px] font-bold text-rose uppercase">חריגה</span>
+        ) : null}
       </div>
     </div>
   );
