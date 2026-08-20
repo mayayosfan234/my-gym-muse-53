@@ -58,6 +58,9 @@ export function ConfirmSheet({
       onClick={onCancel}
     >
       <div
+        ref={(el) => {
+          if (el) el.scrollTop = 0;
+        }}
         className="scale-in w-full max-w-xl overflow-y-auto rounded-t-[2rem] border-t border-border/40 bg-card p-5 text-start shadow-2xl"
         onClick={(e) => e.stopPropagation()}
         style={{

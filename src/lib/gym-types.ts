@@ -89,6 +89,11 @@ export type Program = {
   dayIds: string[];
 };
 
+export type DropStage = {
+  weight: number;
+  reps: number;
+};
+
 export type LoggedSet = {
   reps: number;
   weight: number;
@@ -101,6 +106,8 @@ export type LoggedSet = {
   warmup?: boolean;
   /** True when this set is logged as a drop set. */
   dropSet?: boolean;
+  /** Optional multi-stage drops recorded for a drop set (e.g. Stage 1: 40kg x 8, Drop 1: 30kg x 6, Drop 2: 20kg x 8). */
+  drops?: DropStage[];
 };
 
 export type HistoryEntry = {

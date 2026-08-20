@@ -349,6 +349,9 @@ function NutritionLog() {
           style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
         >
           <div
+            ref={(el) => {
+              if (el) el.scrollTop = 0;
+            }}
             className="scale-in max-h-[88dvh] overflow-y-auto rounded-t-[2rem] border-t border-border/40 bg-card p-5 text-start shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
@@ -482,6 +485,9 @@ function NutritionLog() {
           style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
         >
           <div
+            ref={(el) => {
+              if (el) el.scrollTop = 0;
+            }}
             className="scale-in max-h-[88dvh] w-full max-w-xl overflow-y-auto rounded-t-[2rem] border-t border-border/40 bg-card p-5 text-start shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >

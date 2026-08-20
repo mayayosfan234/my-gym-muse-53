@@ -182,7 +182,11 @@ function HistoryPage() {
                             }`}
                           >
                             {set.weight}kg × {set.reps}
-                            {set.dropSet ? " (Drop)" : ""}
+                            {set.drops && set.drops.length > 0
+                              ? set.drops.map((d) => ` → ${d.weight}kg × ${d.reps}`).join("")
+                              : set.dropSet
+                                ? " (Drop)"
+                                : ""}
                           </span>
                         ))}
                       </div>

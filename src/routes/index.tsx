@@ -383,6 +383,9 @@ function Dashboard() {
           onClick={() => setShowBodyModal(false)}
         >
           <div
+            ref={(el) => {
+              if (el) el.scrollTop = 0;
+            }}
             className="scale-in w-full max-w-lg rounded-3xl border border-border bg-card p-5 text-start shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
@@ -429,6 +432,9 @@ function Dashboard() {
           onClick={() => setShowCardioModal(false)}
         >
           <div
+            ref={(el) => {
+              if (el) el.scrollTop = 0;
+            }}
             className="scale-in max-h-[80dvh] w-full max-w-lg overflow-y-auto rounded-3xl border border-border bg-card p-5 text-start shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
