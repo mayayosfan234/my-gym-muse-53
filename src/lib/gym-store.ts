@@ -448,7 +448,7 @@ const seed = (): GymData => {
     recipes: [],
     recentFoods: [],
     favoriteFoods: [],
-    bodyWeightLogs: [{ id: "bw-initial", date: "2025-01-01", weight: 65 }],
+    bodyWeightLogs: [{ id: "bw-seed", date: todayKey(), weight: 65 }],
     cardioLogs: [],
     userProfile: { weight: 65, height: 165, age: 26, gender: "female", workoutsPerWeek: 4 },
   };
@@ -502,7 +502,7 @@ function migrate(d: Partial<GymData>): GymData {
     favoriteFoods: d.favoriteFoods ?? [],
     bodyWeightLogs: d.bodyWeightLogs?.length
       ? d.bodyWeightLogs
-      : [{ id: "bw-initial", date: todayKey(), weight: d.userProfile?.weight ?? 65 }],
+      : [{ id: uid(), date: todayKey(), weight: d.userProfile?.weight ?? 65 }],
     cardioLogs: d.cardioLogs ?? [],
     userProfile: d.userProfile ?? seed().userProfile,
   };
@@ -535,22 +535,27 @@ function set(next: GymData) {
 }
 
 function subscribe(cb: () => void) {
-  load();
   listeners.add(cb);
+  // Load persisted data only AFTER the first client render has committed, so
+  // the initial client tree matches the server-rendered HTML. Loading inside
+  // getSnapshot() made the very first client render use localStorage data
+  // while the server used the seed — that mismatch aborted hydration and left
+  // the whole app without event handlers (nothing was clickable).
+  if (!hydrated) {
+    load();
+    listeners.forEach((l) => l());
+  }
   return () => listeners.delete(cb);
 }
 
-const serverSnapshot: GymData = seed();
+let serverSnapshot: GymData | undefined;
+function getServerSnapshot(): GymData {
+  if (!serverSnapshot) serverSnapshot = seed();
+  return serverSnapshot;
+}
 
 export function useGym(): GymData {
-  return useSyncExternalStore(
-    subscribe,
-    () => {
-      load();
-      return data;
-    },
-    () => serverSnapshot,
-  );
+  return useSyncExternalStore(subscribe, () => data, getServerSnapshot);
 }
 
 /* ---------- rep helpers ---------- */
