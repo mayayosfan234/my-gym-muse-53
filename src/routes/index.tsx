@@ -379,11 +379,11 @@ function Dashboard() {
       {/* Modal: Update Body Weight & Workouts Per Week */}
       {showBodyModal ? (
         <div
-          className="fade-in fixed inset-0 z-50 flex items-end justify-center bg-black/40 backdrop-blur-sm"
+          className="fade-in fixed inset-0 z-50 flex items-end justify-center bg-black/40 backdrop-blur-sm p-4 pb-24"
           onClick={() => setShowBodyModal(false)}
         >
           <div
-            className="scale-in w-full max-w-lg rounded-t-3xl border-t border-border bg-card p-5 text-start shadow-2xl"
+            className="scale-in w-full max-w-lg rounded-3xl border border-border bg-card p-5 text-start shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
             <p className="text-[11px] font-bold tracking-wider text-primary uppercase">
@@ -425,11 +425,11 @@ function Dashboard() {
       {/* Modal: Quick Cardio Log */}
       {showCardioModal ? (
         <div
-          className="fade-in fixed inset-0 z-50 flex items-end justify-center bg-black/40 backdrop-blur-sm"
+          className="fade-in fixed inset-0 z-50 flex items-end justify-center bg-black/40 backdrop-blur-sm p-4 pb-24"
           onClick={() => setShowCardioModal(false)}
         >
           <div
-            className="scale-in max-h-[85dvh] w-full max-w-lg overflow-y-auto rounded-t-3xl border-t border-border bg-card p-5 text-start shadow-2xl"
+            className="scale-in max-h-[80dvh] w-full max-w-lg overflow-y-auto rounded-3xl border border-border bg-card p-5 text-start shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
             <p className="text-[11px] font-bold tracking-wider text-primary uppercase">

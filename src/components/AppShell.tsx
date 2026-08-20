@@ -62,7 +62,7 @@ export function AppShell({
 
       <nav
         aria-label="ניווט ראשי"
-        className="pointer-events-none fixed inset-x-0 bottom-0 z-40 px-3.5 sm:px-4"
+        className="pointer-events-none fixed inset-x-0 bottom-0 z-20 px-3.5 sm:px-4"
         style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}
       >
         <div className="pointer-events-auto mx-auto flex max-w-md items-center justify-between rounded-[2rem] border border-white/70 bg-white/85 p-1.5 shadow-[0_12px_36px_oklch(0.22_0.02_145/0.12),0_2px_10px_oklch(0.22_0.02_145/0.05)] backdrop-blur-2xl">

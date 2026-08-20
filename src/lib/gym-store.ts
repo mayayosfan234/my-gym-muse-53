@@ -241,7 +241,7 @@ const seed = (): GymData => {
     recipes: [],
     recentFoods: [],
     favoriteFoods: [],
-    bodyWeightLogs: [{ id: uid(), date: todayKey(), weight: 65 }],
+    bodyWeightLogs: [{ id: "bw-initial", date: "2025-01-01", weight: 65 }],
     cardioLogs: [],
     userProfile: { weight: 65, height: 165, age: 26, gender: "female", workoutsPerWeek: 4 },
   };
@@ -268,7 +268,7 @@ function migrate(d: Partial<GymData>): GymData {
   const workouts = d.workouts ?? [];
   let programs = d.programs ?? [];
   if (!programs.length && workouts.length) {
-    programs = [{ id: uid(), name: "תכנית אימונים", notes: "", dayIds: workouts.map((w) => w.id) }];
+    programs = [{ id: "p-migrated", name: "תכנית אימונים", notes: "", dayIds: workouts.map((w) => w.id) }];
   }
   return {
     exercises: d.exercises?.length ? d.exercises : seed().exercises,
@@ -284,7 +284,7 @@ function migrate(d: Partial<GymData>): GymData {
     favoriteFoods: d.favoriteFoods ?? [],
     bodyWeightLogs: d.bodyWeightLogs?.length
       ? d.bodyWeightLogs
-      : [{ id: uid(), date: todayKey(), weight: d.userProfile?.weight ?? 65 }],
+      : [{ id: "bw-initial", date: todayKey(), weight: d.userProfile?.weight ?? 65 }],
     cardioLogs: d.cardioLogs ?? [],
     userProfile: d.userProfile ?? seed().userProfile,
   };

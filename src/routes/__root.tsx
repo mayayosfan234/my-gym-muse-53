@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { HeadContent, Outlet, Link, createRootRouteWithContext, useRouter } from "@tanstack/react-router";
+import { HeadContent, Outlet, Link, Scripts, createRootRouteWithContext, useRouter } from "@tanstack/react-router";
 import { useEffect } from "react";
 
 import "../styles.css";
@@ -104,9 +104,6 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
  * on the router, this is the single source of truth for "scroll to top on
  * navigation", which is what fixes detail pages opening at the bottom when
  * the user was deep-scrolled on a list page.
- *
- * Note: `behavior: 'instant'` is non-standard; browsers may fall back to
- * smooth. A bare `scrollTo(0, 0)` is synchronous on every modern engine.
  */
 function ScrollToTop() {
   const router = useRouter();
@@ -114,8 +111,6 @@ function ScrollToTop() {
   useEffect(() => {
     const resetScroll = () => {
       window.scrollTo(0, 0);
-      // Belt-and-braces for engines where `window.scrollTo` doesn't reach
-      // document scrolling element when the html/body set `overflow: clip`.
       document.documentElement.scrollTop = 0;
       document.body.scrollTop = 0;
     };
@@ -142,6 +137,8 @@ function RootComponent() {
       <ScrollToTop />
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
       <Outlet />
+      {/* Client hydration scripts for TanStack Start */}
+      <Scripts />
     </QueryClientProvider>
   );
 }
