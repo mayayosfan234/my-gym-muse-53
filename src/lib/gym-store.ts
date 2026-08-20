@@ -317,22 +317,27 @@ function set(next: GymData) {
 }
 
 function subscribe(cb: () => void) {
-  load();
   listeners.add(cb);
+  // Load persisted data only AFTER the first client render has committed, so
+  // the initial client tree matches the server-rendered HTML. Loading inside
+  // getSnapshot() made the very first client render use localStorage data
+  // while the server used the seed — that mismatch aborted hydration and left
+  // the whole app without event handlers (nothing was clickable).
+  if (!hydrated) {
+    load();
+    listeners.forEach((l) => l());
+  }
   return () => listeners.delete(cb);
 }
 
-const serverSnapshot: GymData = seed();
+let serverSnapshot: GymData | undefined;
+function getServerSnapshot(): GymData {
+  if (!serverSnapshot) serverSnapshot = seed();
+  return serverSnapshot;
+}
 
 export function useGym(): GymData {
-  return useSyncExternalStore(
-    subscribe,
-    () => {
-      load();
-      return data;
-    },
-    () => serverSnapshot,
-  );
+  return useSyncExternalStore(subscribe, () => data, getServerSnapshot);
 }
 
 /* ---------- rep helpers ---------- */
