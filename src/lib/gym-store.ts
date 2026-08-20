@@ -241,7 +241,9 @@ const seed = (): GymData => {
     recipes: [],
     recentFoods: [],
     favoriteFoods: [],
-    bodyWeightLogs: [{ id: uid(), date: todayKey(), weight: 65 }],
+    // Deterministic id: seed() runs at module scope, and randomness there is
+    // rejected by the production edge runtime.
+    bodyWeightLogs: [{ id: "bw-seed", date: todayKey(), weight: 65 }],
     cardioLogs: [],
     userProfile: { weight: 65, height: 165, age: 26, gender: "female", workoutsPerWeek: 4 },
   };
