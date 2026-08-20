@@ -106,6 +106,7 @@ const seed = (): GymData => {
 
   return {
     exercises: ex,
+    customExercises: [],
     workouts,
     programs,
     history: [],
@@ -126,14 +127,26 @@ let data: GymData = seed();
 let hydrated = false;
 const listeners = new Set<() => void>();
 
-/** Merge exercise database so saved user data retains all standard exercises */
-function mergeSeedExercises(existing: Exercise[]): Exercise[] {
-  const byId = new Map(existing.map((e) => [e.id, e]));
-  for (const seedEx of seed().exercises) {
-    if (!byId.has(seedEx.id)) {
-      byId.set(seedEx.id, seedEx);
+/** Merge exercise database so saved user data retains all standard exercises and user custom exercises */
+function mergeSeedExercises(existing: Exercise[], custom: Exercise[] = []): Exercise[] {
+  const byId = new Map<string, Exercise>();
+
+  // 1. Add current refined built-in seed exercises
+  for (const seedEx of EXPANDED_EXERCISES) {
+    byId.set(seedEx.id, seedEx);
+  }
+
+  // 2. Add existing custom exercises (preserve user changes)
+  for (const ex of existing) {
+    if (ex.isCustom || !byId.has(ex.id)) {
+      byId.set(ex.id, ex);
     }
   }
+
+  for (const cEx of custom) {
+    byId.set(cEx.id, { ...cEx, isCustom: true });
+  }
+
   return Array.from(byId.values());
 }
 
@@ -156,8 +169,10 @@ function migrate(d: Partial<GymData>): GymData {
   if (!programs.length && workouts.length) {
     programs = [{ id: "p-migrated", name: "תכנית אימונים", notes: "", dayIds: workouts.map((w) => w.id) }];
   }
+  const customExercises = d.customExercises ?? (d.exercises ?? []).filter((e) => e.isCustom);
   return {
-    exercises: mergeSeedExercises(d.exercises ?? []),
+    exercises: mergeSeedExercises(d.exercises ?? [], customExercises),
+    customExercises,
     workouts: workouts.length ? workouts : seed().workouts,
     programs: programs.length ? programs : seed().programs,
     history: d.history ?? [],
@@ -232,18 +247,42 @@ export function repLabel(item: Pick<WorkoutItem, "reps" | "repType" | "repMin" |
 /* ---------- exercises ---------- */
 export function saveExercise(ex: Exercise) {
   const exists = data.exercises.some((e) => e.id === ex.id);
+  const updatedExercises = exists
+    ? data.exercises.map((e) => (e.id === ex.id ? ex : e))
+    : [...data.exercises, ex];
+
+  const customList = ex.isCustom
+    ? data.customExercises?.some((c) => c.id === ex.id)
+      ? (data.customExercises ?? []).map((c) => (c.id === ex.id ? ex : c))
+      : [...(data.customExercises ?? []), ex]
+    : data.customExercises;
+
   set({
     ...data,
-    exercises: exists
-      ? data.exercises.map((e) => (e.id === ex.id ? ex : e))
-      : [...data.exercises, ex],
+    exercises: updatedExercises,
+    customExercises: customList,
   });
+}
+
+export function saveCustomExercise(exInput: Omit<Exercise, "id"> & { id?: string }): Exercise {
+  const newEx: Exercise = {
+    ...exInput,
+    id: exInput.id || `custom-${uid()}`,
+    isCustom: true,
+  };
+  saveExercise(newEx);
+  return newEx;
+}
+
+export function deleteCustomExercise(id: string) {
+  deleteExercise(id);
 }
 
 export function deleteExercise(id: string) {
   set({
     ...data,
     exercises: data.exercises.filter((e) => e.id !== id),
+    customExercises: (data.customExercises ?? []).filter((e) => e.id !== id),
     workouts: data.workouts.map((w) => ({
       ...w,
       items: w.items.filter((i) => i.exerciseId !== id),

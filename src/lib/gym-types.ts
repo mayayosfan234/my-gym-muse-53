@@ -22,6 +22,8 @@ export type Exercise = {
   tips?: string;
   /** Search terms/aliases in Hebrew and English. */
   searchTerms?: string[];
+  /** Flag indicating user-created custom exercise. */
+  isCustom?: boolean;
 };
 
 /** How the programmed reps are expressed for a workout item. */
@@ -228,6 +230,7 @@ export type UserProfile = {
 
 export type GymData = {
   exercises: Exercise[];
+  customExercises?: Exercise[];
   workouts: Workout[];
   programs: Program[];
   history: HistorySession[];
