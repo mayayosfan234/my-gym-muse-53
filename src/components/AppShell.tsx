@@ -38,16 +38,19 @@ export function AppShell({
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+  const [successMsg, setSuccessMsg] = useState("");
+  const [pendingVerificationEmail, setPendingVerificationEmail] = useState<string | null>(null);
 
   const handleAuthSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setErrorMsg("");
+    setSuccessMsg("");
 
     try {
+      const redirectTo = typeof window !== "undefined" ? window.location.origin : undefined;
       if (isSignUp) {
-        const redirectTo = typeof window !== "undefined" ? window.location.origin : undefined;
-        const { error } = await supabase.auth.signUp({
+        const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
@@ -55,15 +58,55 @@ export function AppShell({
           },
         });
         if (error) throw error;
+
+        if (data?.user && !data?.session) {
+          setPendingVerificationEmail(email);
+          setSuccessMsg("נרשמת בהצלחה! שלחנו מייל אימות לכתובת " + email + ". יש לאשר את המייל להתחברות.");
+          return;
+        }
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
+        if (error) {
+          if (error.message.includes("Email not confirmed")) {
+            setPendingVerificationEmail(email);
+            throw new Error("כתובת האימייל עדיין לא אומתה. יש לאשר את המייל או ללחוץ על 'שלח מייל אימות מחדש'.");
+          }
+          throw error;
+        }
       }
       setShowAuthModal(false);
       setEmail("");
       setPassword("");
+      setPendingVerificationEmail(null);
     } catch (err: any) {
       setErrorMsg(err?.message || "אירעה שגיאה בחיבור ל-Supabase");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResendConfirmation = async () => {
+    const targetEmail = pendingVerificationEmail || email;
+    if (!targetEmail) return;
+
+    setLoading(true);
+    setErrorMsg("");
+    setSuccessMsg("");
+
+    try {
+      const redirectTo = typeof window !== "undefined" ? window.location.origin : undefined;
+      const { error } = await supabase.auth.resend({
+        type: "signup",
+        email: targetEmail,
+        options: {
+          emailRedirectTo: redirectTo,
+        },
+      });
+
+      if (error) throw error;
+      setSuccessMsg("מייל אימות מחדש נשלח בהצלחה לכתובת " + targetEmail + "!");
+    } catch (err: any) {
+      setErrorMsg(err?.message || "שגיאה בשליחת מייל אימות מחדש");
     } finally {
       setLoading(false);
     }
@@ -172,6 +215,29 @@ export function AppShell({
             {errorMsg && (
               <div className="rounded-xl bg-red-50 p-3 text-xs text-red-600 font-semibold border border-red-200">
                 {errorMsg}
+              </div>
+            )}
+
+            {successMsg && (
+              <div className="rounded-xl bg-emerald-50 p-3 text-xs text-emerald-700 font-semibold border border-emerald-200">
+                {successMsg}
+              </div>
+            )}
+
+            {pendingVerificationEmail && (
+              <div className="rounded-2xl bg-amber-50/80 p-3.5 border border-amber-200 text-amber-900 text-start space-y-2">
+                <p className="text-xs font-bold">ממתין לאימות כתובת המייל ({pendingVerificationEmail})</p>
+                <p className="text-[11px] text-amber-800 leading-relaxed">
+                  אם לא קיבלת את מייל האימות או שהקישור פג תוקף, לחצי כאן לשליחת קישור מחדש.
+                </p>
+                <button
+                  type="button"
+                  onClick={handleResendConfirmation}
+                  disabled={loading}
+                  className="w-full rounded-xl bg-amber-600 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-amber-700 disabled:opacity-50 cursor-pointer"
+                >
+                  {loading ? "שולח..." : "שלח מייל אימות מחדש"}
+                </button>
               </div>
             )}
 
