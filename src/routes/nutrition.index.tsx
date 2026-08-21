@@ -86,7 +86,6 @@ function NutritionLog() {
   // New smart nutrition features state
   const [showWhatToEat, setShowWhatToEat] = useState(false);
   const [showShoppingList, setShowShoppingList] = useState(false);
-  const [busyDayMode, setBusyDayMode] = useState(false);
   const [checkedItems, setCheckedItems] = useState<Record<string, boolean>>({});
 
   const day = nutritionDay(gym, date);
@@ -190,17 +189,6 @@ function NutritionLog() {
       subtitle={formatDayLabel(date)}
       action={
         <div className="flex gap-1.5">
-          <button
-            onClick={() => setBusyDayMode(!busyDayMode)}
-            className={`p-2 rounded-2xl border transition-colors cursor-pointer ${
-              busyDayMode
-                ? "bg-amber-100 text-amber-800 border-amber-300"
-                : "bg-secondary text-ink hover:bg-secondary/80"
-            }`}
-            title="מצב יום עמוס"
-          >
-            <Zap className="h-5 w-5" />
-          </button>
           <Link
             to="/nutrition/foods"
             aria-label="ספריית מאכלים"
@@ -220,18 +208,6 @@ function NutritionLog() {
         </div>
       }
     >
-      {/* Busy Day Mode Notice */}
-      {busyDayMode && (
-        <div className="surface-card p-3.5 rounded-2xl bg-amber-50 text-amber-800 border border-amber-200 text-start space-y-1 mb-3">
-          <div className="flex items-center gap-1.5 font-bold text-xs">
-            <Zap className="h-4 w-4 text-amber-600" />
-            <span>מצב יום עמוס פועל</span>
-          </div>
-          <p className="text-[11.5px] leading-relaxed text-amber-700">
-            התמקדי בארוחות פשוטות ומקורי חלבון מהירים (שייק, גבינה 5%, טונה). השמירה על הקלוריות היומיות היא העיקר!
-          </p>
-        </div>
-      )}
 
       {/* Date selector */}
       <div className="surface-card flex items-center justify-between gap-2 p-2.5">
@@ -616,6 +592,15 @@ function NutritionLog() {
               <IconButton aria-label="סגור" onClick={() => setSubstituteFor(null)}>
                 <X className="h-5 w-5" />
               </IconButton>
+            </div>
+            <div className="num-pill mb-3 flex h-11 items-center gap-2 px-3.5">
+              <Apple className="h-4 w-4 text-muted-foreground" />
+              <input
+                value={substituteQuery}
+                onChange={(e) => setSubstituteQuery(e.target.value)}
+                placeholder="חפשי מאכל חלופי (למשל: תפוח אדמה)..."
+                className="w-full bg-transparent text-[13px] outline-none"
+              />
             </div>
             <div className="space-y-2">
               {replacements.map((item) => (

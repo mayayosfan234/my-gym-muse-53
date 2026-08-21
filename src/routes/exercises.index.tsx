@@ -23,7 +23,8 @@ export const Route = createFileRoute("/exercises/")({
 function Library() {
   const { exercises, userProfile } = useGym();
   const navigate = useNavigate();
-  const isCoach = userProfile?.role === "coach";
+  const role = userProfile?.role || "client";
+  const isCoach = role === "coach" || role === "owner";
 
   useEffect(() => {
     if (userProfile && !isCoach) {

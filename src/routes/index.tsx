@@ -69,9 +69,6 @@ function Dashboard() {
 
   const now = new Date();
 
-  // Water & Habits state
-  const [waterMl, setWaterMl] = useState(1500);
-  const waterTargetMl = 2500;
   const [showMeasurementModal, setShowMeasurementModal] = useState(false);
   const [waistCm, setWaistCm] = useState("72");
   const [hipsCm, setHipsCm] = useState("95");
@@ -79,7 +76,6 @@ function Dashboard() {
   // Today's Checklist State
   const [routineChecklist, setRoutineChecklist] = useState<Record<string, boolean>>({
     workout: false,
-    water: true,
     steps: false,
     nutrition: false,
   });
@@ -115,55 +111,10 @@ function Dashboard() {
   const targetCals = 2000;
   const remainingCals = Math.max(0, targetCals - totalsToday.calories);
 
-  // RMR & Body Profile
-  const rmrData = calculateRmr(userProfile);
-  const [weightInput, setWeightInput] = useState(String(userProfile?.weight ?? 65));
-  const [workoutsWeekInput, setWorkoutsWeekInput] = useState(String(userProfile?.workoutsPerWeek ?? 4));
-  const [showBodyModal, setShowBodyModal] = useState(false);
-  const [showCardioModal, setShowCardioModal] = useState(false);
-
-  // Cardio Form State
-  const [cardioType, setCardioType] = useState(CARDIO_TYPES[0]!);
-  const [cardioDuration, setCardioDuration] = useState("20");
-  const [cardioSpeed, setCardioSpeed] = useState("8.0");
-  const [cardioIncline, setCardioIncline] = useState("2.0");
-
   const nextWorkout = workouts[0];
   const nextProgram = nextWorkout
     ? programs.find((p) => p.dayIds.includes(nextWorkout.id))
     : undefined;
-
-  const handleProfileSave = () => {
-    const valW = parseFloat(weightInput);
-    const valFreq = parseInt(workoutsWeekInput, 10) || 4;
-    const w = !isNaN(valW) && valW > 0 ? valW : userProfile?.weight ?? 65;
-
-    saveBodyWeight(w);
-    saveUserProfile({
-      ...(userProfile ?? { weight: 65, height: 165, age: 26, gender: "female" }),
-      weight: w,
-      workoutsPerWeek: valFreq,
-    });
-    setShowBodyModal(false);
-  };
-
-
-  const handleLogCardio = () => {
-    const dur = parseInt(cardioDuration, 10) || 0;
-    const spd = parseFloat(cardioSpeed) || 0;
-    const inc = parseFloat(cardioIncline) || 0;
-    const cals = calculateCardioCalories(cardioType, dur, rmrData.weight, spd, inc);
-
-    saveCardioLog({
-      date: todayDateStr,
-      type: cardioType,
-      durationMin: dur,
-      speed: spd,
-      incline: inc,
-      calories: cals,
-    });
-    setShowCardioModal(false);
-  };
 
   const toggleChecklistItem = (key: string) => {
     setRoutineChecklist((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -267,7 +218,6 @@ function Dashboard() {
         <div className="space-y-2">
           {[
             { key: "workout", label: `אימון יומיומי: ${nextWorkout?.name || "מנוחה"}` },
-            { key: "water", label: `שתיית מים (יעד 2,500 מ״ל): ${waterMl} מ״ל` },
             { key: "steps", label: "צעדים יומיים (יעד 8,000 צעדים)" },
             { key: "nutrition", label: `תיעוד תזונה ביומן: ${Math.round(totalsToday.calories)} קל׳` },
           ].map(({ key, label }) => {
@@ -293,43 +243,23 @@ function Dashboard() {
         </div>
       </section>
 
-      {/* 3. Habits & Routine Tracker (Water & Measurements) */}
+      {/* 3. Measurements Tracker */}
       <section className="mt-5 text-start">
-        <SectionHeader title="הרגלים והיקפי גוף" subtitle="מעקב מים והיקפים" />
-        <div className="grid grid-cols-2 gap-2.5">
-          <div className="surface-card p-3.5 rounded-2xl border border-blue-100 bg-blue-50/40 space-y-1.5">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-1.5 font-bold text-xs text-blue-900">
-                <Droplets className="h-4 w-4 text-blue-600" />
-                <span>שתיית מים</span>
-              </div>
-              <span className="text-[11px] font-bold text-blue-800">{waterMl}/{waterTargetMl} מ״ל</span>
-            </div>
-            <div className="flex gap-1 pt-1">
-              <button
-                onClick={() => setWaterMl((w) => Math.min(waterTargetMl, w + 250))}
-                className="flex-1 rounded-xl bg-blue-600 py-1 text-[11px] font-bold text-white shadow-xs cursor-pointer"
-              >
-                +250 מ״ל
-              </button>
+        <SectionHeader title="היקפי גוף" subtitle="מעקב היקפים תקופתי" />
+        <div
+          onClick={() => setShowMeasurementModal(true)}
+          className="surface-card p-3.5 rounded-2xl border border-rose-100 bg-rose-50/40 flex items-center justify-between cursor-pointer"
+        >
+          <div className="flex items-center gap-2">
+            <Ruler className="h-5 w-5 text-rose-600" />
+            <div>
+              <span className="font-bold text-xs text-rose-900 block">עדכון היקפי גוף</span>
+              <span className="text-[11px] text-muted-foreground">
+                מותניים: {waistCm} ס״מ · ירכיים: {hipsCm} ס״מ
+              </span>
             </div>
           </div>
-
-          <div
-            onClick={() => setShowMeasurementModal(true)}
-            className="surface-card p-3.5 rounded-2xl border border-rose-100 bg-rose-50/40 space-y-1.5 cursor-pointer"
-          >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-1.5 font-bold text-xs text-rose-900">
-                <Ruler className="h-4 w-4 text-rose-600" />
-                <span>היקפים (ס״מ)</span>
-              </div>
-              <span className="text-[11px] font-bold text-rose-800">עדכון</span>
-            </div>
-            <p className="text-[11px] text-muted-foreground pt-1">
-              מותניים: {waistCm} ס״מ · ירכיים: {hipsCm} ס״מ
-            </p>
-          </div>
+          <span className="text-xs font-bold text-rose-800 bg-white px-3 py-1 rounded-xl shadow-2xs">עדכן</span>
         </div>
       </section>
 

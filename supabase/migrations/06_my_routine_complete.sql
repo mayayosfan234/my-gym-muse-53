@@ -4,7 +4,6 @@
 
 -- 1. Profile Extensions
 ALTER TABLE public.profiles
-  ADD COLUMN IF NOT EXISTS animal_character TEXT DEFAULT 'dog',
   ADD COLUMN IF NOT EXISTS food_preferences JSONB DEFAULT '{"liked":[],"disliked":[]}'::jsonb,
   ADD COLUMN IF NOT EXISTS today_routine_enabled BOOLEAN DEFAULT true,
   ADD COLUMN IF NOT EXISTS next_checkin_date DATE;

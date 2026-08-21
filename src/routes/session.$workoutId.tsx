@@ -87,7 +87,6 @@ function Session() {
   const currentProgram = programs.find((program) => program.dayIds.includes(workoutId));
   const [cardExercise, setCardExercise] = useState<Exercise | null>(null);
 
-  const [isLowEnergy, setIsLowEnergy] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
 
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
@@ -117,12 +116,9 @@ function Session() {
       const last = lastPerformance(history, item.exerciseId);
       const isRange = item.repType === "range";
 
-      const weightMult = isLowEnergy ? 0.85 : 1.0;
-      const prescribedWeight = Math.round((item.targetWeight || item.weight) * weightMult * 2) / 2;
+      const prescribedWeight = item.targetWeight || item.weight;
 
-      const targetReps = isRange
-        ? Math.max(1, (item.repMin ?? item.reps) - (isLowEnergy ? 1 : 0))
-        : Math.max(1, item.reps - (isLowEnergy ? 1 : 0));
+      const targetReps = isRange ? (item.repMin ?? item.reps) : item.reps;
       const targetRepMax = isRange ? item.repMax : undefined;
 
       const warmups: LoggedSet[] = (item.warmups ?? []).map((w) => ({
@@ -152,7 +148,7 @@ function Session() {
         sets: [...warmups, ...working],
       };
     });
-  }, [workoutId, isLowEnergy]);
+  }, [workoutId]);
 
   const [entries, setEntries] = useState<HistoryEntry[]>(initial);
   const [startedAt] = useState(() => Date.now());
@@ -283,17 +279,6 @@ function Session() {
       action={
         <div className="flex items-center gap-2">
           <button
-            onClick={() => setIsLowEnergy(!isLowEnergy)}
-            className={`p-2 rounded-full border transition-colors cursor-pointer ${
-              isLowEnergy
-                ? "bg-amber-100 text-amber-800 border-amber-300"
-                : "bg-secondary text-ink hover:bg-secondary/80"
-            }`}
-            title="מצב ללא אנרגיה"
-          >
-            <Zap className="h-4 w-4" />
-          </button>
-          <button
             onClick={() => setIsPaused(!isPaused)}
             className={`p-2 rounded-full border transition-colors cursor-pointer ${
               isPaused
@@ -310,18 +295,6 @@ function Session() {
         </div>
       }
     >
-      {/* Low Energy Mode Banner */}
-      {isLowEnergy && (
-        <div className="surface-card p-3 rounded-2xl bg-amber-50 text-amber-800 border border-amber-200 text-start space-y-1 mb-3">
-          <div className="flex items-center gap-1.5 font-bold text-xs">
-            <Zap className="h-4 w-4 text-amber-600" />
-            <span>מצב יום ללא אנרגיה מופעל</span>
-          </div>
-          <p className="text-[11.5px] text-amber-700">
-            הותאם עבורך נפח אימון קל יותר (משקל קל ב-15%) מבלי לשנות את התוכנית המקורית של המאמן!
-          </p>
-        </div>
-      )}
 
       {/* Pause Banner */}
       {isPaused && (
@@ -491,6 +464,49 @@ function Session() {
                   );
                 })}
               </div>
+
+              <div className="mt-3 flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const lastSet = entry.sets[entry.sets.length - 1];
+                    const newSet: LoggedSet = {
+                      reps: lastSet?.reps ?? entry.targetReps ?? 10,
+                      weight: lastSet?.weight ?? prescribedWeight,
+                      done: false,
+                      targetReps: entry.targetReps,
+                      targetRepMax: entry.targetRepMax,
+                      warmup: false,
+                    };
+                    setEntries((prev) =>
+                      prev.map((e, idx) => (idx === ei ? { ...e, sets: [...e.sets, newSet] } : e)),
+                    );
+                  }}
+                  className="press rounded-xl bg-secondary px-3 py-1.5 text-xs font-bold text-ink hover:bg-secondary/80 cursor-pointer"
+                >
+                  + סט נוסף
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const lastSet = entry.sets[entry.sets.length - 1];
+                    const dropSet: LoggedSet = {
+                      reps: lastSet?.reps ?? entry.targetReps ?? 10,
+                      weight: Math.round((lastSet?.weight ?? prescribedWeight) * 0.8 * 2) / 2,
+                      done: false,
+                      targetReps: entry.targetReps,
+                      warmup: false,
+                      dropSet: true,
+                    };
+                    setEntries((prev) =>
+                      prev.map((e, idx) => (idx === ei ? { ...e, sets: [...e.sets, dropSet] } : e)),
+                    );
+                  }}
+                  className="press rounded-xl bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-800 border border-amber-200 hover:bg-amber-100 cursor-pointer"
+                >
+                  + דרופ סט
+                </button>
+              </div>
             </article>
           );
         })}
@@ -504,6 +520,39 @@ function Session() {
           סיים ושמור אימון
         </PrimaryButton>
       </div>
+
+      {/* Exercise Detail Sheet Modal */}
+      {cardExercise ? (
+        <div
+          className="fade-in fixed inset-0 z-50 flex items-end justify-center bg-black/40 backdrop-blur-sm p-4"
+          onClick={() => setCardExercise(null)}
+        >
+          <div
+            className="w-full max-w-sm rounded-3xl border border-white/80 bg-white p-5 shadow-2xl space-y-3 text-start"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b pb-2">
+              <h3 className="font-bold text-base text-ink">{cardExercise.name}</h3>
+              <button
+                onClick={() => setCardExercise(null)}
+                className="text-muted-foreground font-bold text-sm cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="space-y-2 text-xs">
+              <p className="font-bold text-primary">קבוצת שרירים: {cardExercise.muscleGroup}</p>
+              <p className="text-muted-foreground">{cardExercise.description}</p>
+              {cardExercise.instructions && (
+                <div className="rounded-xl bg-secondary/50 p-2.5 space-y-1">
+                  <p className="font-bold text-ink">הוראות ביצוע:</p>
+                  <p className="text-muted-foreground leading-relaxed">{cardExercise.instructions}</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {/* Post Workout Feedback Modal */}
       {showFeedbackModal && (
