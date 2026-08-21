@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
-import { Apple, Cloud, Dumbbell, Home, LayoutGrid, LogIn, LogOut, User } from "lucide-react";
+import { Apple, Cloud, Dumbbell, Home, LayoutGrid, LogIn, LogOut, Shield, User } from "lucide-react";
 import { useState, type ReactNode } from "react";
-import { useAuthUser } from "../lib/gym-store";
+import { useAuthUser, useGym } from "../lib/gym-store";
 import { supabase } from "../lib/supabase";
 
 const NAV: { to: string; label: string; id: string; icon: typeof Home }[] = [
@@ -24,7 +24,10 @@ export function AppShell({
   action?: ReactNode | undefined;
   children: ReactNode;
 }) {
+  const store = useGym();
   const user = useAuthUser();
+  const isCoach = store.userProfile?.role === "coach";
+
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState("");
@@ -83,6 +86,16 @@ export function AppShell({
               ) : null}
             </div>
             <div className="flex shrink-0 items-center gap-2 pt-0.5">
+              {isCoach && (
+                <Link
+                  to="/coach"
+                  className="flex items-center gap-1 rounded-full bg-amber-100/80 px-2.5 py-1 text-xs font-bold text-amber-800 border border-amber-300/60 shadow-xs hover:bg-amber-200 transition-colors"
+                >
+                  <Shield className="h-3.5 w-3.5 text-amber-700" />
+                  <span>מאמן</span>
+                </Link>
+              )}
+
               {user ? (
                 <div className="flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 border border-emerald-200/60 shadow-xs">
                   <Cloud className="h-3.5 w-3.5 text-emerald-600 animate-pulse" />

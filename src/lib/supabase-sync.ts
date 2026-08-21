@@ -1,6 +1,7 @@
 import { ISRAELI_FOOD_DATABASE } from "./israeli-food-db";
 import { supabase } from "./supabase";
 import {
+  type ClientLink,
   type Exercise,
   type FoodItem,
   type GymData,
@@ -8,21 +9,21 @@ import {
   type NutritionDay,
   type Program,
   type UserProfile,
+  type UserRole,
   type Workout,
 } from "./gym-types";
 
 export type SyncStatus = "idle" | "syncing" | "synced" | "error" | "offline";
 
 /**
- * Upload local localStorage state (`gymtrack.v1`) to Supabase for an authenticated user.
- * Performs idempotent UPSERTs into PostgreSQL tables.
+ * Upload local state to Supabase for an authenticated user.
  */
 export async function syncLocalToSupabase(
   userId: string,
   localData: GymData
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    // 1. Profile
+    // 1. Profile (including role)
     if (localData.userProfile) {
       const p = localData.userProfile;
       await supabase.from("profiles").upsert(
@@ -30,6 +31,8 @@ export async function syncLocalToSupabase(
           id: userId,
           weight_kg: p.weight,
           height_cm: p.height,
+          role: p.role || "client",
+          coach_id: p.coachId || null,
           updated_at: new Date().toISOString(),
         },
         { onConflict: "id" }
@@ -182,8 +185,7 @@ export async function syncLocalToSupabase(
 }
 
 /**
- * Download authoritative cloud state from Supabase for an authenticated user
- * and merge seamlessly with the local application state.
+ * Download cloud state from Supabase for an authenticated user.
  */
 export async function pullSupabaseData(
   userId: string,
@@ -202,12 +204,32 @@ export async function pullSupabaseData(
     if (profile) {
       nextData.userProfile = {
         ...nextData.userProfile,
-        weight: profile.weight_kg ? Number(profile.weight_kg) : nextData.userProfile.weight,
-        height: profile.height_cm ? Number(profile.height_cm) : nextData.userProfile.height,
+        weight: profile.weight_kg ? Number(profile.weight_kg) : nextData.userProfile?.weight ?? 65,
+        height: profile.height_cm ? Number(profile.height_cm) : nextData.userProfile?.height,
+        role: (profile.role as UserRole) || "client",
+        coachId: profile.coach_id || undefined,
       };
     }
 
-    // 2. Custom Exercises
+    // 2. If Coach, fetch client links
+    if (nextData.userProfile?.role === "coach") {
+      const { data: clientLinks } = await supabase
+        .from("coach_clients")
+        .select("id, client_id, created_at, profiles!coach_clients_client_id_fkey(email, full_name)")
+        .eq("coach_id", userId);
+
+      if (clientLinks) {
+        nextData.clients = clientLinks.map((link: any) => ({
+          id: link.id,
+          clientId: link.client_id,
+          clientEmail: link.profiles?.email || undefined,
+          clientName: link.profiles?.full_name || undefined,
+          createdAt: link.created_at,
+        }));
+      }
+    }
+
+    // 3. Custom Exercises
     const { data: dbCustomExercises } = await supabase
       .from("custom_exercises")
       .select("*")
@@ -231,7 +253,7 @@ export async function pullSupabaseData(
       nextData.exercises = Array.from(customMap.values());
     }
 
-    // 3. Programs & Days
+    // 4. Programs & Days
     const { data: dbPrograms } = await supabase
       .from("programs")
       .select("*")
@@ -275,7 +297,7 @@ export async function pullSupabaseData(
       nextData.workouts = Array.from(workoutsMap.values());
     }
 
-    // 4. History Sessions
+    // 5. History Sessions
     const { data: dbSessions } = await supabase
       .from("workout_sessions")
       .select("*")
@@ -296,7 +318,7 @@ export async function pullSupabaseData(
       nextData.history = historyList;
     }
 
-    // 5. Custom Foods
+    // 6. Custom Foods
     const { data: dbCustomFoods } = await supabase
       .from("custom_foods")
       .select("*")
@@ -323,7 +345,7 @@ export async function pullSupabaseData(
       nextData.foods = Array.from(foodMap.values());
     }
 
-    // 6. Nutrition Days
+    // 7. Nutrition Days
     const { data: dbNutritionDays } = await supabase
       .from("nutrition_days")
       .select("*")
@@ -338,7 +360,7 @@ export async function pullSupabaseData(
       nextData.nutritionDays = daysList;
     }
 
-    // 7. Food Favorites
+    // 8. Food Favorites
     const { data: dbFavs } = await supabase
       .from("food_favorites")
       .select("food_id")
@@ -352,4 +374,107 @@ export async function pullSupabaseData(
   }
 
   return nextData;
+}
+
+/**
+ * Fetch a specific client's data for a coach.
+ */
+export async function pullClientDataForCoach(clientId: string): Promise<{
+  programs: Program[];
+  workouts: Workout[];
+  nutritionDays: NutritionDay[];
+  history: HistorySession[];
+  profile?: UserProfile;
+}> {
+  try {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("id", clientId)
+      .maybeSingle();
+
+    const { data: dbPrograms } = await supabase
+      .from("programs")
+      .select("*")
+      .eq("user_id", clientId);
+
+    const { data: dbProgramDays } = await supabase
+      .from("program_days")
+      .select("*")
+      .eq("user_id", clientId);
+
+    const { data: dbNutritionDays } = await supabase
+      .from("nutrition_days")
+      .select("*")
+      .eq("user_id", clientId);
+
+    const { data: dbSessions } = await supabase
+      .from("workout_sessions")
+      .select("*")
+      .eq("user_id", clientId)
+      .order("date", { ascending: false });
+
+    const workoutsMap = new Map<string, Workout>();
+    const programsList: Program[] = [];
+
+    if (dbPrograms && dbPrograms.length > 0) {
+      for (const pRow of dbPrograms) {
+        const matchingDays = (dbProgramDays || [])
+          .filter((d) => d.program_id === pRow.id)
+          .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+
+        const dayIds: string[] = [];
+        for (const dRow of matchingDays) {
+          dayIds.push(dRow.id);
+          workoutsMap.set(dRow.id, {
+            id: dRow.id,
+            name: dRow.name,
+            notes: "",
+            items: dRow.items || [],
+          });
+        }
+
+        programsList.push({
+          id: pRow.id,
+          name: pRow.name,
+          notes: pRow.description || "",
+          dayIds,
+        });
+      }
+    }
+
+    const nutritionList: NutritionDay[] = (dbNutritionDays || []).map((row) => ({
+      id: row.id,
+      date: typeof row.date === "string" ? row.date.slice(0, 10) : row.date,
+      meals: row.meals || [],
+    }));
+
+    const historyList: HistorySession[] = (dbSessions || []).map((row) => ({
+      id: row.id,
+      workoutId: row.workout_id || "",
+      workoutName: row.workout_name,
+      programName: row.program_name || "",
+      date: row.date,
+      durationSec: row.duration_sec,
+      entries: row.entries || [],
+      notes: row.notes || "",
+    }));
+
+    return {
+      programs: programsList,
+      workouts: Array.from(workoutsMap.values()),
+      nutritionDays: nutritionList,
+      history: historyList,
+      profile: profile
+        ? {
+            weight: Number(profile.weight_kg || 65),
+            height: Number(profile.height_cm || 165),
+            role: profile.role || "client",
+          }
+        : undefined,
+    };
+  } catch (err) {
+    console.error("[Pull Client Data Error]:", err);
+    return { programs: [], workouts: [], nutritionDays: [], history: [] };
+  }
 }

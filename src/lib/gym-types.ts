@@ -1,3 +1,13 @@
+export type UserRole = "coach" | "client";
+
+export type ClientLink = {
+  id: string;
+  clientId: string;
+  clientEmail?: string;
+  clientName?: string;
+  createdAt: string;
+};
+
 export type Exercise = {
   id: string;
   name: string;
@@ -136,6 +146,7 @@ export type FoodItem = {
   name: string;
   englishName?: string;
   category?: string;
+  brand?: string;
   /** Reference serving label, e.g. "100 גרם", "יחידה 1", "פרוסה 1". */
   servingSize: string;
   calories: number;
@@ -174,6 +185,7 @@ export type Meal = {
 
 /** A single day's nutrition log, keyed by calendar date. */
 export type NutritionDay = {
+  id?: string;
   date: string; // YYYY-MM-DD
   meals: Meal[];
 };
@@ -214,6 +226,8 @@ export type UserProfile = {
   age?: number;
   gender?: "female" | "male";
   workoutsPerWeek?: number;
+  role?: UserRole;
+  coachId?: string;
 };
 
 export type GymData = {
@@ -233,6 +247,7 @@ export type GymData = {
   bodyWeightLogs?: BodyWeightLog[];
   cardioLogs?: CardioLog[];
   userProfile?: UserProfile;
+  clients?: ClientLink[];
 };
 
 export const MUSCLE_GROUPS = [
