@@ -46,7 +46,8 @@ function Library() {
           </div>
           <h2 className="font-display text-xl font-bold text-ink">גישה שמורה למאמנים</h2>
           <p className="text-sm text-muted-foreground leading-relaxed">
-            ספריית התרגילים הכללית מנוהלת על ידי המאמן שלך. התרגילים שהוקצו עבורך מופיעים ישירות בתוך בלשונית "תוכניות".
+            ספריית התרגילים הכללית מנוהלת על ידי המאמן שלך. התרגילים שהוקצו עבורך מופיעים ישירות
+            בתוך בלשונית "תוכניות".
           </p>
         </div>
       </AppShell>

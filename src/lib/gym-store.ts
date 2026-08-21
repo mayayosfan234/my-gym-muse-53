@@ -313,10 +313,23 @@ function load() {
     });
 
     supabase.auth.onAuthStateChange((event, session) => {
+      const prevUserId = currentUser?.id;
       currentUser = session?.user || null;
+
       if (session?.user) {
+        // If user changed, reset memory state first to avoid leaking previous user data
+        if (prevUserId && prevUserId !== session.user.id) {
+          data = seed();
+        }
         handleUserLogin(session.user.id);
       } else {
+        // On sign-out, reset memory state to clean seed data
+        data = seed();
+        try {
+          window.localStorage.removeItem(KEY);
+        } catch {
+          /* ignore */
+        }
         listeners.forEach((l) => l());
       }
     });
@@ -344,7 +357,7 @@ function persist() {
   // Trigger async background push to Supabase if logged in
   if (currentUser?.id) {
     syncLocalToSupabase(currentUser.id, data).catch((e) =>
-      console.warn("[Background Supabase Sync Warning]:", e)
+      console.warn("[Background Supabase Sync Warning]:", e),
     );
   }
 }

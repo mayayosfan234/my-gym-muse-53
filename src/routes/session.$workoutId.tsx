@@ -90,7 +90,9 @@ function Session() {
   const [isPaused, setIsPaused] = useState(false);
 
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
-  const [difficultyRating, setDifficultyRating] = useState<"easy" | "appropriate" | "difficult">("appropriate");
+  const [difficultyRating, setDifficultyRating] = useState<"easy" | "appropriate" | "difficult">(
+    "appropriate",
+  );
   const [discomfortNotes, setDiscomfortNotes] = useState("");
 
   const [replacingIndex, setReplacingIndex] = useState<number | null>(null);
@@ -292,7 +294,6 @@ function Session() {
         </div>
       }
     >
-
       {/* Pause Banner */}
       {isPaused && (
         <div className="surface-card p-3 rounded-2xl bg-amber-50 text-amber-800 border border-amber-200 text-center font-bold text-xs mb-3">
@@ -543,7 +544,9 @@ function Session() {
               {cardExercise.instructions && (
                 <div className="rounded-xl bg-secondary/50 p-2.5 space-y-1">
                   <p className="font-bold text-ink">הוראות ביצוע:</p>
-                  <p className="text-muted-foreground leading-relaxed">{cardExercise.instructions}</p>
+                  <p className="text-muted-foreground leading-relaxed">
+                    {cardExercise.instructions}
+                  </p>
                 </div>
               )}
             </div>
@@ -706,7 +709,10 @@ function Session() {
               ) : (
                 <div className="p-6 text-center text-xs text-muted-foreground space-y-1">
                   <p className="font-bold text-ink">אין תחליפים מורשים מוגדרים</p>
-                  <p>המאמן לא הגדיר תרגילים חלופיים מורשים עבור תרגיל זה. פני למאמן להוספת תחליפים מורשים.</p>
+                  <p>
+                    המאמן לא הגדיר תרגילים חלופיים מורשים עבור תרגיל זה. פני למאמן להוספת תחליפים
+                    מורשים.
+                  </p>
                 </div>
               )}
             </div>

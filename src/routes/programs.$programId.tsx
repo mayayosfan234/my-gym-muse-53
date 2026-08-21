@@ -157,7 +157,11 @@ function ProgramDetail() {
       <section className="mt-6">
         <SectionHeader
           title="ימי אימון"
-          subtitle={isCoach ? "גרורי כדי לסדר מחדש. לחצי על אימון כדי לפתוח או לערוך." : "לחצי על יום אימון להצגת התרגילים או התחלת אימון"}
+          subtitle={
+            isCoach
+              ? "גרורי כדי לסדר מחדש. לחצי על אימון כדי לפתוח או לערוך."
+              : "לחצי על יום אימון להצגת התרגילים או התחלת אימון"
+          }
           action={
             isCoach ? (
               <button

@@ -208,7 +208,6 @@ function NutritionLog() {
         </div>
       }
     >
-
       {/* Date selector */}
       <div className="surface-card flex items-center justify-between gap-2 p-2.5">
         <button
@@ -427,8 +426,12 @@ function NutritionLog() {
               <p className="font-bold text-ink">יתרה להיום לפי היעד:</p>
               <div className="grid grid-cols-4 gap-1 text-center font-semibold pt-1">
                 <span className="bg-white p-1 rounded-md text-ink">{remainingCal} קל'</span>
-                <span className="bg-white p-1 rounded-md text-emerald-700">{remainingProt}g חלבון</span>
-                <span className="bg-white p-1 rounded-md text-amber-700">{remainingCarbs}g פחמימה</span>
+                <span className="bg-white p-1 rounded-md text-emerald-700">
+                  {remainingProt}g חלבון
+                </span>
+                <span className="bg-white p-1 rounded-md text-amber-700">
+                  {remainingCarbs}g פחמימה
+                </span>
                 <span className="bg-white p-1 rounded-md text-rose-700">{remainingFat}g שומן</span>
               </div>
             </div>
@@ -491,7 +494,9 @@ function NutritionLog() {
                         setCheckedItems((prev) => ({ ...prev, [item.name]: !isChecked }))
                       }
                       className={`p-3 rounded-2xl border transition-all cursor-pointer flex items-center justify-between text-xs ${
-                        isChecked ? "bg-muted/40 line-through opacity-60" : "bg-secondary/50 font-bold"
+                        isChecked
+                          ? "bg-muted/40 line-through opacity-60"
+                          : "bg-secondary/50 font-bold"
                       }`}
                     >
                       <span>

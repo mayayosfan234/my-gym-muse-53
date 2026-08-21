@@ -81,7 +81,9 @@ function CoachDashboardPage() {
 
     const { data } = await supabase
       .from("coach_clients")
-      .select("id, client_id, created_at, profiles!coach_clients_client_id_fkey(email, full_name, weight_kg)")
+      .select(
+        "id, client_id, created_at, profiles!coach_clients_client_id_fkey(email, full_name, weight_kg)",
+      )
       .eq("coach_id", user.id);
 
     if (data) {
@@ -141,7 +143,9 @@ function CoachDashboardPage() {
     if (!selectedClientId || !coachMsgText.trim()) return;
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) return;
 
       const { error } = await supabase.from("coach_messages").insert({
@@ -173,7 +177,7 @@ function CoachDashboardPage() {
 
       const { data: lookupRes, error: lookupErr } = await supabase.rpc(
         "lookup_client_id_by_email",
-        { lookup_email: inviteEmail.trim() }
+        { lookup_email: inviteEmail.trim() },
       );
 
       if (lookupErr || !lookupRes || lookupRes.length === 0) {
@@ -346,7 +350,8 @@ function CoachDashboardPage() {
           </div>
           <h2 className="font-display text-xl font-bold text-ink">גישת מאמן מוגבלת</h2>
           <p className="text-sm text-muted-foreground leading-relaxed">
-            חשבונך מוגדר כחבר/מתאמן (Client). דשבורד זה מיועד למאמנים אישיים בלבד לניהול תוכניות ותזונת מתאמנים.
+            חשבונך מוגדר כחבר/מתאמן (Client). דשבורד זה מיועד למאמנים אישיים בלבד לניהול תוכניות
+            ותזונת מתאמנים.
           </p>
         </div>
       </AppShell>
@@ -384,7 +389,9 @@ function CoachDashboardPage() {
             <div className="flex items-center justify-between border-b border-purple-200/60 pb-2">
               <div className="flex items-center gap-2">
                 <Crown className="h-5 w-5 text-purple-700" />
-                <h3 className="font-bold text-sm text-purple-950">אזור ניהול בעלים (Owner Management)</h3>
+                <h3 className="font-bold text-sm text-purple-950">
+                  אזור ניהול בעלים (Owner Management)
+                </h3>
               </div>
               <span className="text-[11px] font-bold text-purple-800 bg-purple-100 px-2 py-0.5 rounded-full">
                 {allProfiles.length} משתמשים במערכת
@@ -464,16 +471,24 @@ function CoachDashboardPage() {
             <div className="rounded-xl bg-white p-2.5 border border-amber-200/60 flex items-center justify-between">
               <div>
                 <span className="font-bold text-ink">נועה שחר:</span>
-                <span className="text-muted-foreground mr-1">דיווחה אי-נוחות בכתף בסט האחרון של הלחיצה</span>
+                <span className="text-muted-foreground mr-1">
+                  דיווחה אי-נוחות בכתף בסט האחרון של הלחיצה
+                </span>
               </div>
-              <span className="text-[10px] font-bold text-rose-700 bg-rose-50 px-2 py-0.5 rounded-md">כאב/אי נוחות</span>
+              <span className="text-[10px] font-bold text-rose-700 bg-rose-50 px-2 py-0.5 rounded-md">
+                כאב/אי נוחות
+              </span>
             </div>
             <div className="rounded-xl bg-white p-2.5 border border-amber-200/60 flex items-center justify-between">
               <div>
                 <span className="font-bold text-ink">דניאל לוי:</span>
-                <span className="text-muted-foreground mr-1">עדכן שקילה שבועית חדשה (+0.8 ק"ג)</span>
+                <span className="text-muted-foreground mr-1">
+                  עדכן שקילה שבועית חדשה (+0.8 ק"ג)
+                </span>
               </div>
-              <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md">שקילה שבועית</span>
+              <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md">
+                שקילה שבועית
+              </span>
             </div>
           </div>
         </div>
@@ -640,7 +655,7 @@ function CoachDashboardPage() {
                     {clientDetails?.programs?.map((prog: any) => {
                       const isProgActive = editingProgramId === prog.id;
                       const progDays = clientDetails?.workouts?.filter((w: any) =>
-                        prog.dayIds?.includes(w.id)
+                        prog.dayIds?.includes(w.id),
                       );
 
                       return (
@@ -692,7 +707,9 @@ function CoachDashboardPage() {
                                           {dayItem.name} ({dayItem.items?.length || 0} תרגילים)
                                         </span>
                                         <button
-                                          onClick={() => setEditingDayId(isDayActive ? null : dayItem.id)}
+                                          onClick={() =>
+                                            setEditingDayId(isDayActive ? null : dayItem.id)
+                                          }
                                           className="text-[11px] font-bold text-primary hover:underline cursor-pointer"
                                         >
                                           {isDayActive ? "סגור" : "+ שייך תרגיל מותאם"}
@@ -703,7 +720,7 @@ function CoachDashboardPage() {
                                         <div className="space-y-1.5 pt-1">
                                           {dayItem.items.map((exItem: any) => {
                                             const exMeta = store.exercises.find(
-                                              (e) => e.id === exItem.exerciseId
+                                              (e) => e.id === exItem.exerciseId,
                                             );
 
                                             return (
@@ -723,7 +740,10 @@ function CoachDashboardPage() {
                                                 </div>
                                                 <button
                                                   onClick={() =>
-                                                    handleRemoveExerciseFromDay(dayItem.id, exItem.id)
+                                                    handleRemoveExerciseFromDay(
+                                                      dayItem.id,
+                                                      exItem.id,
+                                                    )
                                                   }
                                                   className="text-muted-foreground hover:text-red-600 p-1 cursor-pointer"
                                                 >
@@ -767,7 +787,9 @@ function CoachDashboardPage() {
                                               <input
                                                 type="number"
                                                 value={targetWeight}
-                                                onChange={(e) => setTargetWeight(Number(e.target.value))}
+                                                onChange={(e) =>
+                                                  setTargetWeight(Number(e.target.value))
+                                                }
                                                 className="w-full rounded-md border p-1 text-center"
                                               />
                                             </div>
@@ -778,7 +800,9 @@ function CoachDashboardPage() {
                                               <input
                                                 type="number"
                                                 value={setsCount}
-                                                onChange={(e) => setSetsCount(Number(e.target.value))}
+                                                onChange={(e) =>
+                                                  setSetsCount(Number(e.target.value))
+                                                }
                                                 className="w-full rounded-md border p-1 text-center"
                                               />
                                             </div>

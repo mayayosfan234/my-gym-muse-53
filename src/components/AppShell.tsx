@@ -1,5 +1,16 @@
 import { Link } from "@tanstack/react-router";
-import { Apple, Cloud, Dumbbell, Home, LayoutGrid, LogIn, LogOut, Shield, Crown, User } from "lucide-react";
+import {
+  Apple,
+  Cloud,
+  Dumbbell,
+  Home,
+  LayoutGrid,
+  LogIn,
+  LogOut,
+  Shield,
+  Crown,
+  User,
+} from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { useAuthUser, useGym } from "../lib/gym-store";
 import { supabase } from "../lib/supabase";
@@ -25,7 +36,9 @@ export function AppShell({
 
   // Mode State for Coach / Owner: 'personal' (Client View) vs 'management' (Coach/Owner Dashboard)
   const [activeMode, setActiveMode] = useState<"personal" | "management">(
-    typeof window !== "undefined" && window.location.pathname.startsWith("/coach") ? "management" : "personal"
+    typeof window !== "undefined" && window.location.pathname.startsWith("/coach")
+      ? "management"
+      : "personal",
   );
 
   // Client gets 3 tabs: בית | אימונים השבוע | תזונה
@@ -33,7 +46,9 @@ export function AppShell({
   const NAV = [
     { to: "/", label: "בית", id: "home", icon: Home },
     { to: "/programs", label: "אימונים השבוע", id: "programs", icon: LayoutGrid },
-    ...(isCoach && activeMode === "management" ? [{ to: "/exercises", label: "תרגילים", id: "exercises", icon: Dumbbell }] : []),
+    ...(isCoach && activeMode === "management"
+      ? [{ to: "/exercises", label: "תרגילים", id: "exercises", icon: Dumbbell }]
+      : []),
     { to: "/nutrition", label: "תזונה", id: "nutrition", icon: Apple },
   ];
 
@@ -66,7 +81,9 @@ export function AppShell({
 
         if (data?.user && !data?.session) {
           setPendingVerificationEmail(email);
-          setSuccessMsg("נרשמת בהצלחה! שלחנו מייל אימות לכתובת " + email + ". יש לאשר את המייל להתחברות.");
+          setSuccessMsg(
+            "נרשמת בהצלחה! שלחנו מייל אימות לכתובת " + email + ". יש לאשר את המייל להתחברות.",
+          );
           return;
         }
       } else {
@@ -74,7 +91,9 @@ export function AppShell({
         if (error) {
           if (error.message.includes("Email not confirmed")) {
             setPendingVerificationEmail(email);
-            throw new Error("כתובת האימייל עדיין לא אומתה. יש לאשר את המייל או ללחוץ על 'שלח מייל אימות מחדש'.");
+            throw new Error(
+              "כתובת האימייל עדיין לא אומתה. יש לאשר את המייל או ללחוץ על 'שלח מייל אימות מחדש'.",
+            );
           }
           throw error;
         }
@@ -243,7 +262,9 @@ export function AppShell({
 
             {pendingVerificationEmail && (
               <div className="rounded-2xl bg-amber-50/80 p-3.5 border border-amber-200 text-amber-900 text-start space-y-2">
-                <p className="text-xs font-bold">ממתין לאימות כתובת המייל ({pendingVerificationEmail})</p>
+                <p className="text-xs font-bold">
+                  ממתין לאימות כתובת המייל ({pendingVerificationEmail})
+                </p>
                 <p className="text-[11px] text-amber-800 leading-relaxed">
                   אם לא קיבלת את מייל האימות או שהקישור פג תוקף, לחצי כאן לשליחת קישור מחדש.
                 </p>
@@ -274,9 +295,7 @@ export function AppShell({
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-muted-foreground mb-1">
-                  סיסמה
-                </label>
+                <label className="block text-xs font-bold text-muted-foreground mb-1">סיסמה</label>
                 <input
                   type="password"
                   required

@@ -19,7 +19,7 @@ export type SyncStatus = "idle" | "syncing" | "synced" | "error" | "offline";
 export async function syncLocalToSupabase(
   userId: string,
   localData: GymData,
-  userEmail?: string
+  userEmail?: string,
 ): Promise<{ success: boolean; error?: string }> {
   try {
     // 1. Profile
@@ -36,7 +36,7 @@ export async function syncLocalToSupabase(
           today_routine_enabled: p.todayRoutineEnabled ?? true,
           updated_at: new Date().toISOString(),
         },
-        { onConflict: "id" }
+        { onConflict: "id" },
       );
     }
 
@@ -52,9 +52,7 @@ export async function syncLocalToSupabase(
       "ex-rdl",
     ]);
 
-    const customExercises = localData.exercises.filter(
-      (e) => !defaultExerciseIds.has(e.id)
-    );
+    const customExercises = localData.exercises.filter((e) => !defaultExerciseIds.has(e.id));
 
     if (customExercises.length > 0) {
       const payload = customExercises.map((e) => ({
@@ -68,9 +66,7 @@ export async function syncLocalToSupabase(
         instructions: e.instructions,
         updated_at: new Date().toISOString(),
       }));
-      await supabase
-        .from("custom_exercises")
-        .upsert(payload, { onConflict: "id" });
+      await supabase.from("custom_exercises").upsert(payload, { onConflict: "id" });
     }
 
     // 3. Programs & Program Days
@@ -82,9 +78,7 @@ export async function syncLocalToSupabase(
         description: p.notes,
         updated_at: new Date().toISOString(),
       }));
-      await supabase
-        .from("programs")
-        .upsert(programPayload, { onConflict: "id" });
+      await supabase.from("programs").upsert(programPayload, { onConflict: "id" });
 
       for (const p of localData.programs) {
         const days = p.dayIds
@@ -101,9 +95,7 @@ export async function syncLocalToSupabase(
             sort_order: index,
             updated_at: new Date().toISOString(),
           }));
-          await supabase
-            .from("program_days")
-            .upsert(dayPayload, { onConflict: "id" });
+          await supabase.from("program_days").upsert(dayPayload, { onConflict: "id" });
         }
       }
     }
@@ -121,9 +113,7 @@ export async function syncLocalToSupabase(
         entries: s.entries,
         notes: s.notes,
       }));
-      await supabase
-        .from("workout_sessions")
-        .upsert(historyPayload, { onConflict: "id" });
+      await supabase.from("workout_sessions").upsert(historyPayload, { onConflict: "id" });
     }
 
     // 5. Custom Foods
@@ -147,9 +137,7 @@ export async function syncLocalToSupabase(
         fiber: f.fiber ?? 0,
         updated_at: new Date().toISOString(),
       }));
-      await supabase
-        .from("custom_foods")
-        .upsert(customFoodPayload, { onConflict: "id" });
+      await supabase.from("custom_foods").upsert(customFoodPayload, { onConflict: "id" });
     }
 
     // 6. Nutrition Days
@@ -162,9 +150,7 @@ export async function syncLocalToSupabase(
         meals: nd.meals,
         updated_at: new Date().toISOString(),
       }));
-      await supabase
-        .from("nutrition_days")
-        .upsert(nutritionPayload, { onConflict: "id" });
+      await supabase.from("nutrition_days").upsert(nutritionPayload, { onConflict: "id" });
     }
 
     // 7. Food Favorites
@@ -173,9 +159,7 @@ export async function syncLocalToSupabase(
         user_id: userId,
         food_id: foodId,
       }));
-      await supabase
-        .from("food_favorites")
-        .upsert(favPayload, { onConflict: "user_id,food_id" });
+      await supabase.from("food_favorites").upsert(favPayload, { onConflict: "user_id,food_id" });
     }
 
     return { success: true };
@@ -185,10 +169,7 @@ export async function syncLocalToSupabase(
   }
 }
 
-export async function pullSupabaseData(
-  userId: string,
-  localState: GymData
-): Promise<GymData> {
+export async function pullSupabaseData(userId: string, localState: GymData): Promise<GymData> {
   const nextData: GymData = { ...localState };
 
   try {
@@ -202,7 +183,9 @@ export async function pullSupabaseData(
     if (profile) {
       nextData.userProfile = {
         ...nextData.userProfile,
-        weight: profile.weight_kg ? Number(profile.weight_kg) : nextData.userProfile?.weight ?? 65,
+        weight: profile.weight_kg
+          ? Number(profile.weight_kg)
+          : (nextData.userProfile?.weight ?? 65),
         height: profile.height_cm ? Number(profile.height_cm) : nextData.userProfile?.height,
         role: (profile.role as UserRole) || "client",
         coachId: profile.coach_id || undefined,
@@ -232,7 +215,9 @@ export async function pullSupabaseData(
     if (nextData.userProfile?.role === "coach") {
       const { data: clientLinks } = await supabase
         .from("coach_clients")
-        .select("id, client_id, created_at, profiles!coach_clients_client_id_fkey(email, full_name)")
+        .select(
+          "id, client_id, created_at, profiles!coach_clients_client_id_fkey(email, full_name)",
+        )
         .eq("coach_id", userId);
 
       if (clientLinks) {
@@ -271,10 +256,7 @@ export async function pullSupabaseData(
     }
 
     // 5. Programs & Days
-    const { data: dbPrograms } = await supabase
-      .from("programs")
-      .select("*")
-      .eq("user_id", userId);
+    const { data: dbPrograms } = await supabase.from("programs").select("*").eq("user_id", userId);
 
     const { data: dbProgramDays } = await supabase
       .from("program_days")

@@ -64,8 +64,16 @@ function formatHebrewDate(date: Date) {
 
 function Dashboard() {
   const navigate = useNavigate();
-  const { workouts, exercises, history, programs, nutritionDays, userProfile, cardioLogs, coachMessages } =
-    useGym();
+  const {
+    workouts,
+    exercises,
+    history,
+    programs,
+    nutritionDays,
+    userProfile,
+    cardioLogs,
+    coachMessages,
+  } = useGym();
 
   const now = new Date();
 
@@ -106,7 +114,6 @@ function Dashboard() {
     setShowMonthlyCheckInModal(false);
   };
 
-
   // Weekly Activity calculation
   const startOfWeek = new Date(now);
   const dow = (now.getDay() + 6) % 7;
@@ -128,12 +135,17 @@ function Dashboard() {
   );
 
   // Consistency Score calculation (0-100%)
-  const consistencyScore = Math.min(100, Math.round((thisWeek.length / (userProfile?.workoutsPerWeek || 4)) * 100));
+  const consistencyScore = Math.min(
+    100,
+    Math.round((thisWeek.length / (userProfile?.workoutsPerWeek || 4)) * 100),
+  );
 
   // Nutrition Today
   const todayDateStr = todayKey();
   const nutritionToday = nutritionDays.find((d) => d.date === todayDateStr);
-  const totalsToday = nutritionToday ? dayTotals(nutritionToday) : { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 };
+  const totalsToday = nutritionToday
+    ? dayTotals(nutritionToday)
+    : { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 };
   const targetCals = 2000;
   const remainingCals = Math.max(0, targetCals - totalsToday.calories);
 
@@ -251,8 +263,14 @@ function Dashboard() {
         <div className="space-y-2">
           {[
             { key: "workout", label: `אימון יומיומי: ${nextWorkout?.name || "מנוחה"}` },
-            { key: "weighIn", label: `שקילה שבועית (משקל נוכחי: ${userProfile?.weight ?? 65} ק"ג)` },
-            { key: "nutrition", label: `תיעוד תזונה ביומן: ${Math.round(totalsToday.calories)} קל׳` },
+            {
+              key: "weighIn",
+              label: `שקילה שבועית (משקל נוכחי: ${userProfile?.weight ?? 65} ק"ג)`,
+            },
+            {
+              key: "nutrition",
+              label: `תיעוד תזונה ביומן: ${Math.round(totalsToday.calories)} קל׳`,
+            },
           ].map(({ key, label }) => {
             const isDone = routineChecklist[key] || false;
 
@@ -267,7 +285,9 @@ function Dashboard() {
                   }
                 }}
                 className={`surface-card p-3 rounded-2xl border transition-all cursor-pointer flex items-center justify-between text-xs ${
-                  isDone ? "bg-emerald-50/50 border-emerald-200 line-through opacity-70" : "bg-white border-border/60 font-bold"
+                  isDone
+                    ? "bg-emerald-50/50 border-emerald-200 line-through opacity-70"
+                    : "bg-white border-border/60 font-bold"
                 }`}
               >
                 <span>{label}</span>
@@ -307,9 +327,7 @@ function Dashboard() {
               <Award className="h-4 w-4 text-purple-700" />
               <span>צ'ק-אין חודשי</span>
             </div>
-            <p className="text-[11px] text-purple-800 pt-0.5">
-              היקפים ודיווח התקדמות
-            </p>
+            <p className="text-[11px] text-purple-800 pt-0.5">היקפים ודיווח התקדמות</p>
           </div>
         </div>
       </section>
@@ -318,26 +336,14 @@ function Dashboard() {
       <section className="mt-5">
         <SectionHeader title="פעילות השבוע" subtitle={`${thisWeek.length} אימונים בוצעו השבוע`} />
         <div className="grid grid-cols-3 gap-2.5">
-          <StatTile
-            label="אימונים"
-            value={String(thisWeek.length)}
-            icon={Flame}
-            tone="rose"
-          />
+          <StatTile label="אימונים" value={String(thisWeek.length)} icon={Flame} tone="rose" />
           <StatTile
             label="נפח ק״ג"
-            value={
-              volume >= 1000 ? `${(volume / 1000).toFixed(1)}k` : String(Math.round(volume))
-            }
+            value={volume >= 1000 ? `${(volume / 1000).toFixed(1)}k` : String(Math.round(volume))}
             icon={TrendingUp}
             tone="sage"
           />
-          <StatTile
-            label="זמן אימון"
-            value={`${totalDurationMin}m`}
-            icon={Dumbbell}
-            tone="cream"
-          />
+          <StatTile label="זמן אימון" value={`${totalDurationMin}m`} icon={Dumbbell} tone="cream" />
         </div>
       </section>
 
@@ -395,7 +401,6 @@ function Dashboard() {
           </div>
         </div>
       </section>
-
 
       {/* Modal: Weekly Weigh-In */}
       {showWeighInModal && (
@@ -464,7 +469,9 @@ function Dashboard() {
 
             <div className="space-y-2 text-xs">
               <div>
-                <label className="block font-bold text-muted-foreground mb-1">היקף מותניים (ס"מ)</label>
+                <label className="block font-bold text-muted-foreground mb-1">
+                  היקף מותניים (ס"מ)
+                </label>
                 <input
                   type="number"
                   value={waistCm}
@@ -473,7 +480,9 @@ function Dashboard() {
                 />
               </div>
               <div>
-                <label className="block font-bold text-muted-foreground mb-1">היקף ירכיים (ס"מ)</label>
+                <label className="block font-bold text-muted-foreground mb-1">
+                  היקף ירכיים (ס"מ)
+                </label>
                 <input
                   type="number"
                   value={hipsCm}
@@ -482,7 +491,9 @@ function Dashboard() {
                 />
               </div>
               <div>
-                <label className="block font-bold text-muted-foreground mb-1">הערות ודיווח התקדמות חודשי</label>
+                <label className="block font-bold text-muted-foreground mb-1">
+                  הערות ודיווח התקדמות חודשי
+                </label>
                 <textarea
                   value={checkInNotes}
                   onChange={(e) => setCheckInNotes(e.target.value)}
@@ -526,7 +537,9 @@ function Dashboard() {
 
             <div className="space-y-2 text-xs">
               <div>
-                <label className="block font-bold text-muted-foreground mb-1">היקף מותניים (ס״מ)</label>
+                <label className="block font-bold text-muted-foreground mb-1">
+                  היקף מותניים (ס״מ)
+                </label>
                 <input
                   type="number"
                   value={waistCm}
@@ -535,7 +548,9 @@ function Dashboard() {
                 />
               </div>
               <div>
-                <label className="block font-bold text-muted-foreground mb-1">היקף ירכיים (ס״מ)</label>
+                <label className="block font-bold text-muted-foreground mb-1">
+                  היקף ירכיים (ס״מ)
+                </label>
                 <input
                   type="number"
                   value={hipsCm}
