@@ -13,6 +13,9 @@ import {
   Scale,
   TrendingUp,
   Utensils,
+  Droplets,
+  Ruler,
+  Award,
 } from "lucide-react";
 import { useState } from "react";
 import { AppShell } from "@/components/AppShell";
@@ -61,9 +64,16 @@ function Dashboard() {
 
   const now = new Date();
 
+  // Water & Habits state
+  const [waterMl, setWaterMl] = useState(1500);
+  const waterTargetMl = 2500;
+  const [showMeasurementModal, setShowMeasurementModal] = useState(false);
+  const [waistCm, setWaistCm] = useState("72");
+  const [hipsCm, setHipsCm] = useState("95");
+
   // Weekly Activity calculation
   const startOfWeek = new Date(now);
-  const dow = (now.getDay() + 6) % 7; // Sunday = 0
+  const dow = (now.getDay() + 6) % 7;
   startOfWeek.setDate(now.getDate() - dow);
   startOfWeek.setHours(0, 0, 0, 0);
 
@@ -101,7 +111,6 @@ function Dashboard() {
   const [cardioSpeed, setCardioSpeed] = useState("8.0");
   const [cardioIncline, setCardioIncline] = useState("2.0");
 
-  // Next Workout selection
   const nextWorkout = workouts[0];
   const nextProgram = nextWorkout
     ? programs.find((p) => p.dayIds.includes(nextWorkout.id))
@@ -166,7 +175,7 @@ function Dashboard() {
                   params: { workoutId: nextWorkout.id },
                 })
               }
-              className="press inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-2xl bg-white px-4 text-[14px] font-bold text-ink shadow-sm"
+              className="press inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-2xl bg-white px-4 text-[14px] font-bold text-ink shadow-sm cursor-pointer"
             >
               <Play className="h-4 w-4 fill-current text-primary" />
               התחל אימון עכשיו
@@ -177,7 +186,7 @@ function Dashboard() {
                 programId: nextProgram?.id ?? "p-default",
                 dayId: nextWorkout.id,
               }}
-              className="press grid h-11 w-11 place-items-center rounded-2xl bg-white/15 text-primary-foreground"
+              className="press grid h-11 w-11 place-items-center rounded-2xl bg-white/15 text-primary-foreground cursor-pointer"
             >
               <ChevronLeft className="h-5 w-5" />
             </Link>
@@ -198,7 +207,47 @@ function Dashboard() {
         </Card>
       )}
 
-      {/* 2. Weekly Activity Overview */}
+      {/* 2. Habits & Routine Tracker (Water & Measurements) */}
+      <section className="mt-5 text-start">
+        <SectionHeader title="הרגלים והיקפי גוף" subtitle="מעקב מים והיקפים" />
+        <div className="grid grid-cols-2 gap-2.5">
+          <div className="surface-card p-3.5 rounded-2xl border border-blue-100 bg-blue-50/40 space-y-1.5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5 font-bold text-xs text-blue-900">
+                <Droplets className="h-4 w-4 text-blue-600" />
+                <span>שתיית מים</span>
+              </div>
+              <span className="text-[11px] font-bold text-blue-800">{waterMl}/{waterTargetMl} מ״ל</span>
+            </div>
+            <div className="flex gap-1 pt-1">
+              <button
+                onClick={() => setWaterMl((w) => Math.min(waterTargetMl, w + 250))}
+                className="flex-1 rounded-xl bg-blue-600 py-1 text-[11px] font-bold text-white shadow-xs cursor-pointer"
+              >
+                +250 מ״ל
+              </button>
+            </div>
+          </div>
+
+          <div
+            onClick={() => setShowMeasurementModal(true)}
+            className="surface-card p-3.5 rounded-2xl border border-rose-100 bg-rose-50/40 space-y-1.5 cursor-pointer"
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5 font-bold text-xs text-rose-900">
+                <Ruler className="h-4 w-4 text-rose-600" />
+                <span>היקפים (ס״מ)</span>
+              </div>
+              <span className="text-[11px] font-bold text-rose-800">עדכון</span>
+            </div>
+            <p className="text-[11px] text-muted-foreground pt-1">
+              מותניים: {waistCm} ס״מ · ירכיים: {hipsCm} ס״מ
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* 3. Weekly Activity Overview */}
       <section className="mt-5">
         <SectionHeader title="פעילות השבוע" subtitle={`${thisWeek.length} אימונים בוצעו השבוע`} />
         <div className="grid grid-cols-3 gap-2.5">
@@ -225,7 +274,7 @@ function Dashboard() {
         </div>
       </section>
 
-      {/* 3. Nutrition Summary Today */}
+      {/* 4. Nutrition Summary Today */}
       <section className="mt-5">
         <SectionHeader
           title="תזונה להיום"
@@ -280,7 +329,7 @@ function Dashboard() {
         </div>
       </section>
 
-      {/* 4. Body Weight & RMR Calculation Card */}
+      {/* 5. Body Weight & RMR Calculation Card */}
       <section className="mt-5">
         <SectionHeader
           title="נתוני גוף וחילוף חומרים"
@@ -289,7 +338,7 @@ function Dashboard() {
             <button
               type="button"
               onClick={() => setShowBodyModal(true)}
-              className="press rounded-full bg-secondary px-3 py-1.5 text-[12px] font-bold text-primary"
+              className="press rounded-full bg-secondary px-3 py-1.5 text-[12px] font-bold text-primary cursor-pointer"
             >
               עדכני נתונים
             </button>
@@ -320,79 +369,76 @@ function Dashboard() {
               </p>
             </div>
           </div>
-          <p className="mt-2.5 text-[11.5px] text-muted-foreground">
-            * RMR מציג את השריפה הקלורית של הגוף במנוחה מוחלטת. הוצאה יומית (TDEE) מחושבת לפי {userProfile?.workoutsPerWeek ?? 4} אימונים בשבוע.
-          </p>
         </div>
       </section>
 
-      {/* 5. Cardio Quick Log */}
-      <section className="mt-5">
-        <SectionHeader
-          title="אימון אירובי (אירובי / הליכון)"
-          subtitle="תיעוד הליכה, ריצה או מכשירים"
-          action={
-            <button
-              type="button"
-              onClick={() => setShowCardioModal(true)}
-              className="press inline-flex items-center gap-1 rounded-full bg-primary px-3 py-1.5 text-[12px] font-bold text-primary-foreground"
-            >
-              <Plus className="h-3.5 w-3.5" /> אירובי חדש
-            </button>
-          }
-        />
-        {cardioLogs && cardioLogs.length > 0 ? (
-          <div className="space-y-2">
-            {cardioLogs.slice(0, 2).map((log) => (
-              <div
-                key={log.id}
-                className="surface-card flex items-center justify-between p-3.5 text-start"
+      {/* Modal: Body Measurements */}
+      {showMeasurementModal && (
+        <div
+          className="fade-in fixed inset-0 z-50 flex items-end justify-center bg-black/40 backdrop-blur-sm p-4"
+          onClick={() => setShowMeasurementModal(false)}
+        >
+          <div
+            className="w-full max-w-sm rounded-3xl border border-white/80 bg-white p-5 shadow-2xl space-y-3 text-start"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b pb-2">
+              <h3 className="font-bold text-base text-ink flex items-center gap-2">
+                <Ruler className="h-5 w-5 text-rose-600" /> תיעוד היקפי גוף
+              </h3>
+              <button
+                onClick={() => setShowMeasurementModal(false)}
+                className="text-muted-foreground font-bold text-sm cursor-pointer"
               >
-                <div className="flex items-center gap-3">
-                  <div className="grid h-10 w-10 place-items-center rounded-xl bg-secondary text-primary">
-                    <Footprints className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <p className="font-display text-[14.5px] font-bold text-ink">{log.type}</p>
-                    <p className="text-[12px] text-muted-foreground">
-                      {log.durationMin} דק׳ {log.speed ? `· ${log.speed} קמ״ש` : ""}
-                      {log.incline ? ` · שיפוע ${log.incline}%` : ""}
-                    </p>
-                  </div>
-                </div>
-                <span className="num-pill px-2.5 py-1 text-[12px] font-bold text-primary">
-                  ~{log.calories} קלוריות
-                </span>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <Card className="text-start">
-            <p className="text-[13px] text-muted-foreground">
-              עדיין לא תועד אימון אירובי היום. לחצי על &quot;אירובי חדש&quot; להוספת הליכון או
-              ריצה.
-            </p>
-          </Card>
-        )}
-      </section>
+                ✕
+              </button>
+            </div>
 
-      {/* Modal: Update Body Weight & Workouts Per Week */}
+            <div className="space-y-2 text-xs">
+              <div>
+                <label className="block font-bold text-muted-foreground mb-1">היקף מותניים (ס״מ)</label>
+                <input
+                  type="number"
+                  value={waistCm}
+                  onChange={(e) => setWaistCm(e.target.value)}
+                  className="w-full rounded-xl border border-border p-2"
+                />
+              </div>
+              <div>
+                <label className="block font-bold text-muted-foreground mb-1">היקף ירכיים (ס״מ)</label>
+                <input
+                  type="number"
+                  value={hipsCm}
+                  onChange={(e) => setHipsCm(e.target.value)}
+                  className="w-full rounded-xl border border-border p-2"
+                />
+              </div>
+            </div>
+
+            <button
+              onClick={() => setShowMeasurementModal(false)}
+              className="w-full rounded-2xl bg-primary py-2.5 text-xs font-bold text-white shadow-md cursor-pointer"
+            >
+              שמור היקפים
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Update Body Weight */}
       {showBodyModal ? (
         <div
-          className="fade-in fixed inset-0 z-50 flex items-end justify-center bg-black/40 backdrop-blur-sm"
+          className="fade-in fixed inset-0 z-50 flex items-end justify-center bg-black/40 backdrop-blur-sm p-4"
           onClick={() => setShowBodyModal(false)}
         >
           <div
-            className="scale-in w-full max-w-lg rounded-t-3xl border-t border-border bg-card p-5 text-start shadow-2xl"
+            className="w-full max-w-sm rounded-3xl border border-white/80 bg-white p-5 shadow-2xl space-y-3 text-start"
             onClick={(e) => e.stopPropagation()}
           >
-            <p className="text-[11px] font-bold tracking-wider text-primary uppercase">
-              עדכון נתוני גוף ופעילות
-            </p>
-            <h3 className="mt-1 font-display text-[20px] font-bold text-ink">
+            <h3 className="font-display text-[18px] font-bold text-ink">
               עדכני משקל ומספר אימונים
             </h3>
-            <div className="mt-4 space-y-3">
+            <div className="space-y-3">
               <div>
                 <label className="block text-[12px] font-bold text-muted-foreground">משקל (בק״ג)</label>
                 <input
@@ -400,7 +446,7 @@ function Dashboard() {
                   step="0.1"
                   value={weightInput}
                   onChange={(e) => setWeightInput(e.target.value)}
-                  className="mt-1 w-full rounded-2xl border border-border bg-secondary px-4 py-3 text-[17px] font-bold text-ink outline-none focus:border-primary"
+                  className="mt-1 w-full rounded-2xl border border-border bg-secondary px-4 py-2.5 text-[15px] font-bold text-ink outline-none"
                 />
               </div>
               <div>
@@ -411,99 +457,12 @@ function Dashboard() {
                   max="14"
                   value={workoutsWeekInput}
                   onChange={(e) => setWorkoutsWeekInput(e.target.value)}
-                  className="mt-1 w-full rounded-2xl border border-border bg-secondary px-4 py-3 text-[17px] font-bold text-ink outline-none focus:border-primary"
+                  className="mt-1 w-full rounded-2xl border border-border bg-secondary px-4 py-2.5 text-[15px] font-bold text-ink outline-none"
                 />
               </div>
             </div>
-            <div className="mt-5 flex gap-2">
+            <div className="mt-4">
               <PrimaryButton onClick={handleProfileSave}>שמרי נתונים</PrimaryButton>
-            </div>
-          </div>
-        </div>
-      ) : null}
-
-      {/* Modal: Quick Cardio Log */}
-      {showCardioModal ? (
-        <div
-          className="fade-in fixed inset-0 z-50 flex items-end justify-center bg-black/40 backdrop-blur-sm"
-          onClick={() => setShowCardioModal(false)}
-        >
-          <div
-            className="scale-in max-h-[85dvh] w-full max-w-lg overflow-y-auto rounded-t-3xl border-t border-border bg-card p-5 text-start shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <p className="text-[11px] font-bold tracking-wider text-primary uppercase">
-              תיעוד אירובי
-            </p>
-            <h3 className="mt-1 font-display text-[20px] font-bold text-ink">הוסיפי פעילות אירובית</h3>
-
-            <div className="mt-4 space-y-3">
-              <div>
-                <label className="block text-[12px] font-bold text-muted-foreground">סוג הפעילות</label>
-                <select
-                  value={cardioType}
-                  onChange={(e) => setCardioType(e.target.value)}
-                  className="mt-1 w-full rounded-2xl border border-border bg-secondary px-3.5 py-3 text-[14.5px] font-bold text-ink outline-none"
-                >
-                  {CARDIO_TYPES.map((t) => (
-                    <option key={t} value={t}>
-                      {t}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="block text-[12px] font-bold text-muted-foreground">זמן (בדקות)</label>
-                  <input
-                    type="number"
-                    value={cardioDuration}
-                    onChange={(e) => setCardioDuration(e.target.value)}
-                    className="mt-1 w-full rounded-2xl border border-border bg-secondary px-3.5 py-2.5 text-[15px] font-bold text-ink outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[12px] font-bold text-muted-foreground">מהירות (קמ״ש)</label>
-                  <input
-                    type="number"
-                    step="0.5"
-                    value={cardioSpeed}
-                    onChange={(e) => setCardioSpeed(e.target.value)}
-                    className="mt-1 w-full rounded-2xl border border-border bg-secondary px-3.5 py-2.5 text-[15px] font-bold text-ink outline-none"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-[12px] font-bold text-muted-foreground">שיפוע הליכון (%)</label>
-                <input
-                  type="number"
-                  step="0.5"
-                  value={cardioIncline}
-                  onChange={(e) => setCardioIncline(e.target.value)}
-                  className="mt-1 w-full rounded-2xl border border-border bg-secondary px-3.5 py-2.5 text-[15px] font-bold text-ink outline-none"
-                />
-              </div>
-
-              <div className="rounded-2xl bg-secondary p-3 text-center">
-                <p className="text-[11px] font-bold text-muted-foreground">הערכת שריפה קלורית</p>
-                <p className="mt-0.5 font-display text-[22px] font-bold tabular-nums text-primary">
-                  ~
-                  {calculateCardioCalories(
-                    cardioType,
-                    parseInt(cardioDuration, 10) || 0,
-                    rmrData.weight,
-                    parseFloat(cardioSpeed) || 0,
-                    parseFloat(cardioIncline) || 0,
-                  )}{" "}
-                  קלוריות
-                </p>
-              </div>
-            </div>
-
-            <div className="mt-5 flex gap-2">
-              <PrimaryButton onClick={handleLogCardio}>שמרי אימון אירובי</PrimaryButton>
             </div>
           </div>
         </div>

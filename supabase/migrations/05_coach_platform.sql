@@ -57,15 +57,11 @@ CREATE POLICY "Coaches can view assigned clients habits"
   ON public.client_habits FOR SELECT
   USING (public.is_coach_of(user_id));
 
--- Restrict Exercise Library RLS so ONLY coaches can list/query global exercises or create custom ones
+-- Public read access to built-in exercise library for all users
 DROP POLICY IF EXISTS "Public exercises are viewable by all authenticated users" ON public.exercises;
+DROP POLICY IF EXISTS "Coaches can access full exercise library" ON public.exercises;
 
-CREATE POLICY "Coaches can access full exercise library"
+CREATE POLICY "Exercises viewable by all users"
   ON public.exercises FOR SELECT
   TO authenticated, anon
-  USING (
-    EXISTS (
-      SELECT 1 FROM public.profiles
-      WHERE profiles.id = auth.uid() AND profiles.role = 'coach'
-    ) OR auth.uid() IS NULL
-  );
+  USING (true);

@@ -12,12 +12,18 @@ import {
   UserCheck,
   UserPlus,
   Users,
+  Layers,
+  Sparkles,
+  ArrowRight,
+  ListPlus,
+  CheckCircle2,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { AppShell } from "../components/AppShell";
 import { uid, useGym } from "../lib/gym-store";
 import { pullClientDataForCoach } from "../lib/supabase-sync";
 import { supabase } from "../lib/supabase";
+import type { DropSetConfig, Exercise, WorkoutItem } from "../lib/gym-types";
 
 export const Route = createFileRoute("/coach")({
   component: CoachDashboardPage,
@@ -32,15 +38,34 @@ function CoachDashboardPage() {
   const [loadingDetails, setLoadingDetails] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteMsg, setInviteMsg] = useState("");
-  const [showAddModal, setShowAuthModal] = useState(false);
+  const [showAddModal, setShowAddModal] = useState(false);
 
-  // Coach Program Management state
+  // Coach Program & Day Builder state
   const [newProgramName, setNewProgramName] = useState("");
+  const [editingProgramId, setEditingProgramId] = useState<string | null>(null);
+  const [editingDayId, setEditingDayId] = useState<string | null>(null);
+  const [newDayName, setNewDayName] = useState("");
+
+  // Exercise Assignment Editor state
+  const [selectedExId, setSelectedExId] = useState("");
+  const [targetWeight, setTargetWeight] = useState(20);
+  const [setsCount, setSetsCount] = useState(3);
+  const [repMin, setRepMin] = useState(8);
+  const [repMax, setRepMax] = useState(10);
+  const [restSec, setRestSec] = useState(90);
+  const [techNotes, setTechniqueNotes] = useState("");
+  const [supersetGroup, setSupersetGroup] = useState("");
+  const [dropSetEnabled, setDropSetEnabled] = useState(false);
+  const [dropSetCount, setDropSetCount] = useState(1);
+  const [approvedAltIds, setApprovedAltIds] = useState<string[]>([]);
+
+  // Nutrition Prescription state
   const [editingNutrition, setEditingNutrition] = useState(false);
   const [calTarget, setCalTarget] = useState(2000);
   const [protTarget, setProtTarget] = useState(140);
   const [carbTarget, setCarbTarget] = useState(200);
   const [fatTarget, setFatTarget] = useState(65);
+  const [fiberTarget, setFiberTarget] = useState(25);
 
   const loadCoachClients = async () => {
     const {
@@ -88,7 +113,6 @@ function CoachDashboardPage() {
       } = await supabase.auth.getUser();
       if (!user) throw new Error("מנוי לא מחובר");
 
-      // Call secure lookup function
       const { data: lookupRes, error: lookupErr } = await supabase.rpc(
         "lookup_client_id_by_email",
         { lookup_email: inviteEmail.trim() }
@@ -109,7 +133,7 @@ function CoachDashboardPage() {
 
       setInviteMsg("המתאמן שויך בהצלחה לחשבון המאמן שלך!");
       setInviteEmail("");
-      setShowAuthModal(false);
+      setShowAddModal(false);
       loadCoachClients();
     } catch (err: any) {
       setInviteMsg(err?.message || "אירעה שגיאה בשיוך המתאמן");
@@ -143,6 +167,96 @@ function CoachDashboardPage() {
     if (!error) {
       setNewProgramName("");
       pullClientDataForCoach(selectedClientId).then(setClientDetails);
+    }
+  };
+
+  // Add Program Day for Client
+  const handleAddProgramDay = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedClientId || !editingProgramId || !newDayName.trim()) return;
+
+    const dayId = uid();
+    const { error } = await supabase.from("program_days").insert({
+      id: dayId,
+      program_id: editingProgramId,
+      user_id: selectedClientId,
+      name: newDayName.trim(),
+      items: [],
+      sort_order: (clientDetails?.workouts?.length || 0) + 1,
+    });
+
+    if (!error) {
+      setNewDayName("");
+      pullClientDataForCoach(selectedClientId).then(setClientDetails);
+    }
+  };
+
+  // Assign Prescribed Exercise to Program Day
+  const handleAddExerciseToDay = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedClientId || !editingDayId || !selectedExId) return;
+
+    const currentDay = clientDetails?.workouts?.find((w: any) => w.id === editingDayId);
+    if (!currentDay) return;
+
+    const newWorkoutItem: WorkoutItem = {
+      id: uid(),
+      exerciseId: selectedExId,
+      sets: setsCount,
+      reps: repMin,
+      repType: "range",
+      repMin,
+      repMax,
+      targetWeight,
+      weight: targetWeight,
+      rest: restSec,
+      notes: "",
+      techniqueNotes: techNotes.trim() || undefined,
+      approvedAlternatives: approvedAltIds.length > 0 ? approvedAltIds : undefined,
+      supersetId: supersetGroup.trim() || undefined,
+      dropSetConfig: dropSetEnabled
+        ? { enabled: true, drops: dropSetCount, percentReduction: 20 }
+        : undefined,
+      workingSets: Array.from({ length: setsCount }, (_, i) => ({
+        id: uid(),
+        setNumber: i + 1,
+        weight: targetWeight,
+        reps: repMin,
+        repMax,
+      })),
+    };
+
+    const updatedItems = [...currentDay.items, newWorkoutItem];
+
+    const { error } = await supabase
+      .from("program_days")
+      .update({ items: updatedItems, updated_at: new Date().toISOString() })
+      .eq("id", editingDayId);
+
+    if (!error) {
+      setSelectedExId("");
+      setTechniqueNotes("");
+      setSupersetGroup("");
+      setDropSetEnabled(false);
+      setApprovedAltIds([]);
+      pullClientDataForCoach(selectedClientId).then(setClientDetails);
+    }
+  };
+
+  // Delete exercise from day
+  const handleRemoveExerciseFromDay = async (dayId: string, itemId: string) => {
+    const currentDay = clientDetails?.workouts?.find((w: any) => w.id === dayId);
+    if (!currentDay) return;
+
+    const updatedItems = currentDay.items.filter((i: any) => i.id !== itemId);
+
+    const { error } = await supabase
+      .from("program_days")
+      .update({ items: updatedItems, updated_at: new Date().toISOString() })
+      .eq("id", dayId);
+
+    if (!error) {
+      pullClientDataForCoach(selectedClientId!).then(setClientDetails);
     }
   };
 
@@ -190,7 +304,7 @@ function CoachDashboardPage() {
       kicker="מאמן מוסמך"
       action={
         <button
-          onClick={() => setShowAuthModal(true)}
+          onClick={() => setShowAddModal(true)}
           className="flex items-center gap-1 rounded-full bg-primary px-3.5 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-primary/90 transition-colors cursor-pointer"
         >
           <UserPlus className="h-3.5 w-3.5" />
@@ -198,7 +312,7 @@ function CoachDashboardPage() {
         </button>
       }
     >
-      <div className="space-y-5">
+      <div className="space-y-5 text-start">
         {/* Coach Header Banner */}
         <div className="surface-card p-5 rounded-3xl space-y-3 bg-linear-to-br from-rose-50/60 to-primary/5 border border-primary/15">
           <div className="flex items-center justify-between">
@@ -231,7 +345,7 @@ function CoachDashboardPage() {
             <div className="surface-card p-6 text-center text-muted-foreground rounded-2xl text-xs space-y-2">
               <p>עדיין לא שויכו מתאמנים לחשבון המאמן שלך.</p>
               <button
-                onClick={() => setShowAuthModal(true)}
+                onClick={() => setShowAddModal(true)}
                 className="text-primary font-bold hover:underline cursor-pointer"
               >
                 לחצי כאן להוספת מתאמן ראשון לפי אימייל
@@ -247,7 +361,11 @@ function CoachDashboardPage() {
                 return (
                   <div
                     key={c.id}
-                    onClick={() => setSelectedClientId(isSelected ? null : c.client_id)}
+                    onClick={() => {
+                      setSelectedClientId(isSelected ? null : c.client_id);
+                      setEditingProgramId(null);
+                      setEditingDayId(null);
+                    }}
                     className={`surface-card p-4 rounded-2xl border transition-all cursor-pointer flex items-center justify-between ${
                       isSelected
                         ? "border-primary bg-primary/5 shadow-xs"
@@ -306,21 +424,22 @@ function CoachDashboardPage() {
               </div>
             ) : (
               <div className="space-y-4">
-                {/* Client Programs & Creation */}
+                {/* Client Programs & Full Exercise Prescription Builder */}
                 <div className="surface-card p-4 rounded-2xl space-y-3">
                   <div className="flex items-center justify-between border-b pb-2">
                     <h4 className="font-bold text-sm text-ink flex items-center gap-1.5">
-                      <Dumbbell className="h-4 w-4 text-primary" /> תוכניות אימונים למתאמן
+                      <Dumbbell className="h-4 w-4 text-primary" /> בונה התוכניות והאימונים למתאמן
                     </h4>
                   </div>
 
+                  {/* Create New Program Form */}
                   <form onSubmit={handleCreateClientProgram} className="flex gap-2">
                     <input
                       type="text"
                       required
                       value={newProgramName}
                       onChange={(e) => setNewProgramName(e.target.value)}
-                      placeholder="שם תוכנית חדשה למתאמן..."
+                      placeholder="שם תוכנית אימון חדשה..."
                       className="flex-1 rounded-xl border border-border px-3 py-1.5 text-xs outline-none focus:border-primary"
                     />
                     <button
@@ -332,25 +451,248 @@ function CoachDashboardPage() {
                     </button>
                   </form>
 
-                  {clientDetails?.programs?.length === 0 ? (
-                    <p className="text-xs text-muted-foreground pt-1">
-                      למתאמן זה אין תוכנית אימון פעילה כרגע.
-                    </p>
-                  ) : (
-                    <div className="space-y-1.5 pt-1">
-                      {clientDetails?.programs?.map((p: any) => (
+                  {/* Program & Days List */}
+                  <div className="space-y-3 pt-2">
+                    {clientDetails?.programs?.map((prog: any) => {
+                      const isProgActive = editingProgramId === prog.id;
+                      const progDays = clientDetails?.workouts?.filter((w: any) =>
+                        prog.dayIds?.includes(w.id)
+                      );
+
+                      return (
                         <div
-                          key={p.id}
-                          className="flex items-center justify-between rounded-xl bg-muted/40 p-2.5 text-xs font-semibold"
+                          key={prog.id}
+                          className="rounded-2xl border border-border/70 p-3 space-y-2.5 bg-muted/20"
                         >
-                          <span>{p.name}</span>
-                          <span className="text-[11px] text-muted-foreground">
-                            {p.dayIds?.length || 0} ימי אימון
-                          </span>
+                          <div className="flex items-center justify-between">
+                            <span className="font-bold text-sm text-ink">{prog.name}</span>
+                            <button
+                              onClick={() => setEditingProgramId(isProgActive ? null : prog.id)}
+                              className="text-xs font-bold text-primary hover:underline flex items-center gap-1 cursor-pointer"
+                            >
+                              <Edit2 className="h-3 w-3" />
+                              <span>{isProgActive ? "סגור עריכה" : "נהל ימי אימון"}</span>
+                            </button>
+                          </div>
+
+                          {/* Add Day Form */}
+                          {isProgActive && (
+                            <div className="space-y-3 pt-2 border-t border-border/40">
+                              <form onSubmit={handleAddProgramDay} className="flex gap-2">
+                                <input
+                                  type="text"
+                                  required
+                                  value={newDayName}
+                                  onChange={(e) => setNewDayName(e.target.value)}
+                                  placeholder="שם יום אימון (למשל: A - פלג גוף עליון)..."
+                                  className="flex-1 rounded-xl border border-border px-3 py-1.5 text-xs outline-none focus:border-primary"
+                                />
+                                <button
+                                  type="submit"
+                                  className="rounded-xl bg-primary/10 px-3 py-1.5 text-xs font-bold text-primary hover:bg-primary/20 cursor-pointer"
+                                >
+                                  + יום
+                                </button>
+                              </form>
+
+                              {/* Days & Exercise Prescription Panel */}
+                              <div className="space-y-2">
+                                {progDays?.map((dayItem: any) => {
+                                  const isDayActive = editingDayId === dayItem.id;
+
+                                  return (
+                                    <div
+                                      key={dayItem.id}
+                                      className="rounded-xl bg-white p-3 border border-border/60 space-y-2"
+                                    >
+                                      <div className="flex items-center justify-between">
+                                        <span className="font-bold text-xs text-ink">
+                                          {dayItem.name} ({dayItem.items?.length || 0} תרגילים)
+                                        </span>
+                                        <button
+                                          onClick={() => setEditingDayId(isDayActive ? null : dayItem.id)}
+                                          className="text-[11px] font-bold text-primary hover:underline cursor-pointer"
+                                        >
+                                          {isDayActive ? "סגור" : "+ שייך תרגיל מותאם"}
+                                        </button>
+                                      </div>
+
+                                      {/* Prescribed Exercises List */}
+                                      {dayItem.items?.length > 0 && (
+                                        <div className="space-y-1.5 pt-1">
+                                          {dayItem.items.map((exItem: any) => {
+                                            const exMeta = store.exercises.find(
+                                              (e) => e.id === exItem.exerciseId
+                                            );
+
+                                            return (
+                                              <div
+                                                key={exItem.id}
+                                                className="flex items-center justify-between rounded-lg bg-secondary/50 p-2 text-xs"
+                                              >
+                                                <div>
+                                                  <span className="font-bold text-ink">
+                                                    {exMeta?.name || "תרגיל"}
+                                                  </span>
+                                                  <span className="text-muted-foreground mr-1">
+                                                    · {exItem.targetWeight || exItem.weight} ק"ג ·{" "}
+                                                    {exItem.sets}×{exItem.repMin || exItem.reps}
+                                                    {exItem.repMax ? `-${exItem.repMax}` : ""}
+                                                  </span>
+                                                  {exItem.supersetId && (
+                                                    <span className="mr-1 rounded-sm bg-primary/20 px-1 py-0.2 text-[9px] font-bold text-primary">
+                                                      SuperSet {exItem.supersetId}
+                                                    </span>
+                                                  )}
+                                                  {exItem.dropSetConfig?.enabled && (
+                                                    <span className="mr-1 rounded-sm bg-rose-100 px-1 py-0.2 text-[9px] font-bold text-rose-800">
+                                                      DropSet
+                                                    </span>
+                                                  )}
+                                                </div>
+                                                <button
+                                                  onClick={() =>
+                                                    handleRemoveExerciseFromDay(dayItem.id, exItem.id)
+                                                  }
+                                                  className="text-muted-foreground hover:text-red-600 p-1 cursor-pointer"
+                                                >
+                                                  <Trash2 className="h-3.5 w-3.5" />
+                                                </button>
+                                              </div>
+                                            );
+                                          })}
+                                        </div>
+                                      )}
+
+                                      {/* Add Exercise Form Panel */}
+                                      {isDayActive && (
+                                        <form
+                                          onSubmit={handleAddExerciseToDay}
+                                          className="pt-2 border-t border-border/40 space-y-2 text-xs"
+                                        >
+                                          <div>
+                                            <label className="block text-[10px] font-bold text-muted-foreground mb-1">
+                                              בחר תרגיל מספרייה
+                                            </label>
+                                            <select
+                                              required
+                                              value={selectedExId}
+                                              onChange={(e) => setSelectedExId(e.target.value)}
+                                              className="w-full rounded-lg border border-border px-2 py-1.5 text-xs outline-none"
+                                            >
+                                              <option value="">-- בחר תרגיל --</option>
+                                              {store.exercises.map((e) => (
+                                                <option key={e.id} value={e.id}>
+                                                  {e.name} ({e.muscleGroup})
+                                                </option>
+                                              ))}
+                                            </select>
+                                          </div>
+
+                                          <div className="grid grid-cols-4 gap-1.5">
+                                            <div>
+                                              <label className="block text-[9px] font-bold text-muted-foreground">
+                                                משקל יעד (kg)
+                                              </label>
+                                              <input
+                                                type="number"
+                                                value={targetWeight}
+                                                onChange={(e) => setTargetWeight(Number(e.target.value))}
+                                                className="w-full rounded-md border p-1 text-center"
+                                              />
+                                            </div>
+                                            <div>
+                                              <label className="block text-[9px] font-bold text-muted-foreground">
+                                                סטים
+                                              </label>
+                                              <input
+                                                type="number"
+                                                value={setsCount}
+                                                onChange={(e) => setSetsCount(Number(e.target.value))}
+                                                className="w-full rounded-md border p-1 text-center"
+                                              />
+                                            </div>
+                                            <div>
+                                              <label className="block text-[9px] font-bold text-muted-foreground">
+                                                חזרות מינ'
+                                              </label>
+                                              <input
+                                                type="number"
+                                                value={repMin}
+                                                onChange={(e) => setRepMin(Number(e.target.value))}
+                                                className="w-full rounded-md border p-1 text-center"
+                                              />
+                                            </div>
+                                            <div>
+                                              <label className="block text-[9px] font-bold text-muted-foreground">
+                                                חזרות מקס'
+                                              </label>
+                                              <input
+                                                type="number"
+                                                value={repMax}
+                                                onChange={(e) => setRepMax(Number(e.target.value))}
+                                                className="w-full rounded-md border p-1 text-center"
+                                              />
+                                            </div>
+                                          </div>
+
+                                          <div className="grid grid-cols-2 gap-2">
+                                            <div>
+                                              <label className="block text-[9px] font-bold text-muted-foreground">
+                                                קבוצת SuperSet
+                                              </label>
+                                              <input
+                                                type="text"
+                                                value={supersetGroup}
+                                                onChange={(e) => setSupersetGroup(e.target.value)}
+                                                placeholder="לדוגמה: A1, A2"
+                                                className="w-full rounded-md border p-1"
+                                              />
+                                            </div>
+                                            <div className="flex items-center gap-2 pt-3">
+                                              <input
+                                                type="checkbox"
+                                                id="chkDrop"
+                                                checked={dropSetEnabled}
+                                                onChange={(e) => setDropSetEnabled(e.target.checked)}
+                                              />
+                                              <label htmlFor="chkDrop" className="font-bold text-[10px]">
+                                                כולל DropSet
+                                              </label>
+                                            </div>
+                                          </div>
+
+                                          <div>
+                                            <label className="block text-[9px] font-bold text-muted-foreground mb-1">
+                                              הנחיות טכניקה למתאמן
+                                            </label>
+                                            <input
+                                              type="text"
+                                              value={techNotes}
+                                              onChange={(e) => setTechniqueNotes(e.target.value)}
+                                              placeholder="לדוגמה: לשמור על שכמות צמודות, מתיחה מלאה..."
+                                              className="w-full rounded-md border p-1"
+                                            />
+                                          </div>
+
+                                          <button
+                                            type="submit"
+                                            className="w-full rounded-lg bg-primary py-1.5 font-bold text-white shadow-xs cursor-pointer"
+                                          >
+                                            שמור תרגיל ליום אימון
+                                          </button>
+                                        </form>
+                                      )}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          )}
                         </div>
-                      ))}
-                    </div>
-                  )}
+                      );
+                    })}
+                  </div>
                 </div>
 
                 {/* Client Nutrition Targets Editor */}
@@ -370,16 +712,29 @@ function CoachDashboardPage() {
 
                   {editingNutrition ? (
                     <div className="space-y-3 pt-1">
-                      <div>
-                        <label className="block text-[11px] font-bold text-muted-foreground mb-1">
-                          יעד קלוריות יומי (kcal)
-                        </label>
-                        <input
-                          type="number"
-                          value={calTarget}
-                          onChange={(e) => setCalTarget(Number(e.target.value))}
-                          className="w-full rounded-xl border border-border px-3 py-1.5 text-xs outline-none focus:border-primary"
-                        />
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="block text-[10px] font-bold text-muted-foreground mb-1">
+                            קלוריות (kcal)
+                          </label>
+                          <input
+                            type="number"
+                            value={calTarget}
+                            onChange={(e) => setCalTarget(Number(e.target.value))}
+                            className="w-full rounded-xl border border-border px-3 py-1.5 text-xs outline-none focus:border-primary"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-bold text-muted-foreground mb-1">
+                            חלבון (g)
+                          </label>
+                          <input
+                            type="number"
+                            value={protTarget}
+                            onChange={(e) => setProtTarget(Number(e.target.value))}
+                            className="w-full rounded-xl border border-border px-3 py-1.5 text-xs outline-none focus:border-primary"
+                          />
+                        </div>
                       </div>
                       <button
                         onClick={handleSaveNutritionTargets}
@@ -420,7 +775,7 @@ function CoachDashboardPage() {
                   <UserPlus className="h-5 w-5 text-primary" /> שיוך מתאמן חדש
                 </h3>
                 <button
-                  onClick={() => setShowAuthModal(false)}
+                  onClick={() => setShowAddModal(false)}
                   className="text-muted-foreground hover:text-ink font-bold text-sm px-2 cursor-pointer"
                 >
                   ✕

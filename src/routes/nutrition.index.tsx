@@ -3,14 +3,19 @@ import {
   Apple,
   ArrowLeft,
   BookOpen,
+  CheckSquare,
   ChevronLeft,
   ChevronRight,
   Plus,
   Settings2,
+  ShoppingBag,
   Shuffle,
+  Sparkles,
+  Square,
   Trash2,
   Utensils,
   X,
+  Zap,
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { AppShell } from "@/components/AppShell";
@@ -21,7 +26,6 @@ import {
   PrimaryButton,
   SecondaryButton,
   SectionHeader,
-  StatTile,
 } from "@/components/ui-app/primitives";
 import {
   addFoodToMeal,
@@ -79,9 +83,51 @@ function NutritionLog() {
   const [showTargets, setShowTargets] = useState(false);
   const [targetsDraft, setTargetsDraft] = useState(gym.nutritionTargets);
 
+  // New smart nutrition features state
+  const [showWhatToEat, setShowWhatToEat] = useState(false);
+  const [showShoppingList, setShowShoppingList] = useState(false);
+  const [busyDayMode, setBusyDayMode] = useState(false);
+  const [checkedItems, setCheckedItems] = useState<Record<string, boolean>>({});
+
   const day = nutritionDay(gym, date);
   const totals = dayTotals(day);
   const { nutritionTargets: targets } = gym;
+
+  // Compute remaining macros for "What should I eat now?"
+  const remainingCal = Math.max(0, (targets.calories || 2000) - totals.calories);
+  const remainingProt = Math.max(0, (targets.protein || 140) - totals.protein);
+  const remainingCarbs = Math.max(0, (targets.carbs || 200) - totals.carbs);
+  const remainingFat = Math.max(0, (targets.fat || 65) - totals.fat);
+
+  // Smart Food Suggestions based on remaining macros
+  const suggestedFoods = useMemo(() => {
+    return gym.foods
+      .filter((f) => f.calories <= remainingCal + 100 && f.calories > 0)
+      .map((f) => ({
+        food: f,
+        protDiff: Math.abs(f.protein - remainingProt),
+        score: Math.abs(f.calories - remainingCal),
+      }))
+      .sort((a, b) => a.score - b.score || a.protDiff - b.protDiff)
+      .slice(0, 8);
+  }, [gym.foods, remainingCal, remainingProt]);
+
+  // Generate Automatic Shopping List from planned foods
+  const shoppingListItems = useMemo(() => {
+    const map = new Map<string, { name: string; category: string; count: number }>();
+    day.meals.forEach((m) => {
+      m.foods.forEach((f) => {
+        const key = f.name;
+        const existing = map.get(key);
+        if (existing) {
+          existing.count += f.quantity;
+        } else {
+          map.set(key, { name: f.name, category: "מוצרי תזונה", count: f.quantity });
+        }
+      });
+    });
+    return Array.from(map.values());
+  }, [day.meals]);
 
   const filteredFoods = useMemo(() => {
     const q = pickerQuery.trim().toLocaleLowerCase();
@@ -143,7 +189,18 @@ function NutritionLog() {
       title="יומן תזונה"
       subtitle={formatDayLabel(date)}
       action={
-        <div className="flex gap-2">
+        <div className="flex gap-1.5">
+          <button
+            onClick={() => setBusyDayMode(!busyDayMode)}
+            className={`p-2 rounded-2xl border transition-colors cursor-pointer ${
+              busyDayMode
+                ? "bg-amber-100 text-amber-800 border-amber-300"
+                : "bg-secondary text-ink hover:bg-secondary/80"
+            }`}
+            title="מצב יום עמוס"
+          >
+            <Zap className="h-5 w-5" />
+          </button>
           <Link
             to="/nutrition/foods"
             aria-label="ספריית מאכלים"
@@ -163,13 +220,26 @@ function NutritionLog() {
         </div>
       }
     >
+      {/* Busy Day Mode Notice */}
+      {busyDayMode && (
+        <div className="surface-card p-3.5 rounded-2xl bg-amber-50 text-amber-800 border border-amber-200 text-start space-y-1 mb-3">
+          <div className="flex items-center gap-1.5 font-bold text-xs">
+            <Zap className="h-4 w-4 text-amber-600" />
+            <span>מצב יום עמוס פועל</span>
+          </div>
+          <p className="text-[11.5px] leading-relaxed text-amber-700">
+            התמקדי בארוחות פשוטות ומקורי חלבון מהירים (שייק, גבינה 5%, טונה). השמירה על הקלוריות היומיות היא העיקר!
+          </p>
+        </div>
+      )}
+
       {/* Date selector */}
       <div className="surface-card flex items-center justify-between gap-2 p-2.5">
         <button
           type="button"
           aria-label="יום קודם"
           onClick={() => setDate((d) => shiftDate(d, -1))}
-          className="press grid h-10 w-10 place-items-center rounded-2xl bg-secondary"
+          className="press grid h-10 w-10 place-items-center rounded-2xl bg-secondary cursor-pointer"
         >
           <ChevronRight className="h-5 w-5" />
         </button>
@@ -181,9 +251,28 @@ function NutritionLog() {
           type="button"
           aria-label="יום הבא"
           onClick={() => setDate((d) => shiftDate(d, 1))}
-          className="press grid h-10 w-10 place-items-center rounded-2xl bg-secondary"
+          className="press grid h-10 w-10 place-items-center rounded-2xl bg-secondary cursor-pointer"
         >
           <ChevronLeft className="h-5 w-5" />
+        </button>
+      </div>
+
+      {/* Quick Action Tools: "What should I eat now?" & "Shopping List" */}
+      <div className="grid grid-cols-2 gap-2 mt-3">
+        <button
+          onClick={() => setShowWhatToEat(true)}
+          className="surface-card p-3 rounded-2xl border border-primary/20 bg-primary/5 flex items-center gap-2 text-primary font-bold text-xs cursor-pointer hover:bg-primary/10 transition-colors"
+        >
+          <Sparkles className="h-4 w-4 shrink-0" />
+          <span>מה לאכול עכשיו?</span>
+        </button>
+
+        <button
+          onClick={() => setShowShoppingList(true)}
+          className="surface-card p-3 rounded-2xl border border-border/60 flex items-center gap-2 text-ink font-bold text-xs cursor-pointer hover:bg-secondary/60 transition-colors"
+        >
+          <ShoppingBag className="h-4 w-4 shrink-0 text-emerald-600" />
+          <span>רשימת קניות</span>
         </button>
       </div>
 
@@ -211,10 +300,11 @@ function NutritionLog() {
             />
           </div>
         ) : null}
-        <div className="mt-4 grid grid-cols-3 gap-2">
+        <div className="mt-4 grid grid-cols-4 gap-1.5">
           <MacroPill label="חלבון" value={totals.protein} target={targets.protein} unit="g" />
-          <MacroPill label="פחמימות" value={totals.carbs} target={targets.carbs} unit="g" />
+          <MacroPill label="פחמימה" value={totals.carbs} target={targets.carbs} unit="g" />
           <MacroPill label="שומן" value={totals.fat} target={targets.fat} unit="g" />
+          <MacroPill label="סיבים" value={totals.fiber} target={targets.fiber || 25} unit="g" />
         </div>
       </div>
 
@@ -227,7 +317,7 @@ function NutritionLog() {
             <button
               type="button"
               onClick={() => addMeal(date)}
-              className="press inline-flex h-9 items-center gap-1.5 rounded-full bg-primary px-3.5 text-[12.5px] font-semibold text-primary-foreground"
+              className="press inline-flex h-9 items-center gap-1.5 rounded-full bg-primary px-3.5 text-[12.5px] font-semibold text-primary-foreground cursor-pointer"
             >
               <Plus className="h-3.5 w-3.5" strokeWidth={2.4} />
               הוסיפי ארוחה
@@ -258,7 +348,7 @@ function NutritionLog() {
                   <button
                     type="button"
                     onClick={() => setPickerMealId(meal.id)}
-                    className="press grid h-9 w-9 place-items-center rounded-2xl bg-primary text-primary-foreground"
+                    className="press grid h-9 w-9 place-items-center rounded-2xl bg-primary text-primary-foreground cursor-pointer"
                     aria-label="הוסף מאכל"
                   >
                     <Plus className="h-4 w-4" strokeWidth={2.4} />
@@ -286,7 +376,8 @@ function NutritionLog() {
                             type="button"
                             aria-label="החלף מאכל"
                             onClick={() => setSubstituteFor({ mealId: meal.id, food })}
-                            className="press grid h-8 w-8 place-items-center rounded-xl text-primary hover:bg-white"
+                            className="press grid h-8 w-8 place-items-center rounded-xl text-primary hover:bg-white cursor-pointer"
+                            title="החלף לי"
                           >
                             <Shuffle className="h-3.5 w-3.5" />
                           </button>
@@ -294,7 +385,7 @@ function NutritionLog() {
                             type="button"
                             aria-label="הסר מאכל"
                             onClick={() => removeMealFood(date, meal.id, food.id)}
-                            className="press grid h-8 w-8 place-items-center rounded-xl text-muted-foreground hover:bg-white hover:text-destructive"
+                            className="press grid h-8 w-8 place-items-center rounded-xl text-muted-foreground hover:bg-white hover:text-destructive cursor-pointer"
                           >
                             <Trash2 className="h-3.5 w-3.5" />
                           </button>
@@ -331,15 +422,118 @@ function NutritionLog() {
               </section>
             );
           })}
-          {day.meals.length === 0 ? (
-            <Card className="text-start">
-              <p className="text-[13.5px] text-muted-foreground">
-                עדיין לא נוספו ארוחות ליום זה. לחצי על &quot;הוסיפי ארוחה&quot; כדי להתחיל.
-              </p>
-            </Card>
-          ) : null}
         </div>
       </section>
+
+      {/* "What Should I Eat Now?" Modal */}
+      {showWhatToEat && (
+        <div
+          className="fade-in fixed inset-0 z-50 flex items-end justify-center bg-foreground/40 backdrop-blur-sm p-4"
+          onClick={() => setShowWhatToEat(false)}
+        >
+          <div
+            className="w-full max-w-sm rounded-3xl border border-white/80 bg-white p-5 shadow-2xl space-y-3 text-start"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b pb-2">
+              <h3 className="font-bold text-base text-ink flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-primary" /> מה לאכול עכשיו?
+              </h3>
+              <button
+                onClick={() => setShowWhatToEat(false)}
+                className="text-muted-foreground font-bold text-sm cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="rounded-xl bg-primary/5 p-3 text-xs space-y-1">
+              <p className="font-bold text-ink">יתרה להיום לפי היעד:</p>
+              <div className="grid grid-cols-4 gap-1 text-center font-semibold pt-1">
+                <span className="bg-white p-1 rounded-md text-ink">{remainingCal} קל'</span>
+                <span className="bg-white p-1 rounded-md text-emerald-700">{remainingProt}g חלבון</span>
+                <span className="bg-white p-1 rounded-md text-amber-700">{remainingCarbs}g פחמימה</span>
+                <span className="bg-white p-1 rounded-md text-rose-700">{remainingFat}g שומן</span>
+              </div>
+            </div>
+
+            <p className="text-xs font-bold text-muted-foreground">הצעות מובילות מהספרייה:</p>
+            <div className="space-y-1.5 max-h-60 overflow-y-auto">
+              {suggestedFoods.map(({ food }) => (
+                <div
+                  key={food.id}
+                  className="p-2.5 rounded-xl border border-border/60 bg-secondary/40 flex items-center justify-between text-xs"
+                >
+                  <div>
+                    <p className="font-bold text-ink">{food.name}</p>
+                    <p className="text-[11px] text-muted-foreground">
+                      {food.servingSize} · {food.calories} קל' · {food.protein}g חלבון
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Automatic Shopping List Modal */}
+      {showShoppingList && (
+        <div
+          className="fade-in fixed inset-0 z-50 flex items-end justify-center bg-foreground/40 backdrop-blur-sm p-4"
+          onClick={() => setShowShoppingList(false)}
+        >
+          <div
+            className="w-full max-w-sm rounded-3xl border border-white/80 bg-white p-5 shadow-2xl space-y-3 text-start max-h-[80vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b pb-2">
+              <h3 className="font-bold text-base text-ink flex items-center gap-2">
+                <ShoppingBag className="h-5 w-5 text-emerald-600" /> רשימת קניות אוטומטית
+              </h3>
+              <button
+                onClick={() => setShowShoppingList(false)}
+                className="text-muted-foreground font-bold text-sm cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            {shoppingListItems.length === 0 ? (
+              <p className="text-xs text-muted-foreground py-4 text-center">
+                הרשימה ריקה. תכנני ארוחות ביומן ליצירת רשימה אוטומטית.
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {shoppingListItems.map((item) => {
+                  const isChecked = checkedItems[item.name] || false;
+
+                  return (
+                    <div
+                      key={item.name}
+                      onClick={() =>
+                        setCheckedItems((prev) => ({ ...prev, [item.name]: !isChecked }))
+                      }
+                      className={`p-3 rounded-2xl border transition-all cursor-pointer flex items-center justify-between text-xs ${
+                        isChecked ? "bg-muted/40 line-through opacity-60" : "bg-secondary/50 font-bold"
+                      }`}
+                    >
+                      <span>
+                        {item.name} ({item.count} יחידות/מנות)
+                      </span>
+                      {isChecked ? (
+                        <CheckSquare className="h-4 w-4 text-emerald-600 shrink-0" />
+                      ) : (
+                        <Square className="h-4 w-4 text-muted-foreground shrink-0" />
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Picker bottom-sheet */}
       {pickerMealId ? (
@@ -381,32 +575,19 @@ function NutritionLog() {
                   key={food.id}
                   type="button"
                   onClick={() => addFromLibrary(pickerMealId, food.id)}
-                  className="press flex w-full items-center justify-between gap-3 rounded-2xl border border-border/30 bg-secondary px-3.5 py-3 text-start"
+                  className="press flex w-full items-center justify-between gap-3 rounded-2xl border border-border/30 bg-secondary px-3.5 py-3 text-start cursor-pointer"
                 >
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-[14px] font-semibold text-ink">{food.name}</p>
                     <p className="text-[11.5px] text-muted-foreground">
-                      {food.servingSize} · {food.calories} קלוריות · חלבון {food.protein}g · פחמימות{" "}
-                      {food.carbs}g
+                      {food.servingSize} · {food.calories} קלוריות · חלבון {food.protein}g · סיבים{" "}
+                      {food.fiber || 0}g
                     </p>
                   </div>
                   <ArrowLeft className="h-4 w-4 shrink-0 text-muted-foreground/60" />
                 </button>
               ))}
-              {filteredFoods.length === 0 ? (
-                <p className="py-6 text-center text-[13px] text-muted-foreground">
-                  לא נמצאו מוצרים תואמים.
-                </p>
-              ) : null}
             </div>
-            <Link
-              to="/nutrition/foods/$foodId"
-              params={{ foodId: "new" }}
-              className="press mt-4 flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-primary text-[14.5px] font-semibold text-primary-foreground"
-            >
-              <Plus className="h-4 w-4" />
-              צרי מאכל חדש בספרייה
-            </Link>
           </div>
         </div>
       ) : null}
@@ -426,26 +607,15 @@ function NutritionLog() {
             <div className="mb-3 flex items-center justify-between">
               <div>
                 <p className="text-[11px] font-semibold tracking-[0.14em] text-primary uppercase">
-                  החלפה לפי קלוריות
+                  החלף לי (התאמה קלורית)
                 </p>
                 <h2 className="mt-1 font-display text-[20px] font-semibold text-ink">
                   {substituteFor.food.name}
                 </h2>
-                <p className="mt-0.5 text-[12.5px] text-muted-foreground">
-                  בחרי תחליף בעל ערך קלורי דומה
-                </p>
               </div>
               <IconButton aria-label="סגור" onClick={() => setSubstituteFor(null)}>
                 <X className="h-5 w-5" />
               </IconButton>
-            </div>
-            <div className="num-pill mb-3 flex h-12 items-center gap-2 px-3.5">
-              <input
-                value={substituteQuery}
-                onChange={(e) => setSubstituteQuery(e.target.value)}
-                placeholder="סינון מועמדים להחלפה..."
-                className="w-full bg-transparent text-[14px] outline-none"
-              />
             </div>
             <div className="space-y-2">
               {replacements.map((item) => (
@@ -455,13 +625,13 @@ function NutritionLog() {
                   onClick={() =>
                     applyCalorieReplacement(substituteFor.mealId, substituteFor.food, item)
                   }
-                  className="press flex w-full items-center justify-between gap-3 rounded-2xl border border-border/30 bg-secondary px-3.5 py-3 text-start"
+                  className="press flex w-full items-center justify-between gap-3 rounded-2xl border border-border/30 bg-secondary px-3.5 py-3 text-start cursor-pointer"
                 >
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-[14px] font-semibold text-ink">{item.food.name}</p>
                     <p className="text-[11.5px] text-muted-foreground">
-                      {item.food.calories} קלוריות · חלבון {item.food.protein}g · Δ
-                      {Math.abs(item.food.calories - substituteFor.food.calories)} קלוריות
+                      {item.food.calories} קלוריות · חלבון {item.food.protein}g · סיבים{" "}
+                      {item.food.fiber || 0}g
                     </p>
                   </div>
                   <span className="num-pill shrink-0 px-2.5 py-1 text-[11px] font-medium text-ink-soft">
@@ -528,10 +698,6 @@ function NutritionLog() {
           </div>
         </div>
       ) : null}
-
-      <div className="mt-6 hidden">
-        <StatTile label="" value="" />
-      </div>
     </AppShell>
   );
 }
@@ -548,16 +714,16 @@ function MacroPill({
   unit: string;
 }) {
   return (
-    <div className="rounded-2xl bg-white/60 px-3 py-2.5 text-start">
-      <p className="text-[10.5px] font-semibold tracking-[0.14em] text-muted-foreground uppercase">
+    <div className="rounded-2xl bg-white/60 px-2.5 py-2 text-start">
+      <p className="text-[10px] font-semibold tracking-[0.14em] text-muted-foreground uppercase">
         {label}
       </p>
-      <p className="mt-0.5 font-display text-[15px] font-semibold tabular-nums text-ink">
+      <p className="mt-0.5 font-display text-[14px] font-semibold tabular-nums text-ink">
         {Math.round(value)}
-        <span className="ms-0.5 text-[10.5px] font-normal text-muted-foreground">{unit}</span>
+        <span className="ms-0.5 text-[10px] font-normal text-muted-foreground">{unit}</span>
       </p>
       {target ? (
-        <p className="text-[10.5px] text-muted-foreground">
+        <p className="text-[9.5px] text-muted-foreground">
           יעד {target}
           {unit}
         </p>

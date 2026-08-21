@@ -20,15 +20,17 @@ export type SyncStatus = "idle" | "syncing" | "synced" | "error" | "offline";
  */
 export async function syncLocalToSupabase(
   userId: string,
-  localData: GymData
+  localData: GymData,
+  userEmail?: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    // 1. Profile (including role)
-    if (localData.userProfile) {
-      const p = localData.userProfile;
+    // 1. Profile (including email & role)
+    if (localData.userProfile || userEmail) {
+      const p = localData.userProfile ?? { weight: 65 };
       await supabase.from("profiles").upsert(
         {
           id: userId,
+          email: userEmail || undefined,
           weight_kg: p.weight,
           height_cm: p.height,
           role: p.role || "client",
