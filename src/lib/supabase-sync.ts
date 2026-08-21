@@ -1,7 +1,6 @@
 import { ISRAELI_FOOD_DATABASE } from "./israeli-food-db";
 import { supabase } from "./supabase";
 import {
-  type AnimalCharacter,
   type ClientLink,
   type CoachMessage,
   type Exercise,
@@ -34,7 +33,6 @@ export async function syncLocalToSupabase(
           height_cm: p.height,
           role: p.role || "client",
           coach_id: p.coachId || null,
-          animal_character: p.animalCharacter || "dog",
           today_routine_enabled: p.todayRoutineEnabled ?? true,
           updated_at: new Date().toISOString(),
         },
@@ -208,7 +206,6 @@ export async function pullSupabaseData(
         height: profile.height_cm ? Number(profile.height_cm) : nextData.userProfile?.height,
         role: (profile.role as UserRole) || "client",
         coachId: profile.coach_id || undefined,
-        animalCharacter: (profile.animal_character as AnimalCharacter) || "dog",
         todayRoutineEnabled: profile.today_routine_enabled ?? true,
       };
     }

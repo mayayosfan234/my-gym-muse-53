@@ -1,7 +1,5 @@
 export type UserRole = "owner" | "coach" | "client";
 
-export type AnimalCharacter = "dog" | "cat" | "panda" | "fox" | "koala" | "bunny" | "bear" | "lion" | "penguin";
-
 export type ClientLink = {
   id: string;
   clientId: string;
@@ -256,7 +254,6 @@ export type UserProfile = {
   workoutsPerWeek?: number;
   role?: UserRole;
   coachId?: string;
-  animalCharacter?: AnimalCharacter;
   foodPreferences?: FoodPreferences;
   todayRoutineEnabled?: boolean;
 };
@@ -358,16 +355,4 @@ export const CARDIO_TYPES = [
   "שחייה",
   "טניס",
   "אימון אינטרוולים (HIIT)",
-];
-
-export const ANIMAL_CHARACTERS: { id: AnimalCharacter; name: string; emoji: string }[] = [
-  { id: "dog", name: "כלבלב", emoji: "🐶" },
-  { id: "cat", name: "חתלתול", emoji: "🐱" },
-  { id: "panda", name: "פנדה", emoji: "🐼" },
-  { id: "fox", name: "שועל", emoji: "🦊" },
-  { id: "koala", name: "קואלה", emoji: "🐨" },
-  { id: "bunny", name: "ארנב", emoji: "🐰" },
-  { id: "bear", name: "דובב", emoji: "🐻" },
-  { id: "lion", name: "אריה", emoji: "🦁" },
-  { id: "penguin", name: "פינגווין", emoji: "🐧" },
 ];

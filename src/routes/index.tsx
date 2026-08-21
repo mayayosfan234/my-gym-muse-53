@@ -41,7 +41,7 @@ import {
   todayKey,
   useGym,
 } from "@/lib/gym-store";
-import { ANIMAL_CHARACTERS, CARDIO_TYPES, type AnimalCharacter } from "@/lib/gym-types";
+import { CARDIO_TYPES } from "@/lib/gym-types";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -84,10 +84,6 @@ function Dashboard() {
     nutrition: false,
   });
 
-  // Character Switcher
-  const [showCharModal, setShowCharModal] = useState(false);
-  const selectedCharId = userProfile?.animalCharacter || "dog";
-  const charMeta = ANIMAL_CHARACTERS.find((c) => c.id === selectedCharId) || ANIMAL_CHARACTERS[0]!;
 
   // Weekly Activity calculation
   const startOfWeek = new Date(now);
@@ -151,13 +147,6 @@ function Dashboard() {
     setShowBodyModal(false);
   };
 
-  const handleSelectAnimalChar = (charId: AnimalCharacter) => {
-    saveUserProfile({
-      ...(userProfile ?? { weight: 65, height: 165, age: 26, gender: "female" }),
-      animalCharacter: charId,
-    });
-    setShowCharModal(false);
-  };
 
   const handleLogCardio = () => {
     const dur = parseInt(cardioDuration, 10) || 0;
@@ -201,33 +190,17 @@ function Dashboard() {
         </div>
       )}
 
-      {/* Personal Character & Consistency Banner */}
+      {/* Consistency Banner */}
       <div className="surface-card p-4 rounded-3xl bg-white border border-border/60 flex items-center justify-between text-start">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => setShowCharModal(true)}
-            className="flex h-12 w-12 items-center justify-center rounded-2xl bg-rose-50 text-2xl border border-rose-100 shadow-xs cursor-pointer hover:scale-105 transition-transform"
-            title="לחץ להחלפת דמות מלווה"
-          >
-            {charMeta.emoji}
-          </button>
-          <div>
-            <div className="flex items-center gap-1.5 font-bold text-sm text-ink">
-              <span>{charMeta.name} המלווה שלך</span>
-              <span className="text-xs text-primary">★</span>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              מדד עקביות שבועי: <strong className="text-emerald-700">{consistencyScore}%</strong>
-            </p>
+        <div>
+          <div className="flex items-center gap-1.5 font-bold text-sm text-ink">
+            <span>רצף אימונים שבועי</span>
+            <span className="text-xs text-primary">★</span>
           </div>
+          <p className="text-xs text-muted-foreground">
+            מדד עקביות שבועי: <strong className="text-emerald-700">{consistencyScore}%</strong>
+          </p>
         </div>
-
-        <button
-          onClick={() => setShowCharModal(true)}
-          className="text-xs font-bold text-primary hover:underline cursor-pointer"
-        >
-          החלף דמות
-        </button>
       </div>
 
       {/* 1. Next / Today's Workout Focus Card */}
@@ -442,47 +415,6 @@ function Dashboard() {
         </div>
       </section>
 
-      {/* Modal: Select Animal Character */}
-      {showCharModal && (
-        <div
-          className="fade-in fixed inset-0 z-50 flex items-end justify-center bg-black/40 backdrop-blur-sm p-4"
-          onClick={() => setShowCharModal(false)}
-        >
-          <div
-            className="w-full max-w-sm rounded-3xl border border-white/80 bg-white p-5 shadow-2xl space-y-3 text-start"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between border-b pb-2">
-              <h3 className="font-bold text-base text-ink flex items-center gap-2">
-                <span>בחרי דמות אישית מלווה</span>
-              </h3>
-              <button
-                onClick={() => setShowCharModal(false)}
-                className="text-muted-foreground font-bold text-sm cursor-pointer"
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className="grid grid-cols-3 gap-2 pt-1">
-              {ANIMAL_CHARACTERS.map((char) => (
-                <button
-                  key={char.id}
-                  onClick={() => handleSelectAnimalChar(char.id)}
-                  className={`p-3 rounded-2xl border text-center transition-all cursor-pointer ${
-                    selectedCharId === char.id
-                      ? "border-primary bg-primary/10 shadow-xs scale-105"
-                      : "border-border/60 hover:border-border"
-                  }`}
-                >
-                  <span className="text-3xl block">{char.emoji}</span>
-                  <span className="text-xs font-bold text-ink mt-1 block">{char.name}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Modal: Body Measurements */}
       {showMeasurementModal && (
