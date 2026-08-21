@@ -218,7 +218,6 @@ function Dashboard() {
         <div className="space-y-2">
           {[
             { key: "workout", label: `אימון יומיומי: ${nextWorkout?.name || "מנוחה"}` },
-            { key: "steps", label: "צעדים יומיים (יעד 8,000 צעדים)" },
             { key: "nutrition", label: `תיעוד תזונה ביומן: ${Math.round(totalsToday.calories)} קל׳` },
           ].map(({ key, label }) => {
             const isDone = routineChecklist[key] || false;

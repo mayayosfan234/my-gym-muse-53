@@ -42,7 +42,9 @@ export const Route = createFileRoute("/programs/$programId")({
 function ProgramDetail() {
   const { programId } = Route.useParams();
   const navigate = useNavigate();
-  const { programs, workouts } = useGym();
+  const { programs, workouts, userProfile } = useGym();
+  const role = userProfile?.role || "client";
+  const isCoach = role === "coach" || role === "owner";
   const program = programs.find((item) => item.id === programId);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState<Program | null>(null);
@@ -100,13 +102,15 @@ function ProgramDetail() {
       title={program.name}
       subtitle={`${days.length} ימי אימון · ${totalExercises} תרגילים`}
       action={
-        <IconButton
-          onClick={() => setEditing((value) => !value)}
-          aria-label="ערוך תכנית"
-          variant={editing ? "primary" : "default"}
-        >
-          {editing ? <X className="h-5 w-5" /> : <Pencil className="h-4 w-4" strokeWidth={2} />}
-        </IconButton>
+        isCoach ? (
+          <IconButton
+            onClick={() => setEditing((value) => !value)}
+            aria-label="ערוך תכנית"
+            variant={editing ? "primary" : "default"}
+          >
+            {editing ? <X className="h-5 w-5" /> : <Pencil className="h-4 w-4" strokeWidth={2} />}
+          </IconButton>
+        ) : undefined
       }
     >
       {editing ? (
@@ -153,21 +157,23 @@ function ProgramDetail() {
       <section className="mt-6">
         <SectionHeader
           title="ימי אימון"
-          subtitle="גרורי כדי לסדר מחדש. לחצי על אימון כדי לפתוח או לערוך."
+          subtitle={isCoach ? "גרורי כדי לסדר מחדש. לחצי על אימון כדי לפתוח או לערוך." : "לחצי על יום אימון להצגת התרגילים או התחלת אימון"}
           action={
-            <button
-              type="button"
-              onClick={() =>
-                navigate({
-                  to: "/programs/$programId/$dayId",
-                  params: { programId: program.id, dayId: "new" },
-                })
-              }
-              className="press inline-flex h-9 items-center gap-1.5 rounded-full bg-primary px-3.5 text-[12.5px] font-semibold text-primary-foreground"
-            >
-              <Plus className="h-3.5 w-3.5" strokeWidth={2.4} />
-              הוסיפי יום
-            </button>
+            isCoach ? (
+              <button
+                type="button"
+                onClick={() =>
+                  navigate({
+                    to: "/programs/$programId/$dayId",
+                    params: { programId: program.id, dayId: "new" },
+                  })
+                }
+                className="press inline-flex h-9 items-center gap-1.5 rounded-full bg-primary px-3.5 text-[12.5px] font-semibold text-primary-foreground"
+              >
+                <Plus className="h-3.5 w-3.5" strokeWidth={2.4} />
+                הוסיפי יום
+              </button>
+            ) : undefined
           }
         />
 

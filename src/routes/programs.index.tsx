@@ -19,8 +19,10 @@ export const Route = createFileRoute("/programs/")({
 });
 
 function ProgramsPage() {
-  const { programs, workouts } = useGym();
+  const { programs, workouts, userProfile } = useGym();
   const navigate = useNavigate();
+  const role = userProfile?.role || "client";
+  const isCoach = role === "coach" || role === "owner";
   const [adding, setAdding] = useState(false);
   const [name, setName] = useState("");
   const [pendingDelete, setPendingDelete] = useState<{ id: string; name: string } | null>(null);
@@ -40,13 +42,15 @@ function ProgramsPage() {
       title="תוכניות אימון"
       subtitle="בני תכניות שמתאימות בדיוק למטרות שלך"
       action={
-        <IconButton
-          variant="primary"
-          aria-label="תכנית חדשה"
-          onClick={() => setAdding((value) => !value)}
-        >
-          <Plus className="h-5 w-5" strokeWidth={2.4} />
-        </IconButton>
+        isCoach ? (
+          <IconButton
+            variant="primary"
+            aria-label="תכנית חדשה"
+            onClick={() => setAdding((value) => !value)}
+          >
+            <Plus className="h-5 w-5" strokeWidth={2.4} />
+          </IconButton>
+        ) : undefined
       }
     >
       {/* Hero card */}
@@ -144,22 +148,26 @@ function ProgramsPage() {
                       </Link>
                     </div>
                     <div className="flex shrink-0 items-center gap-1">
-                      <button
-                        type="button"
-                        onClick={() => duplicateProgram(program.id)}
-                        aria-label={`שכפל ${program.name}`}
-                        className="press grid h-9 w-9 place-items-center rounded-xl text-muted-foreground hover:bg-secondary hover:text-primary"
-                      >
-                        <Copy className="h-4 w-4" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setPendingDelete({ id: program.id, name: program.name })}
-                        aria-label={`מחק את ${program.name}`}
-                        className="press grid h-9 w-9 place-items-center rounded-xl text-muted-foreground hover:bg-secondary hover:text-destructive"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
+                      {isCoach && (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => duplicateProgram(program.id)}
+                            aria-label={`שכפל ${program.name}`}
+                            className="press grid h-9 w-9 place-items-center rounded-xl text-muted-foreground hover:bg-secondary hover:text-primary"
+                          >
+                            <Copy className="h-4 w-4" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setPendingDelete({ id: program.id, name: program.name })}
+                            aria-label={`מחק את ${program.name}`}
+                            className="press grid h-9 w-9 place-items-center rounded-xl text-muted-foreground hover:bg-secondary hover:text-destructive"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </>
+                      )}
                       <Link
                         to="/programs/$programId"
                         params={{ programId: program.id }}
