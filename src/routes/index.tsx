@@ -14,7 +14,7 @@ import {
   TrendingUp,
   Utensils,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import {
   Card,
@@ -88,22 +88,6 @@ function Dashboard() {
   const targetCals = 2000;
   const remainingCals = Math.max(0, targetCals - totalsToday.calories);
 
-  // Active workout detection
-  const [activeSession, setActiveSession] = useState<{ id: string; name: string } | null>(null);
-
-  useEffect(() => {
-    try {
-      for (const w of workouts) {
-        if (localStorage.getItem(`gymtrack.active_session.${w.id}`)) {
-          setActiveSession({ id: w.id, name: w.name });
-          break;
-        }
-      }
-    } catch {
-      /* ignore */
-    }
-  }, [workouts]);
-
   // RMR & Body Profile
   const rmrData = calculateRmr(userProfile);
   const [weightInput, setWeightInput] = useState(String(userProfile?.weight ?? 65));
@@ -156,37 +140,6 @@ function Dashboard() {
 
   return (
     <AppShell title={formatHebrewDate(now)} subtitle="אימונים ותזונה">
-      {/* Active Workout Resume Banner */}
-      {activeSession ? (
-        <div className="rose-card mb-4 flex items-center justify-between p-4 border-2 border-primary">
-          <div className="flex items-center gap-3">
-            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-primary text-primary-foreground">
-              <Play className="h-5 w-5 fill-current" />
-            </div>
-            <div className="min-w-0 flex-1 text-start">
-              <p className="text-[11px] font-bold tracking-wider text-primary uppercase">
-                🏋️ אימון פעיל בביצוע
-              </p>
-              <p className="truncate font-display text-[16px] font-bold text-ink">
-                {activeSession.name}
-              </p>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={() =>
-              navigate({
-                to: "/session/$workoutId",
-                params: { workoutId: activeSession.id },
-              })
-            }
-            className="press shrink-0 rounded-2xl bg-primary px-4 py-2 text-[13px] font-bold text-primary-foreground shadow-md"
-          >
-            המשיכי אימון
-          </button>
-        </div>
-      ) : null}
-
       {/* 1. Next / Today's Workout Focus Card */}
       {nextWorkout ? (
         <div className="ink-card p-5 text-start">
@@ -426,14 +379,11 @@ function Dashboard() {
       {/* Modal: Update Body Weight & Workouts Per Week */}
       {showBodyModal ? (
         <div
-          className="fade-in fixed inset-0 z-50 flex items-end justify-center bg-black/40 backdrop-blur-sm p-4 pb-24"
+          className="fade-in fixed inset-0 z-50 flex items-end justify-center bg-black/40 backdrop-blur-sm"
           onClick={() => setShowBodyModal(false)}
         >
           <div
-            ref={(el) => {
-              if (el) el.scrollTop = 0;
-            }}
-            className="scale-in w-full max-w-lg rounded-3xl border border-border bg-card p-5 text-start shadow-2xl"
+            className="scale-in w-full max-w-lg rounded-t-3xl border-t border-border bg-card p-5 text-start shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
             <p className="text-[11px] font-bold tracking-wider text-primary uppercase">
@@ -475,14 +425,11 @@ function Dashboard() {
       {/* Modal: Quick Cardio Log */}
       {showCardioModal ? (
         <div
-          className="fade-in fixed inset-0 z-50 flex items-end justify-center bg-black/40 backdrop-blur-sm p-4 pb-24"
+          className="fade-in fixed inset-0 z-50 flex items-end justify-center bg-black/40 backdrop-blur-sm"
           onClick={() => setShowCardioModal(false)}
         >
           <div
-            ref={(el) => {
-              if (el) el.scrollTop = 0;
-            }}
-            className="scale-in max-h-[80dvh] w-full max-w-lg overflow-y-auto rounded-3xl border border-border bg-card p-5 text-start shadow-2xl"
+            className="scale-in max-h-[85dvh] w-full max-w-lg overflow-y-auto rounded-t-3xl border-t border-border bg-card p-5 text-start shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
             <p className="text-[11px] font-bold tracking-wider text-primary uppercase">

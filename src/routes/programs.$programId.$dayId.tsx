@@ -49,7 +49,6 @@ import {
   emptyWarmup,
   saveExercise,
   saveWorkoutInProgram,
-  searchExercises,
   uid,
   useGym,
 } from "@/lib/gym-store";
@@ -197,25 +196,19 @@ function DayBuilder() {
     });
   };
 
-  const moveExercise = (index: number, direction: -1 | 1) => {
-    setDraft((current) => {
-      const targetIndex = index + direction;
-      if (targetIndex < 0 || targetIndex >= current.items.length) return current;
-      return { ...current, items: arrayMove(current.items, index, targetIndex) };
-    });
-  };
-
   const save = () => {
     if (!draft.name.trim()) return;
     saveWorkoutInProgram(program.id, { ...draft, name: draft.name.trim() });
     navigate({ to: "/programs/$programId", params: { programId: program.id } });
   };
 
-  const searched = searchExercises(exercises, pickerQuery);
-  const pickerExercises = searched.filter(
+  const pickerExercises = exercises.filter(
     (exercise) =>
-      (pickerGroup === "הכל" || exercise.muscleGroup === pickerGroup || (exercise.muscleGroups ?? []).includes(pickerGroup)) &&
-      (pickerEquipment === "הכל" || exercise.equipment === pickerEquipment),
+      (pickerGroup === "הכל" || exercise.muscleGroup === pickerGroup) &&
+      (pickerEquipment === "הכל" || exercise.equipment === pickerEquipment) &&
+      (exercise.name.toLowerCase().includes(pickerQuery.toLowerCase()) ||
+        exercise.equipment.toLowerCase().includes(pickerQuery.toLowerCase()) ||
+        exercise.muscleGroup.toLowerCase().includes(pickerQuery.toLowerCase())),
   );
 
   const addExercise = (exerciseId: string) => {
@@ -300,8 +293,6 @@ function DayBuilder() {
                     item.supersetId && item.supersetId === draft.items[index - 1]?.supersetId,
                   )}
                   onToggleSuperset={() => toggleSupersetWithPrev(index)}
-                  onMoveUp={index > 0 ? () => moveExercise(index, -1) : undefined}
-                  onMoveDown={index < draft.items.length - 1 ? () => moveExercise(index, 1) : undefined}
                   onPatch={patchItem}
                   onRemove={() =>
                     setDraft({
@@ -540,8 +531,6 @@ function SortableItem({
   canSuperset,
   supersetActive,
   onToggleSuperset,
-  onMoveUp,
-  onMoveDown,
   onPatch,
   onRemove,
 }: {
@@ -551,8 +540,6 @@ function SortableItem({
   canSuperset: boolean;
   supersetActive: boolean;
   onToggleSuperset: () => void;
-  onMoveUp?: () => void;
-  onMoveDown?: () => void;
   onPatch: (id: string, patch: Partial<WorkoutItem>) => void;
   onRemove: () => void;
 }) {
@@ -596,32 +583,12 @@ function SortableItem({
       className={`surface-card p-4 text-start ${isDragging ? "relative z-10 opacity-75 shadow-lg" : ""} ${supersetLabel ? "border-s-4 border-s-primary/70 rounded-s-none" : ""}`}
     >
       <div className="flex items-center gap-2">
-        <div className="flex flex-col items-center justify-center gap-0.5 shrink-0">
-          <button
-            type="button"
-            onClick={onMoveUp}
-            disabled={!onMoveUp}
-            aria-label={`הזז למעלה את ${name}`}
-            className="press grid h-6 w-6 place-items-center rounded-md bg-secondary text-[10px] font-bold text-ink disabled:opacity-30"
-          >
-            ▲
-          </button>
-          <button
-            type="button"
-            onClick={onMoveDown}
-            disabled={!onMoveDown}
-            aria-label={`הזז למטה את ${name}`}
-            className="press grid h-6 w-6 place-items-center rounded-md bg-secondary text-[10px] font-bold text-ink disabled:opacity-30"
-          >
-            ▼
-          </button>
-        </div>
         <button
           type="button"
           {...attributes}
           {...listeners}
           aria-label={`שנה סדר ${name}`}
-          className="press grid h-10 w-7 shrink-0 touch-none place-items-center rounded-xl text-muted-foreground/60 hover:bg-secondary"
+          className="press grid h-10 w-8 shrink-0 touch-none place-items-center rounded-xl text-muted-foreground/60 hover:bg-secondary"
         >
           <GripVertical className="h-4 w-4" />
         </button>

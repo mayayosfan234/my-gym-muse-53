@@ -1,5 +1,4 @@
 import { useSyncExternalStore } from "react";
-import { EXPANDED_EXERCISES } from "./expanded-exercise-db";
 import { ISRAELI_FOOD_DATABASE } from "./israeli-food-db";
 import {
   DEFAULT_MEALS,
@@ -33,7 +32,133 @@ export const todayKey = (d: Date = new Date()) => {
 };
 
 const seed = (): GymData => {
-  const ex: Exercise[] = [...EXPANDED_EXERCISES];
+  const ex: Exercise[] = [
+    {
+      id: "ex-bench",
+      name: "לחיצת חזה כנגד מוט",
+      muscleGroup: "חזה",
+      muscleGroups: ["חזה", "טריצפס (יד אחורית)", "כתף קדמית"],
+      secondaryMuscles: ["טריצפס (יד אחורית)", "כתפיים"],
+      category: "מורכב",
+      equipment: "מוט",
+      description:
+        "שכב על ספה שטוחה, אחוז במוט ברוחב מעט רחב מהכתפיים, הורד אל מרכז החזה ולחץ כלפי מעלה.",
+      instructions: "שמור על שכמות צמודות, כפות רגליים יציבות על הרצפה וקשת קלה בגב התחתון.",
+      videoUrl: "",
+      images: [],
+      notes: "לשמור על שכמות צמודות ומכווצות לאורך כל התנועה.",
+      tips: "ללחוץ דרך העקבים ולשמור על מסלול מוט יציב.",
+    },
+    {
+      id: "ex-squat",
+      name: "סקואט כנגד מוט (Back Squat)",
+      muscleGroup: "ארבע ראשי",
+      muscleGroups: ["ארבע ראשי", "ישבן", "גב תחתון"],
+      secondaryMuscles: ["ישבן", "בטן"],
+      category: "מורכב",
+      equipment: "מוט",
+      description:
+        "הנח את המוט על הגב העליון, רד עם האגן אחורה ולמטה עד זווית 90 מעלות לפחות ולחץ חזרה מעלה.",
+      instructions: "שמור על חזה מורם וברכיים בקו אחד עם כפות הרגליים.",
+      videoUrl: "",
+      images: [],
+      notes: 'חגורת גב מעל 100 ק"ג.',
+      tips: "דחיפה דרך מרכז כף הרגל.",
+    },
+    {
+      id: "ex-row",
+      name: "חתירה בכבלים בישיבה",
+      muscleGroup: "גב",
+      muscleGroups: ["גב", "גב רחב", "ביצפס (יד קדמית)"],
+      secondaryMuscles: ["ביצפס (יד קדמית)"],
+      category: "מורכב",
+      equipment: "פולי / כבלים",
+      description: "שב מול הכבל, משוך את הידית לכיוון הטבור והדק את השכמות בסוף התנועה.",
+      instructions: "גב זקוף, מתיחה מלאה קדימה וכיווץ חזק בגב לאחור.",
+      videoUrl: "",
+      images: [],
+      notes: "להקפיד לא להשתמש בתנופה מוגזמת של הגב.",
+      tips: "למשוך דרך המרפקים ולא דרך כפות הידיים.",
+    },
+    {
+      id: "ex-curl",
+      name: "כפילת מרפקים עם משקוליות",
+      muscleGroup: "ביצפס (יד קדמית)",
+      muscleGroups: ["ביצפס (יד קדמית)", "אמות"],
+      secondaryMuscles: ["אמות"],
+      category: "בידוד",
+      equipment: "משקוליות יד",
+      description:
+        "עמוד יציב, כפוף את המרפקים והרם את המשקוליות תוך סיבוב קל של כף היד, והורד באיטיות.",
+      instructions: "מרפקים צמודים לצדי הגוף, ללא הנדנוד של הגב.",
+      videoUrl: "",
+      images: [],
+      notes: "עבודה נקייה ומבוקרת בחלק השלילי (ירידה).",
+      tips: "",
+    },
+    {
+      id: "ex-hipthrust",
+      name: "דחיקת אגן כנגד מוט (Hip Thrust)",
+      muscleGroup: "ישבן",
+      muscleGroups: ["ישבן", "המסטרינג"],
+      secondaryMuscles: ["המסטרינג", "ארבע ראשי"],
+      category: "מורכב",
+      equipment: "מוט",
+      description:
+        "הנח גב עליון על ספסל, מוט על האגן, הרם את האגן מעלה וכווץ את הישבן בשיא התנועה.",
+      instructions: "מבט קדימה, כיווץ מלא של הישבן בשיא הגובה לשנייה אחת.",
+      videoUrl: "",
+      images: [],
+      notes: "לעצור לשנייה אחת בחלק העליון.",
+      tips: "",
+    },
+    {
+      id: "ex-plank",
+      name: "פלאנק (Plank)",
+      muscleGroup: "בטן",
+      muscleGroups: ["בטן", "אלכסונים", "גב תחתון"],
+      secondaryMuscles: ["כתפיים"],
+      category: "בידוד",
+      equipment: "משקל גוף",
+      description: "החזק גוף ישר על האמות וקצות האצבעות תוך כיווץ חזק של הבטן והישבן.",
+      instructions: "גוף בקו ישר אחד מהראש ועד העקבים.",
+      videoUrl: "",
+      images: [],
+      notes: "",
+      tips: "",
+    },
+    {
+      id: "ex-ohp",
+      name: "לחיצת כתפיים בעמידה כנגד מוט",
+      muscleGroup: "כתפיים",
+      muscleGroups: ["כתפיים", "כתף קדמית", "טריצפס (יד אחורית)"],
+      secondaryMuscles: ["טריצפס (יד אחורית)", "בטן"],
+      category: "מורכב",
+      equipment: "מוט",
+      description: "עמוד יציב, לחץ את המוט מגובה החזה העליון מעלה מעל הראש עד נעילה.",
+      instructions: "בטן מהודקת וישבן מכווץ לשמירה על הגב.",
+      videoUrl: "",
+      images: [],
+      notes: "",
+      tips: "",
+    },
+    {
+      id: "ex-rdl",
+      name: "דדליפט רומני (RDL)",
+      muscleGroup: "המסטרינג",
+      muscleGroups: ["המסטרינג", "ישבן", "גב תחתון"],
+      secondaryMuscles: ["ישבן", "גב תחתון"],
+      category: "מורכב",
+      equipment: "מוט",
+      description:
+        "אחוז במוט, קח את האגן אחורנית תוך כפיפה קלה בברכיים והורד את המוט לאורך הרגליים.",
+      instructions: "גב ישר לחלוטין, מתיחה חזקה בחלק האחורי של הירכיים.",
+      videoUrl: "",
+      images: [],
+      notes: "מתיחה מורגשת בהמסטרינג.",
+      tips: "",
+    },
+  ];
 
   type SeedItem = {
     exerciseId: string;
@@ -106,7 +231,6 @@ const seed = (): GymData => {
 
   return {
     exercises: ex,
-    customExercises: [],
     workouts,
     programs,
     history: [],
@@ -117,7 +241,9 @@ const seed = (): GymData => {
     recipes: [],
     recentFoods: [],
     favoriteFoods: [],
-    bodyWeightLogs: [{ id: "bw-initial", date: "2025-01-01", weight: 65 }],
+    // Deterministic id: seed() runs at module scope, and randomness there is
+    // rejected by the production edge runtime.
+    bodyWeightLogs: [{ id: "bw-seed", date: todayKey(), weight: 65 }],
     cardioLogs: [],
     userProfile: { weight: 65, height: 165, age: 26, gender: "female", workoutsPerWeek: 4 },
   };
@@ -126,29 +252,6 @@ const seed = (): GymData => {
 let data: GymData = seed();
 let hydrated = false;
 const listeners = new Set<() => void>();
-
-/** Merge exercise database so saved user data retains all standard exercises and user custom exercises */
-function mergeSeedExercises(existing: Exercise[], custom: Exercise[] = []): Exercise[] {
-  const byId = new Map<string, Exercise>();
-
-  // 1. Add current refined built-in seed exercises
-  for (const seedEx of EXPANDED_EXERCISES) {
-    byId.set(seedEx.id, seedEx);
-  }
-
-  // 2. Add existing custom exercises (preserve user changes)
-  for (const ex of existing) {
-    if (ex.isCustom || !byId.has(ex.id)) {
-      byId.set(ex.id, ex);
-    }
-  }
-
-  for (const cEx of custom) {
-    byId.set(cEx.id, { ...cEx, isCustom: true });
-  }
-
-  return Array.from(byId.values());
-}
 
 /** Merge food database so saved data retains all Israeli supermarket items */
 function mergeSeedFoods(existing: FoodItem[]): FoodItem[] {
@@ -167,12 +270,10 @@ function migrate(d: Partial<GymData>): GymData {
   const workouts = d.workouts ?? [];
   let programs = d.programs ?? [];
   if (!programs.length && workouts.length) {
-    programs = [{ id: "p-migrated", name: "תכנית אימונים", notes: "", dayIds: workouts.map((w) => w.id) }];
+    programs = [{ id: uid(), name: "תכנית אימונים", notes: "", dayIds: workouts.map((w) => w.id) }];
   }
-  const customExercises = d.customExercises ?? (d.exercises ?? []).filter((e) => e.isCustom);
   return {
-    exercises: mergeSeedExercises(d.exercises ?? [], customExercises),
-    customExercises,
+    exercises: d.exercises?.length ? d.exercises : seed().exercises,
     workouts: workouts.length ? workouts : seed().workouts,
     programs: programs.length ? programs : seed().programs,
     history: d.history ?? [],
@@ -185,7 +286,7 @@ function migrate(d: Partial<GymData>): GymData {
     favoriteFoods: d.favoriteFoods ?? [],
     bodyWeightLogs: d.bodyWeightLogs?.length
       ? d.bodyWeightLogs
-      : [{ id: "bw-initial", date: todayKey(), weight: d.userProfile?.weight ?? 65 }],
+      : [{ id: uid(), date: todayKey(), weight: d.userProfile?.weight ?? 65 }],
     cardioLogs: d.cardioLogs ?? [],
     userProfile: d.userProfile ?? seed().userProfile,
   };
@@ -211,51 +312,6 @@ function persist() {
   }
 }
 
-async function syncToCloudBackground(actionType: string, payload: unknown) {
-  if (!supabase || !isSupabaseConfigured) return;
-  try {
-    const { data: userData } = await supabase.auth.getUser();
-    if (!userData?.user) return;
-    const userId = userData.user.id;
-
-    if (actionType === "program" && typeof payload === "object" && payload !== null) {
-      const p = payload as Program;
-      await supabase.from("programs").upsert({
-        id: p.id,
-        user_id: userId,
-        name: p.name,
-        notes: p.notes ?? "",
-        day_ids: p.dayIds,
-        updated_at: new Date().toISOString(),
-      });
-    } else if (actionType === "workout" && typeof payload === "object" && payload !== null) {
-      const w = payload as Workout;
-      await supabase.from("program_days").upsert({
-        id: w.id,
-        user_id: userId,
-        name: w.name,
-        notes: w.notes ?? "",
-        items: w.items,
-        updated_at: new Date().toISOString(),
-      });
-    } else if (actionType === "session" && typeof payload === "object" && payload !== null) {
-      const s = payload as HistorySession;
-      await supabase.from("workout_sessions").upsert({
-        id: s.id,
-        user_id: userId,
-        workout_id: s.workoutId,
-        workout_name: s.workoutName,
-        program_name: s.programName,
-        date: s.date,
-        duration_sec: s.durationSec,
-        entries: s.entries,
-      });
-    }
-  } catch {
-    /* ignore network errors to preserve local offline cache */
-  }
-}
-
 function set(next: GymData) {
   data = next;
   persist();
@@ -263,22 +319,27 @@ function set(next: GymData) {
 }
 
 function subscribe(cb: () => void) {
-  load();
   listeners.add(cb);
+  // Load persisted data only AFTER the first client render has committed, so
+  // the initial client tree matches the server-rendered HTML. Loading inside
+  // getSnapshot() made the very first client render use localStorage data
+  // while the server used the seed — that mismatch aborted hydration and left
+  // the whole app without event handlers (nothing was clickable).
+  if (!hydrated) {
+    load();
+    listeners.forEach((l) => l());
+  }
   return () => listeners.delete(cb);
 }
 
-const serverSnapshot: GymData = seed();
+let serverSnapshot: GymData | undefined;
+function getServerSnapshot(): GymData {
+  if (!serverSnapshot) serverSnapshot = seed();
+  return serverSnapshot;
+}
 
 export function useGym(): GymData {
-  return useSyncExternalStore(
-    subscribe,
-    () => {
-      load();
-      return data;
-    },
-    () => serverSnapshot,
-  );
+  return useSyncExternalStore(subscribe, () => data, getServerSnapshot);
 }
 
 /* ---------- rep helpers ---------- */
@@ -292,42 +353,18 @@ export function repLabel(item: Pick<WorkoutItem, "reps" | "repType" | "repMin" |
 /* ---------- exercises ---------- */
 export function saveExercise(ex: Exercise) {
   const exists = data.exercises.some((e) => e.id === ex.id);
-  const updatedExercises = exists
-    ? data.exercises.map((e) => (e.id === ex.id ? ex : e))
-    : [...data.exercises, ex];
-
-  const customList = ex.isCustom
-    ? data.customExercises?.some((c) => c.id === ex.id)
-      ? (data.customExercises ?? []).map((c) => (c.id === ex.id ? ex : c))
-      : [...(data.customExercises ?? []), ex]
-    : data.customExercises;
-
   set({
     ...data,
-    exercises: updatedExercises,
-    customExercises: customList,
+    exercises: exists
+      ? data.exercises.map((e) => (e.id === ex.id ? ex : e))
+      : [...data.exercises, ex],
   });
-}
-
-export function saveCustomExercise(exInput: Omit<Exercise, "id"> & { id?: string }): Exercise {
-  const newEx: Exercise = {
-    ...exInput,
-    id: exInput.id || `custom-${uid()}`,
-    isCustom: true,
-  };
-  saveExercise(newEx);
-  return newEx;
-}
-
-export function deleteCustomExercise(id: string) {
-  deleteExercise(id);
 }
 
 export function deleteExercise(id: string) {
   set({
     ...data,
     exercises: data.exercises.filter((e) => e.id !== id),
-    customExercises: (data.customExercises ?? []).filter((e) => e.id !== id),
     workouts: data.workouts.map((w) => ({
       ...w,
       items: w.items.filter((i) => i.exerciseId !== id),
@@ -641,20 +678,6 @@ export function saveFood(food: FoodItem) {
   });
 }
 
-export function saveCustomFood(foodInput: Omit<FoodItem, "id"> & { id?: string }): FoodItem {
-  const newFood: FoodItem = {
-    ...foodInput,
-    id: foodInput.id || `custom-food-${uid()}`,
-    isCustom: true,
-  };
-  saveFood(newFood);
-  return newFood;
-}
-
-export function deleteCustomFood(id: string) {
-  deleteFood(id);
-}
-
 export function toggleFavoriteFood(foodId: string) {
   const favorites = new Set(data.favoriteFoods ?? []);
   if (favorites.has(foodId)) favorites.delete(foodId);
@@ -843,36 +866,6 @@ function normalizeSearch(s: string) {
     .replace(/[\u0300-\u036f]/g, "")
     .replace(/['"-]/g, "")
     .trim();
-}
-
-/**
- * Forgiving exercise search supporting Hebrew names, English names, and aliases.
- */
-export function searchExercises(exercises: Exercise[], query: string) {
-  const normalized = normalizeSearch(query);
-  if (!normalized) return exercises;
-  const tokens = normalized.split(/\s+/).filter(Boolean);
-
-  return exercises.filter((ex) => {
-    const name = normalizeSearch(ex.name);
-    const english = normalizeSearch(ex.englishName ?? "");
-    const muscle = normalizeSearch(ex.muscleGroup);
-    const equipment = normalizeSearch(ex.equipment);
-    const category = normalizeSearch(ex.category ?? "");
-    const customMuscle = normalizeSearch(ex.customMuscleGroup ?? "");
-    const terms = (ex.searchTerms ?? []).map(normalizeSearch);
-
-    return tokens.every(
-      (token) =>
-        name.includes(token) ||
-        english.includes(token) ||
-        muscle.includes(token) ||
-        equipment.includes(token) ||
-        category.includes(token) ||
-        customMuscle.includes(token) ||
-        terms.some((t) => t.includes(token)),
-    );
-  });
 }
 
 /**

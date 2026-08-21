@@ -26,7 +26,7 @@ import {
   SecondaryButton,
   SectionHeader,
 } from "@/components/ui-app/primitives";
-import { lastPerformance, repLabel, saveSession, searchExercises, uid, useGym } from "@/lib/gym-store";
+import { lastPerformance, repLabel, saveSession, uid, useGym } from "@/lib/gym-store";
 import type { Exercise, HistoryEntry, LoggedSet, WorkoutItem } from "@/lib/gym-types";
 
 export const Route = createFileRoute("/session/$workoutId")({
@@ -158,28 +158,13 @@ function Session() {
     }
   }, [entries, workoutId]);
 
-  const previousRestRef = useRef(rest);
   useEffect(() => {
-    if (rest <= 0) {
-      if (previousRestRef.current > 0) {
-        // Rest timer reached 0:00 -> trigger haptic vibration feedback if supported
-        if (typeof navigator !== "undefined" && "vibrate" in navigator) {
-          try {
-            navigator.vibrate([100, 50, 100]);
-          } catch {
-            /* ignore */
-          }
-        }
-      }
-      previousRestRef.current = 0;
-      return;
-    }
-    previousRestRef.current = rest;
+    if (rest <= 0) return;
     timerRef.current = setInterval(() => setRest((r) => Math.max(0, r - 1)), 1000);
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [rest]);
+  }, [rest > 0]);
 
   if (!workout) {
     return (
@@ -263,12 +248,17 @@ function Session() {
       entries: entries.map((e) => ({ ...e, sets: e.sets.filter((s) => s.done) })),
     });
     clearSavedSession();
-    navigate({ to: "/history" });
+    navigate({ to: "/programs" });
   };
 
   const progress = totalSets ? (doneSets / totalSets) * 100 : 0;
 
-  const filteredExercisesForReplace = searchExercises(exercises, replaceSearch);
+  const filteredExercisesForReplace = exercises.filter(
+    (ex) =>
+      ex.name.toLowerCase().includes(replaceSearch.toLowerCase()) ||
+      ex.muscleGroup.toLowerCase().includes(replaceSearch.toLowerCase()) ||
+      (ex.equipment && ex.equipment.toLowerCase().includes(replaceSearch.toLowerCase())),
+  );
 
   return (
     <AppShell
@@ -419,7 +409,7 @@ function Session() {
                         >
                           {s.warmup ? "W" : workingIndex}
                         </span>
-                        <div className="min-w-0 flex-1 text-start flex items-center gap-2">
+                        <div className="min-w-0 flex-1 text-start">
                           <p className="truncate text-[12.5px] font-semibold text-ink">
                             {s.warmup ? "סט חימום" : s.dropSet ? "Drop Set" : `סט ${workingIndex}`}
                             {s.targetRepMax ? (
@@ -432,19 +422,6 @@ function Session() {
                               </span>
                             ) : null}
                           </p>
-                          {!s.warmup ? (
-                            <button
-                              type="button"
-                              onClick={() => patchSet(ei, si, { dropSet: !s.dropSet })}
-                              className={`press rounded-lg px-2 py-0.5 text-[10.5px] font-bold transition-colors ${
-                                s.dropSet
-                                  ? "bg-primary text-primary-foreground"
-                                  : "bg-secondary text-muted-foreground hover:text-ink"
-                              }`}
-                            >
-                              {s.dropSet ? "✓ דרופ סט" : "+ דרופ"}
-                            </button>
-                          ) : null}
                         </div>
 
                         {si > 0 ? (
@@ -489,83 +466,6 @@ function Session() {
                           onChange={(v) => patchSet(ei, si, { reps: v })}
                         />
                       </div>
-
-                      {/* Drop Stages for Drop Sets */}
-                      {s.dropSet ? (
-                        <div className="mt-3 border-t border-border/40 pt-2.5 space-y-2">
-                          <div className="flex items-center justify-between">
-                            <span className="text-[11px] font-bold text-primary uppercase">
-                              מדרגות דרופ (Drop Stages)
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const drops = s.drops ?? [];
-                                const lastStage = drops[drops.length - 1] ?? { weight: s.weight, reps: s.reps };
-                                const newDrop = {
-                                  weight: Math.max(0, Math.round(lastStage.weight * 0.75 * 2) / 2),
-                                  reps: lastStage.reps,
-                                };
-                                patchSet(ei, si, { drops: [...drops, newDrop] });
-                              }}
-                              className="press flex items-center gap-1 rounded-xl bg-primary/10 px-2.5 py-1 text-[11px] font-bold text-primary"
-                            >
-                              <Plus className="h-3 w-3" />
-                              הוסיפי מדרגה
-                            </button>
-                          </div>
-
-                          {(s.drops ?? []).map((stage, dropIdx) => (
-                            <div
-                              key={dropIdx}
-                              className="rounded-xl border border-primary/20 bg-background/80 p-2 text-start"
-                            >
-                              <div className="flex items-center justify-between mb-1.5">
-                                <span className="text-[11px] font-bold text-ink">
-                                  דרופ #{dropIdx + 1}
-                                </span>
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    const nextDrops = (s.drops ?? []).filter((_, idx) => idx !== dropIdx);
-                                    patchSet(ei, si, { drops: nextDrops });
-                                  }}
-                                  className="text-[11px] font-semibold text-destructive hover:underline"
-                                >
-                                  הסר
-                                </button>
-                              </div>
-                              <div className="grid grid-cols-2 gap-2">
-                                <Stepper
-                                  label="משקל דרופ"
-                                  value={stage.weight}
-                                  step={2.5}
-                                  suffix="ק״ג"
-                                  onChange={(v) => {
-                                    const nextDrops = [...(s.drops ?? [])];
-                                    if (nextDrops[dropIdx]) {
-                                      nextDrops[dropIdx] = { ...nextDrops[dropIdx], weight: v };
-                                      patchSet(ei, si, { drops: nextDrops });
-                                    }
-                                  }}
-                                />
-                                <Stepper
-                                  label="חזרות דרופ"
-                                  value={stage.reps}
-                                  min={0}
-                                  onChange={(v) => {
-                                    const nextDrops = [...(s.drops ?? [])];
-                                    if (nextDrops[dropIdx]) {
-                                      nextDrops[dropIdx] = { ...nextDrops[dropIdx], reps: v };
-                                      patchSet(ei, si, { drops: nextDrops });
-                                    }
-                                  }}
-                                />
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      ) : null}
                     </div>
                   );
                 })}
@@ -599,7 +499,7 @@ function Session() {
                   className="press flex h-11 items-center justify-center gap-1.5 rounded-2xl bg-secondary text-[12.5px] font-semibold text-ink"
                 >
                   <Plus className="h-4 w-4" strokeWidth={2.2} />
-                  הוסיפי סט
+                  הוסף סט
                 </button>
                 <button
                   type="button"
@@ -634,7 +534,7 @@ function Session() {
                   className="press flex h-11 items-center justify-center gap-1.5 rounded-2xl bg-primary/12 text-[12.5px] font-semibold text-primary"
                 >
                   <Plus className="h-4 w-4" strokeWidth={2.2} />
-                  הוסיפי דרופ סט
+                  הוסף דרופ סט
                 </button>
               </div>
 
@@ -654,7 +554,7 @@ function Session() {
 
       <div className="mt-6">
         <PrimaryButton onClick={finish} leading={<Check className="h-4 w-4" strokeWidth={2.4} />}>
-          סיימי ושמרי אימון
+          סיים ושמור אימון
         </PrimaryButton>
       </div>
 
@@ -698,7 +598,7 @@ function Session() {
                 type="button"
                 onClick={() => setRest(0)}
                 className="press flex items-center gap-1 rounded-xl bg-white/20 px-3 py-1.5 text-[12px] font-bold text-primary-foreground hover:bg-white/30"
-                title="דלגי"
+                title="סלג/דלגי"
               >
                 <SkipForward className="h-3.5 w-3.5 fill-current" />
                 <span>דילוג</span>
@@ -726,7 +626,7 @@ function Session() {
           }}
           className="press rounded-full bg-primary px-3 py-1.5 text-[12px] font-semibold text-primary-foreground"
         >
-          התחילי
+          התחל
         </button>
       </div>
 
@@ -738,9 +638,6 @@ function Session() {
           style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
         >
           <div
-            ref={(el) => {
-              if (el) el.scrollTop = 0;
-            }}
             className="scale-in max-h-[88dvh] w-full max-w-xl overflow-y-auto rounded-t-[2rem] border-t border-border/40 bg-card p-5 text-start shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
@@ -817,9 +714,6 @@ function Session() {
           style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
         >
           <div
-            ref={(el) => {
-              if (el) el.scrollTop = 0;
-            }}
             className="scale-in max-h-[85dvh] w-full max-w-xl overflow-y-auto rounded-t-[2rem] border-t border-border/40 bg-card p-5 text-start shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
@@ -863,7 +757,7 @@ function Session() {
                     </p>
                   </div>
                   <span className="rounded-xl bg-primary/10 px-2.5 py-1 text-[12px] font-semibold text-primary">
-                    בחרי
+                    בחר
                   </span>
                 </button>
               ))}

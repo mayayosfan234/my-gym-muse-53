@@ -1,11 +1,10 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { ChevronLeft, Dumbbell, Plus, Search, SlidersHorizontal, Sparkles, Trash2, X } from "lucide-react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { ChevronLeft, Dumbbell, Plus, Search, SlidersHorizontal } from "lucide-react";
 import { useState } from "react";
 import { AppShell } from "@/components/AppShell";
-import { ConfirmSheet } from "@/components/ui-app/ConfirmSheet";
-import { EmptyState, Pill, PrimaryButton, SectionHeader } from "@/components/ui-app/primitives";
-import { deleteCustomExercise, saveCustomExercise, searchExercises, useGym } from "@/lib/gym-store";
-import { EQUIPMENT, EXERCISE_CATEGORIES, MUSCLE_GROUPS, type Exercise } from "@/lib/gym-types";
+import { EmptyState, Pill, SectionHeader } from "@/components/ui-app/primitives";
+import { useGym } from "@/lib/gym-store";
+import { EQUIPMENT, MUSCLE_GROUPS } from "@/lib/gym-types";
 
 export const Route = createFileRoute("/exercises/")({
   head: () => ({
@@ -21,72 +20,26 @@ export const Route = createFileRoute("/exercises/")({
   component: Library,
 });
 
-const fieldCls =
-  "w-full rounded-2xl border border-border/60 bg-secondary px-4 py-3 text-[14px] outline-none focus:border-primary";
-const labelCls =
-  "mb-1.5 block text-[11px] font-semibold tracking-[0.14em] text-muted-foreground uppercase";
-
 function Library() {
   const { exercises } = useGym();
-  const navigate = useNavigate();
   const [q, setQ] = useState("");
   const [group, setGroup] = useState("הכל");
   const [equipment, setEquipment] = useState("הכל");
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [createOpen, setCreateOpen] = useState(false);
-  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
-  // New Custom Exercise Form State
-  const [name, setName] = useState("");
-  const [englishName, setEnglishName] = useState("");
-  const [muscleGroup, setMuscleGroup] = useState("חזה");
-  const [customMuscleGroup, setCustomMuscleGroup] = useState("");
-  const [selectedEquipment, setSelectedEquipment] = useState("מוט");
-  const [category, setCategory] = useState("מורכב");
-  const [description, setDescription] = useState("");
-
-  const searched = searchExercises(exercises, q);
-  const list = searched.filter(
+  const query = q.toLowerCase();
+  const list = exercises.filter(
     (e) =>
       (group === "הכל" || e.muscleGroup === group || (e.muscleGroups ?? []).includes(group)) &&
-      (equipment === "הכל" || e.equipment === equipment),
+      (equipment === "הכל" || e.equipment === equipment) &&
+      (e.name.toLowerCase().includes(query) ||
+        e.equipment.toLowerCase().includes(query) ||
+        e.muscleGroup.toLowerCase().includes(query) ||
+        (e.customMuscleGroup ?? "").toLowerCase().includes(query) ||
+        (e.category ?? "").toLowerCase().includes(query)),
   );
 
   const activeFilters = (group !== "הכל" ? 1 : 0) + (equipment !== "הכל" ? 1 : 0);
-
-  const handleCreateCustom = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!name.trim()) return;
-
-    const newEx: Omit<Exercise, "id"> = {
-      name: name.trim(),
-      englishName: englishName.trim() || undefined,
-      muscleGroup: muscleGroup === "אחר" && customMuscleGroup.trim() ? customMuscleGroup.trim() : muscleGroup,
-      customMuscleGroup: muscleGroup === "אחר" ? customMuscleGroup.trim() : undefined,
-      muscleGroups: [muscleGroup === "אחר" && customMuscleGroup.trim() ? customMuscleGroup.trim() : muscleGroup],
-      equipment: selectedEquipment,
-      category,
-      description: description.trim(),
-      videoUrl: "",
-      images: [],
-      notes: "",
-      isCustom: true,
-      searchTerms: [name.trim(), englishName.trim()].filter(Boolean),
-    };
-
-    const created = saveCustomExercise(newEx);
-    setCreateOpen(false);
-    // Reset form
-    setName("");
-    setEnglishName("");
-    setMuscleGroup("חזה");
-    setCustomMuscleGroup("");
-    setSelectedEquipment("מוט");
-    setCategory("מורכב");
-    setDescription("");
-
-    navigate({ to: "/exercises/$exerciseId", params: { exerciseId: created.id } });
-  };
 
   return (
     <AppShell
@@ -94,15 +47,14 @@ function Library() {
       title="תרגילים"
       subtitle={`${exercises.length} תרגילים בספרייה`}
       action={
-        <button
-          type="button"
-          onClick={() => setCreateOpen(true)}
-          aria-label="הוסיפי תרגיל אישי"
-          className="press flex h-11 items-center gap-1.5 rounded-2xl bg-primary px-3.5 text-primary-foreground font-semibold text-[13px]"
+        <Link
+          to="/exercises/$exerciseId"
+          params={{ exerciseId: "new" }}
+          aria-label="הוסף תרגיל"
+          className="press grid h-11 w-11 place-items-center rounded-2xl bg-primary text-primary-foreground"
         >
-          <Plus className="h-4 w-4" strokeWidth={2.4} />
-          <span>הוסיפי תרגיל</span>
-        </button>
+          <Plus className="h-5 w-5" strokeWidth={2.4} />
+        </Link>
       }
     >
       {/* Search */}
@@ -188,7 +140,7 @@ function Library() {
       <SectionHeader
         className="mt-5"
         title={`${list.length} תרגילים`}
-        subtitle="לחצי על תרגיל לצפייה ופרטים"
+        subtitle="לחצי על תרגיל לעריכה ופרטים"
       />
 
       <div className="space-y-2.5">
@@ -197,65 +149,28 @@ function Library() {
           const primary = showCustom ? e.customMuscleGroup! : e.muscleGroup;
           const secondaryCount = (e.muscleGroups?.length ?? 1) - 1;
           return (
-            <div
+            <Link
               key={e.id}
-              className="surface-card press flex items-center justify-between gap-3 p-3.5"
+              to="/exercises/$exerciseId"
+              params={{ exerciseId: e.id }}
+              className="surface-card press flex items-center gap-3.5 p-3.5"
             >
-              <Link
-                to="/exercises/$exerciseId"
-                params={{ exerciseId: e.id }}
-                className="flex min-w-0 flex-1 items-center gap-3.5 text-start"
-              >
-                <div className={`grid h-11 w-11 shrink-0 place-items-center rounded-2xl ${
-                  e.isCustom ? "bg-rose-soft text-rose" : "bg-sage-soft text-primary"
-                }`}>
-                  <Dumbbell className="h-5 w-5" strokeWidth={1.8} />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-1.5">
-                    <p className="truncate font-display text-[15px] font-semibold text-ink">{e.name}</p>
-                    {e.isCustom ? (
-                      <span className="inline-flex items-center gap-0.5 rounded-full bg-rose-soft px-2 py-0.5 text-[10px] font-bold text-rose">
-                        <Sparkles className="h-2.5 w-2.5" />
-                        אישי
-                      </span>
-                    ) : null}
-                  </div>
-                  <p className="mt-0.5 truncate text-[12px] text-muted-foreground">
-                    {primary}
-                    {secondaryCount > 0 ? ` (+${secondaryCount})` : ""}
-                    {e.category ? ` · ${e.category}` : ""}
-                  </p>
-                </div>
-              </Link>
-
-              <div className="flex items-center gap-2 shrink-0">
-                <span className="num-pill px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
-                  {e.equipment}
-                </span>
-                {e.isCustom ? (
-                  <button
-                    type="button"
-                    onClick={(ev) => {
-                      ev.preventDefault();
-                      ev.stopPropagation();
-                      setDeleteConfirmId(e.id);
-                    }}
-                    aria-label="מחק תרגיל אישי"
-                    className="press grid h-8 w-8 place-items-center rounded-xl text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                ) : null}
-                <Link
-                  to="/exercises/$exerciseId"
-                  params={{ exerciseId: e.id }}
-                  className="grid h-8 w-8 place-items-center text-muted-foreground/60"
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </Link>
+              <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-sage-soft text-primary">
+                <Dumbbell className="h-5 w-5" strokeWidth={1.8} />
               </div>
-            </div>
+              <div className="min-w-0 flex-1 text-start">
+                <p className="truncate font-display text-[15px] font-semibold text-ink">{e.name}</p>
+                <p className="mt-0.5 truncate text-[12px] text-muted-foreground">
+                  {primary}
+                  {secondaryCount > 0 ? ` (+${secondaryCount})` : ""}
+                  {e.category ? ` · ${e.category}` : ""}
+                </p>
+              </div>
+              <span className="num-pill shrink-0 px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
+                {e.equipment}
+              </span>
+              <ChevronLeft className="h-4 w-4 shrink-0 text-muted-foreground/60" />
+            </Link>
           );
         })}
       </div>
@@ -270,157 +185,17 @@ function Library() {
               : "התחילי לבנות את ספריית התרגילים שלך."
           }
           action={
-            <button
-              type="button"
-              onClick={() => setCreateOpen(true)}
+            <Link
+              to="/exercises/$exerciseId"
+              params={{ exerciseId: "new" }}
               className="press inline-flex h-11 items-center gap-2 rounded-full bg-primary px-5 text-[13.5px] font-semibold text-primary-foreground"
             >
               <Plus className="h-4 w-4" strokeWidth={2.4} />
-              הוסיפי תרגיל חדש
-            </button>
+              תרגיל חדש
+            </Link>
           }
         />
       ) : null}
-
-      {/* Modal: Create Custom Exercise */}
-      {createOpen ? (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 backdrop-blur-xs p-0 pb-20 sm:p-4">
-          <div
-            ref={(el) => { if (el) el.scrollTop = 0; }}
-            className="surface-card w-full max-w-md max-h-[85vh] overflow-y-auto rounded-t-3xl sm:rounded-3xl p-5 text-start shadow-xl animate-in fade-in slide-in-from-bottom-4 duration-200"
-          >
-            <div className="flex items-center justify-between pb-3 border-b border-border/40 mb-4">
-              <div className="flex items-center gap-2">
-                <Sparkles className="h-5 w-5 text-rose" />
-                <h2 className="font-display text-[17px] font-bold text-ink">הוסיפי תרגיל מותאם אישית</h2>
-              </div>
-              <button
-                type="button"
-                onClick={() => setCreateOpen(false)}
-                className="press grid h-8 w-8 place-items-center rounded-full bg-secondary text-muted-foreground"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-
-            <form onSubmit={handleCreateCustom} className="space-y-4">
-              <div>
-                <label className={labelCls}>שם התרגיל (בעברית) *</label>
-                <input
-                  required
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="למשל: סקוואט כנגד גומייה"
-                  className={fieldCls}
-                />
-              </div>
-
-              <div>
-                <label className={labelCls}>שם באנגלית (אופציונלי)</label>
-                <input
-                  value={englishName}
-                  onChange={(e) => setEnglishName(e.target.value)}
-                  placeholder="e.g. Banded Squat"
-                  className={fieldCls}
-                />
-              </div>
-
-              <div>
-                <label className={labelCls}>קבוצת שרירים ראשית *</label>
-                <select
-                  value={muscleGroup}
-                  onChange={(e) => setMuscleGroup(e.target.value)}
-                  className={fieldCls}
-                >
-                  {MUSCLE_GROUPS.map((g) => (
-                    <option key={g} value={g}>
-                      {g}
-                    </option>
-                  ))}
-                </select>
-                {muscleGroup === "אחר" ? (
-                  <input
-                    value={customMuscleGroup}
-                    onChange={(e) => setCustomMuscleGroup(e.target.value)}
-                    placeholder="הקלידי שם שריר..."
-                    className={`${fieldCls} mt-2`}
-                  />
-                ) : null}
-              </div>
-
-              <div>
-                <label className={labelCls}>ציוד עיקרי *</label>
-                <select
-                  value={selectedEquipment}
-                  onChange={(e) => setSelectedEquipment(e.target.value)}
-                  className={fieldCls}
-                >
-                  {EQUIPMENT.map((eq) => (
-                    <option key={eq} value={eq}>
-                      {eq}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className={labelCls}>קטגוריה</label>
-                <select
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                  className={fieldCls}
-                >
-                  {EXERCISE_CATEGORIES.map((c) => (
-                    <option key={c} value={c}>
-                      {c}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className={labelCls}>תיאור קצר (אופציונלי)</label>
-                <textarea
-                  rows={2}
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="דגשים עיקריים או הוראות ביצוע..."
-                  className={fieldCls}
-                />
-              </div>
-
-              <div className="pt-2 flex gap-3">
-                <PrimaryButton type="submit" className="flex-1">
-                  שמרי תרגיל חדש
-                </PrimaryButton>
-                <button
-                  type="button"
-                  onClick={() => setCreateOpen(false)}
-                  className="press rounded-2xl bg-secondary px-4 py-3 text-[14px] font-semibold text-muted-foreground"
-                >
-                  ביטול
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      ) : null}
-
-      {/* Confirm Custom Exercise Deletion */}
-      <ConfirmSheet
-        open={Boolean(deleteConfirmId)}
-        title="מחיקת תרגיל אישי"
-        description="האם את בטוחה שברצונך למחוק תרגיל מותאם אישית זה? הפעולה לא תמחוק היסטוריית אימונים קודמת."
-        confirmText="מחק תרגיל"
-        danger
-        onConfirm={() => {
-          if (deleteConfirmId) {
-            deleteCustomExercise(deleteConfirmId);
-            setDeleteConfirmId(null);
-          }
-        }}
-        onCancel={() => setDeleteConfirmId(null)}
-      />
     </AppShell>
   );
 }

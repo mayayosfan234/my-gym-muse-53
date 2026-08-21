@@ -1,7 +1,6 @@
 export type Exercise = {
   id: string;
   name: string;
-  englishName?: string;
   muscleGroup: string;
   /** Primary and secondary muscle groups worked (multi-select). */
   muscleGroups?: string[];
@@ -20,10 +19,6 @@ export type Exercise = {
   notes: string;
   /** Optional technique tips / cues. */
   tips?: string;
-  /** Search terms/aliases in Hebrew and English. */
-  searchTerms?: string[];
-  /** Flag indicating user-created custom exercise. */
-  isCustom?: boolean;
 };
 
 /** How the programmed reps are expressed for a workout item. */
@@ -94,11 +89,6 @@ export type Program = {
   dayIds: string[];
 };
 
-export type DropStage = {
-  weight: number;
-  reps: number;
-};
-
 export type LoggedSet = {
   reps: number;
   weight: number;
@@ -111,8 +101,6 @@ export type LoggedSet = {
   warmup?: boolean;
   /** True when this set is logged as a drop set. */
   dropSet?: boolean;
-  /** Optional multi-stage drops recorded for a drop set (e.g. Stage 1: 40kg x 8, Drop 1: 30kg x 6, Drop 2: 20kg x 8). */
-  drops?: DropStage[];
 };
 
 export type HistoryEntry = {
@@ -148,13 +136,8 @@ export type FoodItem = {
   name: string;
   englishName?: string;
   category?: string;
-  brand?: string;
   /** Reference serving label, e.g. "100 גרם", "יחידה 1", "פרוסה 1". */
   servingSize: string;
-  /** Weight in grams for 1 unit/serving (e.g. 63g for Egg L, 30g for Bread slice, 100g for Pita). */
-  unitWeightGrams?: number;
-  /** Serving unit label (e.g. "יחידה", "ביצה", "פרוסה", "פיתה", "כף"). */
-  servingUnitLabel?: string;
   calories: number;
   protein: number;
   carbs: number;
@@ -163,7 +146,6 @@ export type FoodItem = {
   notes?: string;
   searchTerms?: string[];
   favorite?: boolean;
-  isCustom?: boolean;
 };
 
 /** A food logged inside a meal. Macros are per single serving; totals scale by quantity. */
@@ -236,7 +218,6 @@ export type UserProfile = {
 
 export type GymData = {
   exercises: Exercise[];
-  customExercises?: Exercise[];
   workouts: Workout[];
   programs: Program[];
   history: HistorySession[];

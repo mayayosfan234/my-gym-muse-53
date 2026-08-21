@@ -1,14 +1,12 @@
 import { Link } from "@tanstack/react-router";
-import { Apple, Cloud, Dumbbell, History, Home, LayoutGrid } from "lucide-react";
-import { useState, type ReactNode } from "react";
-import { AuthModal } from "./AuthModal";
+import { Apple, Dumbbell, Home, LayoutGrid } from "lucide-react";
+import type { ReactNode } from "react";
 
 const NAV: { to: string; label: string; id: string; icon: typeof Home }[] = [
   { to: "/", label: "בית", id: "home", icon: Home },
   { to: "/programs", label: "תוכניות", id: "programs", icon: LayoutGrid },
   { to: "/exercises", label: "תרגילים", id: "exercises", icon: Dumbbell },
   { to: "/nutrition", label: "תזונה", id: "nutrition", icon: Apple },
-  { to: "/history", label: "היסטוריה", id: "history", icon: History },
 ];
 
 export function AppShell({
@@ -24,11 +22,8 @@ export function AppShell({
   action?: ReactNode | undefined;
   children: ReactNode;
 }) {
-  const [authOpen, setAuthOpen] = useState(false);
-
   return (
     <div className="min-h-[100dvh] w-full bg-background text-foreground" dir="rtl">
-      <AuthModal open={authOpen} onClose={() => setAuthOpen(false)} />
       <header
         className="sticky top-0 z-30 border-b border-border/30 bg-background/85 backdrop-blur-xl"
         style={{ paddingTop: "max(0.6rem, env(safe-area-inset-top))" }}
@@ -50,17 +45,7 @@ export function AppShell({
                 </p>
               ) : null}
             </div>
-            <div className="flex shrink-0 items-center gap-1.5 pt-0.5">
-              <button
-                type="button"
-                onClick={() => setAuthOpen(true)}
-                aria-label="חשבון וסנכרון ענן"
-                className="press grid h-11 w-11 place-items-center rounded-2xl bg-secondary text-muted-foreground hover:text-primary transition-colors"
-              >
-                <Cloud className="h-5 w-5" strokeWidth={2} />
-              </button>
-              {action}
-            </div>
+            {action ? <div className="flex shrink-0 items-center gap-2 pt-0.5">{action}</div> : null}
           </div>
         </div>
       </header>
@@ -76,7 +61,7 @@ export function AppShell({
 
       <nav
         aria-label="ניווט ראשי"
-        className="pointer-events-none fixed inset-x-0 bottom-0 z-20 px-3.5 sm:px-4"
+        className="pointer-events-none fixed inset-x-0 bottom-0 z-40 px-3.5 sm:px-4"
         style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}
       >
         <div className="pointer-events-auto mx-auto flex max-w-md items-center justify-between rounded-[2rem] border border-white/70 bg-white/85 p-1.5 shadow-[0_12px_36px_oklch(0.22_0.02_145/0.12),0_2px_10px_oklch(0.22_0.02_145/0.05)] backdrop-blur-2xl">
