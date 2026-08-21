@@ -4,13 +4,6 @@ import { useState, type ReactNode } from "react";
 import { useAuthUser, useGym } from "../lib/gym-store";
 import { supabase } from "../lib/supabase";
 
-const NAV: { to: string; label: string; id: string; icon: typeof Home }[] = [
-  { to: "/", label: "בית", id: "home", icon: Home },
-  { to: "/programs", label: "תוכניות", id: "programs", icon: LayoutGrid },
-  { to: "/exercises", label: "תרגילים", id: "exercises", icon: Dumbbell },
-  { to: "/nutrition", label: "תזונה", id: "nutrition", icon: Apple },
-];
-
 export function AppShell({
   title,
   subtitle,
@@ -27,6 +20,15 @@ export function AppShell({
   const store = useGym();
   const user = useAuthUser();
   const isCoach = store.userProfile?.role === "coach";
+
+  // Client gets 3 tabs: בית | תוכניות | תזונה (Exercises is coach-only!)
+  // Coach gets 4 tabs: בית | תוכניות | תרגילים | תזונה
+  const NAV = [
+    { to: "/", label: "בית", id: "home", icon: Home },
+    { to: "/programs", label: "תוכניות", id: "programs", icon: LayoutGrid },
+    ...(isCoach ? [{ to: "/exercises", label: "תרגילים", id: "exercises", icon: Dumbbell }] : []),
+    { to: "/nutrition", label: "תזונה", id: "nutrition", icon: Apple },
+  ];
 
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);

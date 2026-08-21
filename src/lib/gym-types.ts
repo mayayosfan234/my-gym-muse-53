@@ -8,6 +8,12 @@ export type ClientLink = {
   createdAt: string;
 };
 
+export type DropSetConfig = {
+  enabled: boolean;
+  drops: number;
+  percentReduction?: number; // e.g. 20%
+};
+
 export type Exercise = {
   id: string;
   name: string;
@@ -68,17 +74,25 @@ export type WorkoutItem = {
   repMax?: number;
   /** Per-set weight configuration. Each set has independent weight/reps/dropSet. */
   workingSets?: WorkingSet[];
-  /** Legacy single weight field (backward compatibility). */
+  /** Prescribed Coach Target Weight */
+  targetWeight?: number;
+  /** Legacy single weight field. */
   weight: number;
   rest: number; // seconds
   notes: string;
+  /** Coach Technique Instructions */
+  techniqueNotes?: string;
+  /** Coach Approved Alternative Exercise IDs */
+  approvedAlternatives?: string[];
+  /** Drop set configuration */
+  dropSetConfig?: DropSetConfig;
   /** Optional tempo string, e.g. "3-1-1-0". */
   tempo?: string;
   /** Optional Reps In Reserve target. */
   rir?: number | null;
   /** Optional Rate of Perceived Exertion target. */
   rpe?: number | null;
-  /** Optional warm-up sets, kept visually separate from working sets. */
+  /** Optional warm-up sets. */
   warmups?: WarmupSet[];
   /** Items that share a supersetId are performed together as an explicit superset. */
   supersetId?: string;
@@ -103,24 +117,18 @@ export type LoggedSet = {
   reps: number;
   weight: number;
   done: boolean;
-  /** Programmed target reps (fixed, or range minimum). */
   targetReps?: number;
-  /** Programmed range maximum reps, when the target was a range. */
   targetRepMax?: number;
-  /** True when this is a warm-up set rather than a working set. */
   warmup?: boolean;
-  /** True when this set is logged as a drop set. */
   dropSet?: boolean;
 };
 
 export type HistoryEntry = {
   exerciseId: string;
   exerciseName: string;
-  /** Equipment / variation snapshot captured when the session was saved. */
   equipment?: string;
   sets: LoggedSet[];
   notes: string;
-  /** Programmed target snapshot. */
   targetSets?: number;
   targetReps?: number;
   targetRepMax?: number;
@@ -131,7 +139,6 @@ export type HistorySession = {
   id: string;
   workoutId: string;
   workoutName: string;
-  /** Snapshot label captured when the session is saved; older entries may omit it. */
   programName?: string;
   date: string; // ISO
   durationSec: number;
@@ -140,14 +147,12 @@ export type HistorySession = {
 
 /* ---------- nutrition & user profile ---------- */
 
-/** A reusable food in the personal food library, with macros per reference serving. */
 export type FoodItem = {
   id: string;
   name: string;
   englishName?: string;
   category?: string;
   brand?: string;
-  /** Reference serving label, e.g. "100 גרם", "יחידה 1", "פרוסה 1". */
   servingSize: string;
   calories: number;
   protein: number;
@@ -157,16 +162,14 @@ export type FoodItem = {
   notes?: string;
   searchTerms?: string[];
   favorite?: boolean;
+  approvedSubstitutes?: string[]; // foodIds approved by coach
 };
 
-/** A food logged inside a meal. Macros are per single serving; totals scale by quantity. */
 export type MealFood = {
   id: string;
-  /** Link back to the food library entry it came from, when applicable. */
   foodId?: string;
   name: string;
   servingSize: string;
-  /** Quantity multiplier applied to the per-serving macros. */
   quantity: number;
   calories: number;
   protein: number;
@@ -183,7 +186,6 @@ export type Meal = {
   foods: MealFood[];
 };
 
-/** A single day's nutrition log, keyed by calendar date. */
 export type NutritionDay = {
   id?: string;
   date: string; // YYYY-MM-DD
@@ -195,6 +197,7 @@ export type NutritionTargets = {
   protein?: number;
   carbs?: number;
   fat?: number;
+  fiber?: number;
 };
 
 export type SavedRecipe = {
@@ -209,10 +212,33 @@ export type BodyWeightLog = {
   weight: number; // kg
 };
 
+export type BodyMeasurement = {
+  id: string;
+  date: string; // YYYY-MM-DD
+  chestCm?: number;
+  waistCm?: number;
+  hipsCm?: number;
+  bicepsCm?: number;
+  thighsCm?: number;
+  notes?: string;
+};
+
+export type ClientHabits = {
+  id: string;
+  date: string; // YYYY-MM-DD
+  waterMl: number;
+  waterTargetMl: number;
+  steps: number;
+  stepsTarget: number;
+  weighInDone: boolean;
+  workoutDone: boolean;
+  busyDayMode: boolean;
+};
+
 export type CardioLog = {
   id: string;
   date: string; // YYYY-MM-DD
-  type: string; // Treadmill, Walking, Running, Stationary bike, Elliptical, StairMaster, Rowing, Swimming, Tennis, HIIT
+  type: string;
   durationMin: number;
   speed?: number; // km/h
   incline?: number; // %
@@ -239,12 +265,13 @@ export type GymData = {
   foods: FoodItem[];
   nutritionDays: NutritionDay[];
   nutritionTargets: NutritionTargets;
-  /** Default meal names used when a new day is created. */
   mealTemplate: string[];
   recipes?: SavedRecipe[];
-  recentFoods?: string[]; // foodIds
-  favoriteFoods?: string[]; // foodIds
+  recentFoods?: string[];
+  favoriteFoods?: string[];
   bodyWeightLogs?: BodyWeightLog[];
+  bodyMeasurements?: BodyMeasurement[];
+  habits?: ClientHabits[];
   cardioLogs?: CardioLog[];
   userProfile?: UserProfile;
   clients?: ClientLink[];
