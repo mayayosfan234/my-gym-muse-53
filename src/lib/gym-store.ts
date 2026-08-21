@@ -596,6 +596,20 @@ export function saveFood(food: FoodItem) {
   });
 }
 
+export function saveCustomFood(foodInput: Omit<FoodItem, "id"> & { id?: string }): FoodItem {
+  const newFood: FoodItem = {
+    ...foodInput,
+    id: foodInput.id || `custom-food-${uid()}`,
+    isCustom: true,
+  };
+  saveFood(newFood);
+  return newFood;
+}
+
+export function deleteCustomFood(id: string) {
+  deleteFood(id);
+}
+
 export function toggleFavoriteFood(foodId: string) {
   const favorites = new Set(data.favoriteFoods ?? []);
   if (favorites.has(foodId)) favorites.delete(foodId);

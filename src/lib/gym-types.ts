@@ -148,8 +148,13 @@ export type FoodItem = {
   name: string;
   englishName?: string;
   category?: string;
+  brand?: string;
   /** Reference serving label, e.g. "100 גרם", "יחידה 1", "פרוסה 1". */
   servingSize: string;
+  /** Weight in grams for 1 unit/serving (e.g. 63g for Egg L, 30g for Bread slice, 100g for Pita). */
+  unitWeightGrams?: number;
+  /** Serving unit label (e.g. "יחידה", "ביצה", "פרוסה", "פיתה", "כף"). */
+  servingUnitLabel?: string;
   calories: number;
   protein: number;
   carbs: number;
@@ -158,6 +163,7 @@ export type FoodItem = {
   notes?: string;
   searchTerms?: string[];
   favorite?: boolean;
+  isCustom?: boolean;
 };
 
 /** A food logged inside a meal. Macros are per single serving; totals scale by quantity. */
