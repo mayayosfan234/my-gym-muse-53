@@ -73,12 +73,38 @@ function Dashboard() {
   const [waistCm, setWaistCm] = useState("72");
   const [hipsCm, setHipsCm] = useState("95");
 
-  // Today's Checklist State
+  // Routine Checklist, Weekly Weigh-In, and Monthly Check-In
   const [routineChecklist, setRoutineChecklist] = useState<Record<string, boolean>>({
     workout: false,
-    steps: false,
+    weighIn: false,
     nutrition: false,
   });
+
+  const [showWeighInModal, setShowWeighInModal] = useState(false);
+  const [showMonthlyCheckInModal, setShowMonthlyCheckInModal] = useState(false);
+  const [weeklyWeightInput, setWeeklyWeightInput] = useState(String(userProfile?.weight ?? 65));
+  const [checkInNotes, setCheckInNotes] = useState("");
+  const [checkInSuccessMsg, setCheckInSuccessMsg] = useState("");
+
+  const handleWeeklyWeighIn = () => {
+    const valW = parseFloat(weeklyWeightInput);
+    if (!isNaN(valW) && valW > 0) {
+      saveBodyWeight(valW);
+      setCheckInSuccessMsg("שקילה שבועית נשמרה בהצלחה!");
+      setTimeout(() => setCheckInSuccessMsg(""), 3000);
+    }
+    setShowWeighInModal(false);
+  };
+
+  const handleMonthlyCheckInSave = () => {
+    saveUserProfile({
+      ...(userProfile ?? { weight: 65, height: 165, age: 26, gender: "female" }),
+      weight: parseFloat(weeklyWeightInput) || userProfile?.weight || 65,
+    });
+    setCheckInSuccessMsg("צ'ק-אין חודשי והיקפים נשמרו בהצלחה למאמן!");
+    setTimeout(() => setCheckInSuccessMsg(""), 3000);
+    setShowMonthlyCheckInModal(false);
+  };
 
 
   // Weekly Activity calculation
@@ -212,12 +238,20 @@ function Dashboard() {
         </Card>
       )}
 
+      {/* Check-In Success Banner */}
+      {checkInSuccessMsg && (
+        <div className="surface-card p-3.5 rounded-2xl bg-emerald-50 text-emerald-800 border border-emerald-200 text-start font-bold text-xs mt-3">
+          ✓ {checkInSuccessMsg}
+        </div>
+      )}
+
       {/* 2. Today's Routine Checklist */}
       <section className="mt-5 text-start">
         <SectionHeader title="הרוטינה של היום" subtitle="משימות יומיות לשמירה על רצף" />
         <div className="space-y-2">
           {[
             { key: "workout", label: `אימון יומיומי: ${nextWorkout?.name || "מנוחה"}` },
+            { key: "weighIn", label: `שקילה שבועית (משקל נוכחי: ${userProfile?.weight ?? 65} ק"ג)` },
             { key: "nutrition", label: `תיעוד תזונה ביומן: ${Math.round(totalsToday.calories)} קל׳` },
           ].map(({ key, label }) => {
             const isDone = routineChecklist[key] || false;
@@ -225,7 +259,13 @@ function Dashboard() {
             return (
               <div
                 key={key}
-                onClick={() => toggleChecklistItem(key)}
+                onClick={() => {
+                  if (key === "weighIn") {
+                    setShowWeighInModal(true);
+                  } else {
+                    toggleChecklistItem(key);
+                  }
+                }}
                 className={`surface-card p-3 rounded-2xl border transition-all cursor-pointer flex items-center justify-between text-xs ${
                   isDone ? "bg-emerald-50/50 border-emerald-200 line-through opacity-70" : "bg-white border-border/60 font-bold"
                 }`}
@@ -242,23 +282,35 @@ function Dashboard() {
         </div>
       </section>
 
-      {/* 3. Measurements Tracker */}
-      <section className="mt-5 text-start">
-        <SectionHeader title="היקפי גוף" subtitle="מעקב היקפים תקופתי" />
-        <div
-          onClick={() => setShowMeasurementModal(true)}
-          className="surface-card p-3.5 rounded-2xl border border-rose-100 bg-rose-50/40 flex items-center justify-between cursor-pointer"
-        >
-          <div className="flex items-center gap-2">
-            <Ruler className="h-5 w-5 text-rose-600" />
-            <div>
-              <span className="font-bold text-xs text-rose-900 block">עדכון היקפי גוף</span>
-              <span className="text-[11px] text-muted-foreground">
-                מותניים: {waistCm} ס״מ · ירכיים: {hipsCm} ס״מ
-              </span>
+      {/* Weekly Weigh-In & Monthly Check-In Cards */}
+      <section className="mt-5 text-start space-y-2.5">
+        <SectionHeader title="מעקב משקל וצ'ק-אין חודשי" subtitle="דיווח למאמן" />
+        <div className="grid grid-cols-2 gap-2.5">
+          <div
+            onClick={() => setShowWeighInModal(true)}
+            className="surface-card p-3.5 rounded-2xl border border-primary/20 bg-primary/5 space-y-1 cursor-pointer hover:bg-primary/10 transition-colors"
+          >
+            <div className="flex items-center gap-1.5 font-bold text-xs text-primary">
+              <Scale className="h-4 w-4" />
+              <span>שקילה שבועית</span>
             </div>
+            <p className="text-[11px] text-muted-foreground pt-0.5">
+              עדכון משקל בוקר: <strong className="text-ink">{userProfile?.weight ?? 65} ק"ג</strong>
+            </p>
           </div>
-          <span className="text-xs font-bold text-rose-800 bg-white px-3 py-1 rounded-xl shadow-2xs">עדכן</span>
+
+          <div
+            onClick={() => setShowMonthlyCheckInModal(true)}
+            className="surface-card p-3.5 rounded-2xl border border-purple-200 bg-purple-50/50 space-y-1 cursor-pointer hover:bg-purple-100/60 transition-colors"
+          >
+            <div className="flex items-center gap-1.5 font-bold text-xs text-purple-900">
+              <Award className="h-4 w-4 text-purple-700" />
+              <span>צ'ק-אין חודשי</span>
+            </div>
+            <p className="text-[11px] text-purple-800 pt-0.5">
+              היקפים ודיווח התקדמות
+            </p>
+          </div>
         </div>
       </section>
 
@@ -344,6 +396,111 @@ function Dashboard() {
         </div>
       </section>
 
+
+      {/* Modal: Weekly Weigh-In */}
+      {showWeighInModal && (
+        <div
+          className="fade-in fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
+          onClick={() => setShowWeighInModal(false)}
+        >
+          <div
+            className="w-full max-w-sm rounded-3xl border border-white/80 bg-white p-5 shadow-2xl space-y-3 text-start"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b pb-2">
+              <h3 className="font-bold text-base text-ink flex items-center gap-2">
+                <Scale className="h-5 w-5 text-primary" /> שקילה שבועית בבוקר
+              </h3>
+              <button
+                onClick={() => setShowWeighInModal(false)}
+                className="text-muted-foreground font-bold text-sm cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-2 text-xs">
+              <label className="block font-bold text-muted-foreground">משקל נוכחי (ק"ג)</label>
+              <input
+                type="number"
+                step="0.1"
+                value={weeklyWeightInput}
+                onChange={(e) => setWeeklyWeightInput(e.target.value)}
+                className="w-full rounded-xl border border-border p-2.5 text-sm font-bold text-ink outline-none focus:border-primary"
+              />
+            </div>
+
+            <button
+              onClick={handleWeeklyWeighIn}
+              className="w-full rounded-2xl bg-primary py-2.5 text-xs font-bold text-white shadow-md cursor-pointer hover:bg-primary/90"
+            >
+              שמור שקילה שבועית
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Monthly Check-In */}
+      {showMonthlyCheckInModal && (
+        <div
+          className="fade-in fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
+          onClick={() => setShowMonthlyCheckInModal(false)}
+        >
+          <div
+            className="w-full max-w-sm rounded-3xl border border-white/80 bg-white p-5 shadow-2xl space-y-3 text-start"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b pb-2">
+              <h3 className="font-bold text-base text-purple-950 flex items-center gap-2">
+                <Award className="h-5 w-5 text-purple-700" /> צ'ק-אין חודשי למאמן
+              </h3>
+              <button
+                onClick={() => setShowMonthlyCheckInModal(false)}
+                className="text-muted-foreground font-bold text-sm cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-2 text-xs">
+              <div>
+                <label className="block font-bold text-muted-foreground mb-1">היקף מותניים (ס"מ)</label>
+                <input
+                  type="number"
+                  value={waistCm}
+                  onChange={(e) => setWaistCm(e.target.value)}
+                  className="w-full rounded-xl border border-border p-2 outline-none focus:border-primary"
+                />
+              </div>
+              <div>
+                <label className="block font-bold text-muted-foreground mb-1">היקף ירכיים (ס"מ)</label>
+                <input
+                  type="number"
+                  value={hipsCm}
+                  onChange={(e) => setHipsCm(e.target.value)}
+                  className="w-full rounded-xl border border-border p-2 outline-none focus:border-primary"
+                />
+              </div>
+              <div>
+                <label className="block font-bold text-muted-foreground mb-1">הערות ודיווח התקדמות חודשי</label>
+                <textarea
+                  value={checkInNotes}
+                  onChange={(e) => setCheckInNotes(e.target.value)}
+                  placeholder="איך הרגשת השודש? שינויים באנרגיה, בבגדים, או בתזונה..."
+                  className="w-full rounded-xl border border-border p-2 text-xs h-16 outline-none focus:border-primary"
+                />
+              </div>
+            </div>
+
+            <button
+              onClick={handleMonthlyCheckInSave}
+              className="w-full rounded-2xl bg-purple-700 py-2.5 text-xs font-bold text-white shadow-md cursor-pointer hover:bg-purple-800"
+            >
+              שלח צ'ק-אין חודשי למאמן
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Modal: Body Measurements */}
       {showMeasurementModal && (

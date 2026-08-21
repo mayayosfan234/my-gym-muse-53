@@ -261,15 +261,12 @@ function Session() {
   const currentItem = replacingIndex !== null ? workout.items[replacingIndex] : null;
   const approvedIds = currentItem?.approvedAlternatives;
 
-  const allowedExercisesForReplace = exercises.filter((ex) => {
-    if (approvedIds && approvedIds.length > 0) {
-      return approvedIds.includes(ex.id);
+  const allowedExercisesForReplace = useMemo(() => {
+    if (!approvedIds || approvedIds.length === 0) {
+      return [];
     }
-    return (
-      ex.name.toLowerCase().includes(replaceSearch.toLowerCase()) ||
-      ex.muscleGroup.toLowerCase().includes(replaceSearch.toLowerCase())
-    );
-  });
+    return exercises.filter((ex) => approvedIds.includes(ex.id));
+  }, [exercises, approvedIds]);
 
   return (
     <AppShell
@@ -687,24 +684,31 @@ function Session() {
             </div>
 
             <div className="mt-4 space-y-2 pb-6">
-              {allowedExercisesForReplace.map((ex) => (
-                <button
-                  key={ex.id}
-                  type="button"
-                  onClick={() => replaceExercise(replacingIndex, ex)}
-                  className="press flex w-full items-center justify-between rounded-2xl bg-secondary p-3.5 text-start hover:bg-secondary/80 cursor-pointer"
-                >
-                  <div>
-                    <p className="font-semibold text-ink text-[14px]">{ex.name}</p>
-                    <p className="text-[12px] text-muted-foreground">
-                      {ex.muscleGroup} {ex.equipment ? `· ${ex.equipment}` : ""}
-                    </p>
-                  </div>
-                  <span className="rounded-xl bg-primary/10 px-2.5 py-1 text-[12px] font-semibold text-primary">
-                    בחר
-                  </span>
-                </button>
-              ))}
+              {allowedExercisesForReplace.length > 0 ? (
+                allowedExercisesForReplace.map((ex) => (
+                  <button
+                    key={ex.id}
+                    type="button"
+                    onClick={() => replaceExercise(replacingIndex, ex)}
+                    className="press flex w-full items-center justify-between rounded-2xl bg-secondary p-3.5 text-start hover:bg-secondary/80 cursor-pointer"
+                  >
+                    <div>
+                      <p className="font-semibold text-ink text-[14px]">{ex.name}</p>
+                      <p className="text-[12px] text-muted-foreground">
+                        {ex.muscleGroup} {ex.equipment ? `· ${ex.equipment}` : ""}
+                      </p>
+                    </div>
+                    <span className="rounded-xl bg-primary/10 px-2.5 py-1 text-[12px] font-semibold text-primary">
+                      בחר
+                    </span>
+                  </button>
+                ))
+              ) : (
+                <div className="p-6 text-center text-xs text-muted-foreground space-y-1">
+                  <p className="font-bold text-ink">אין תחליפים מורשים מוגדרים</p>
+                  <p>המאמן לא הגדיר תרגילים חלופיים מורשים עבור תרגיל זה. פני למאמן להוספת תחליפים מורשים.</p>
+                </div>
+              )}
             </div>
           </div>
         </div>

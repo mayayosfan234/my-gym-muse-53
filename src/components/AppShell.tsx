@@ -23,12 +23,17 @@ export function AppShell({
   const isOwner = role === "owner";
   const isCoach = role === "coach" || isOwner;
 
-  // Client gets 3 tabs: בית | תוכניות | תזונה (Exercises is coach-only!)
-  // Coach gets 4 tabs: בית | תוכניות | תרגילים | תזונה
+  // Mode State for Coach / Owner: 'personal' (Client View) vs 'management' (Coach/Owner Dashboard)
+  const [activeMode, setActiveMode] = useState<"personal" | "management">(
+    typeof window !== "undefined" && window.location.pathname.startsWith("/coach") ? "management" : "personal"
+  );
+
+  // Client gets 3 tabs: בית | אימונים השבוע | תזונה
+  // Coach/Owner gets 3 tabs in Personal mode, plus mode switcher to Coach Dashboard
   const NAV = [
     { to: "/", label: "בית", id: "home", icon: Home },
-    { to: "/programs", label: "תוכניות", id: "programs", icon: LayoutGrid },
-    ...(isCoach ? [{ to: "/exercises", label: "תרגילים", id: "exercises", icon: Dumbbell }] : []),
+    { to: "/programs", label: "אימונים השבוע", id: "programs", icon: LayoutGrid },
+    ...(isCoach && activeMode === "management" ? [{ to: "/exercises", label: "תרגילים", id: "exercises", icon: Dumbbell }] : []),
     { to: "/nutrition", label: "תזונה", id: "nutrition", icon: Apple },
   ];
 
@@ -140,22 +145,34 @@ export function AppShell({
               ) : null}
             </div>
             <div className="flex shrink-0 items-center gap-2 pt-0.5">
-              {isOwner ? (
-                <Link
-                  to="/coach"
-                  className="flex items-center gap-1 rounded-full bg-purple-100 px-2.5 py-1 text-xs font-bold text-purple-800 border border-purple-300 shadow-xs hover:bg-purple-200 transition-colors"
-                >
-                  <Crown className="h-3.5 w-3.5 text-purple-700" />
-                  <span>בעלים</span>
-                </Link>
-              ) : isCoach ? (
-                <Link
-                  to="/coach"
-                  className="flex items-center gap-1 rounded-full bg-amber-100/80 px-2.5 py-1 text-xs font-bold text-amber-800 border border-amber-300/60 shadow-xs hover:bg-amber-200 transition-colors"
-                >
-                  <Shield className="h-3.5 w-3.5 text-amber-700" />
-                  <span>מאמן</span>
-                </Link>
+              {isCoach ? (
+                <div className="flex items-center rounded-full bg-secondary p-0.5 border border-border/60">
+                  <Link
+                    to="/"
+                    onClick={() => setActiveMode("personal")}
+                    className={`px-2 py-0.5 text-[11px] font-bold rounded-full transition-colors ${
+                      activeMode === "personal"
+                        ? "bg-white text-ink shadow-xs"
+                        : "text-muted-foreground hover:text-ink"
+                    }`}
+                  >
+                    אישי
+                  </Link>
+                  <Link
+                    to="/coach"
+                    onClick={() => setActiveMode("management")}
+                    className={`flex items-center gap-1 px-2.5 py-0.5 text-[11px] font-bold rounded-full transition-colors ${
+                      activeMode === "management"
+                        ? isOwner
+                          ? "bg-purple-600 text-white shadow-xs"
+                          : "bg-primary text-white shadow-xs"
+                        : "text-muted-foreground hover:text-ink"
+                    }`}
+                  >
+                    {isOwner ? <Crown className="h-3 w-3" /> : <Shield className="h-3 w-3" />}
+                    <span>{isOwner ? "בעלים" : "מאמן"}</span>
+                  </Link>
+                </div>
               ) : null}
 
               {user ? (
