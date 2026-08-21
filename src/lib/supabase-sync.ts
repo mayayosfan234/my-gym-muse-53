@@ -100,7 +100,7 @@ export async function syncLocalToSupabase(
       }
     }
 
-    // 4. Workout Sessions / History
+    // 4. Workout Sessions / History (including difficulty rating & discomfort notes)
     if (localData.history.length > 0) {
       const historyPayload = localData.history.map((s) => ({
         id: s.id,
@@ -112,8 +112,23 @@ export async function syncLocalToSupabase(
         duration_sec: s.durationSec,
         entries: s.entries,
         notes: s.notes,
+        difficulty_rating: s.difficultyRating,
+        discomfort_notes: s.discomfortNotes,
       }));
       await supabase.from("workout_sessions").upsert(historyPayload, { onConflict: "id" });
+    }
+
+    // 4b. Body Weight Logs (Historical Dated Weigh-Ins)
+    if (localData.bodyWeightLogs && localData.bodyWeightLogs.length > 0) {
+      const weighInPayload = localData.bodyWeightLogs.map((log) => ({
+        user_id: userId,
+        date: log.date,
+        weight_kg: log.weight,
+        updated_at: new Date().toISOString(),
+      }));
+      await supabase
+        .from("body_measurements")
+        .upsert(weighInPayload, { onConflict: "user_id,date" });
     }
 
     // 5. Custom Foods
@@ -313,6 +328,8 @@ export async function pullSupabaseData(userId: string, localState: GymData): Pro
         durationSec: row.duration_sec,
         entries: row.entries || [],
         notes: row.notes || "",
+        difficultyRating: row.difficulty_rating,
+        discomfortNotes: row.discomfort_notes,
       }));
       nextData.history = historyList;
     }
