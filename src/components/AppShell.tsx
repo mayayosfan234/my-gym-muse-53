@@ -1,6 +1,8 @@
 import { Link } from "@tanstack/react-router";
-import { Apple, Dumbbell, Home, LayoutGrid } from "lucide-react";
-import type { ReactNode } from "react";
+import { Apple, Cloud, Dumbbell, Home, LayoutGrid, LogIn, LogOut, User } from "lucide-react";
+import { useState, type ReactNode } from "react";
+import { useAuthUser } from "../lib/gym-store";
+import { supabase } from "../lib/supabase";
 
 const NAV: { to: string; label: string; id: string; icon: typeof Home }[] = [
   { to: "/", label: "בית", id: "home", icon: Home },
@@ -22,6 +24,41 @@ export function AppShell({
   action?: ReactNode | undefined;
   children: ReactNode;
 }) {
+  const user = useAuthUser();
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [isSignUp, setIsSignUp] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
+
+  const handleAuthSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setErrorMsg("");
+
+    try {
+      if (isSignUp) {
+        const { error } = await supabase.auth.signUp({ email, password });
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+      }
+      setShowAuthModal(false);
+      setEmail("");
+      setPassword("");
+    } catch (err: any) {
+      setErrorMsg(err?.message || "אירעה שגיאה בחיבור ל-Supabase");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+  };
+
   return (
     <div className="min-h-[100dvh] w-full bg-background text-foreground" dir="rtl">
       <header
@@ -45,7 +82,30 @@ export function AppShell({
                 </p>
               ) : null}
             </div>
-            {action ? <div className="flex shrink-0 items-center gap-2 pt-0.5">{action}</div> : null}
+            <div className="flex shrink-0 items-center gap-2 pt-0.5">
+              {user ? (
+                <div className="flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 border border-emerald-200/60 shadow-xs">
+                  <Cloud className="h-3.5 w-3.5 text-emerald-600 animate-pulse" />
+                  <span className="max-w-[80px] truncate">{user.email?.split("@")[0]}</span>
+                  <button
+                    onClick={handleSignOut}
+                    title="התנתק"
+                    className="mr-0.5 text-emerald-600 hover:text-emerald-900 cursor-pointer"
+                  >
+                    <LogOut className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setShowAuthModal(true)}
+                  className="flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1.5 text-xs font-bold text-primary hover:bg-primary/20 transition-colors cursor-pointer"
+                >
+                  <LogIn className="h-3.5 w-3.5" />
+                  <span>התחברות</span>
+                </button>
+              )}
+              {action}
+            </div>
           </div>
         </div>
       </header>
@@ -58,6 +118,81 @@ export function AppShell({
       >
         {children}
       </main>
+
+      {showAuthModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
+          <div className="w-full max-w-sm rounded-3xl border border-white/80 bg-white p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b pb-3">
+              <div className="flex items-center gap-2">
+                <User className="h-5 w-5 text-primary" />
+                <h3 className="font-bold text-lg text-ink">
+                  {isSignUp ? "הרשמה ל-GymTrack" : "התחברות ל-GymTrack"}
+                </h3>
+              </div>
+              <button
+                onClick={() => setShowAuthModal(false)}
+                className="text-muted-foreground hover:text-ink font-bold text-sm px-2 cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            {errorMsg && (
+              <div className="rounded-xl bg-red-50 p-3 text-xs text-red-600 font-semibold border border-red-200">
+                {errorMsg}
+              </div>
+            )}
+
+            <form onSubmit={handleAuthSubmit} className="space-y-3">
+              <div>
+                <label className="block text-xs font-bold text-muted-foreground mb-1">
+                  כתובת אימייל
+                </label>
+                <input
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full rounded-xl border border-border px-3 py-2 text-sm outline-none focus:border-primary"
+                  placeholder="name@example.com"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-muted-foreground mb-1">
+                  סיסמה
+                </label>
+                <input
+                  type="password"
+                  required
+                  minLength={6}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full rounded-xl border border-border px-3 py-2 text-sm outline-none focus:border-primary"
+                  placeholder="••••••••"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full rounded-2xl bg-primary py-2.5 text-sm font-bold text-white shadow-md hover:bg-primary/90 disabled:opacity-50 cursor-pointer"
+              >
+                {loading ? "מעבד..." : isSignUp ? "צור חשבון" : "התחבר"}
+              </button>
+            </form>
+
+            <div className="text-center pt-2">
+              <button
+                onClick={() => setIsSignUp(!isSignUp)}
+                className="text-xs font-bold text-primary hover:underline cursor-pointer"
+              >
+                {isSignUp ? "כבר יש לך חשבון? התחבר כאן" : "אין לך חשבון? הירשם כאן"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <nav
         aria-label="ניווט ראשי"

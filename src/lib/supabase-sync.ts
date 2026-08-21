@@ -1,6 +1,6 @@
+import { ISRAELI_FOOD_DATABASE } from "./israeli-food-db";
 import { supabase } from "./supabase";
 import {
-  ISRAELI_FOOD_DATABASE,
   type Exercise,
   type FoodItem,
   type GymData,

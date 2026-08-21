@@ -1,5 +1,7 @@
 import { useSyncExternalStore } from "react";
 import { ISRAELI_FOOD_DATABASE } from "./israeli-food-db";
+import { supabase } from "./supabase";
+import { pullSupabaseData, syncLocalToSupabase } from "./supabase-sync";
 import {
   DEFAULT_MEALS,
   type BodyWeightLog,
@@ -241,8 +243,6 @@ const seed = (): GymData => {
     recipes: [],
     recentFoods: [],
     favoriteFoods: [],
-    // Deterministic id: seed() runs at module scope, and randomness there is
-    // rejected by the production edge runtime.
     bodyWeightLogs: [{ id: "bw-seed", date: todayKey(), weight: 65 }],
     cardioLogs: [],
     userProfile: { weight: 65, height: 165, age: 26, gender: "female", workoutsPerWeek: 4 },
@@ -251,6 +251,7 @@ const seed = (): GymData => {
 
 let data: GymData = seed();
 let hydrated = false;
+let currentUser: any = null;
 const listeners = new Set<() => void>();
 
 /** Merge food database so saved data retains all Israeli supermarket items */
@@ -301,6 +302,35 @@ function load() {
   } catch {
     /* ignore */
   }
+
+  // Setup Supabase Auth state listener
+  if (typeof window !== "undefined") {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        currentUser = session.user;
+        handleUserLogin(session.user.id);
+      }
+    });
+
+    supabase.auth.onAuthStateChange((event, session) => {
+      currentUser = session?.user || null;
+      if (session?.user) {
+        handleUserLogin(session.user.id);
+      } else {
+        listeners.forEach((l) => l());
+      }
+    });
+  }
+}
+
+async function handleUserLogin(userId: string) {
+  // First, upload any local data to Supabase
+  await syncLocalToSupabase(userId, data);
+  // Then pull latest merged state from Supabase
+  const pulled = await pullSupabaseData(userId, data);
+  data = pulled;
+  persist();
+  listeners.forEach((l) => l());
 }
 
 function persist() {
@@ -309,6 +339,13 @@ function persist() {
     window.localStorage.setItem(KEY, JSON.stringify(data));
   } catch {
     /* ignore */
+  }
+
+  // Trigger async background push to Supabase if logged in
+  if (currentUser?.id) {
+    syncLocalToSupabase(currentUser.id, data).catch((e) =>
+      console.warn("[Background Supabase Sync Warning]:", e)
+    );
   }
 }
 
@@ -320,11 +357,6 @@ function set(next: GymData) {
 
 function subscribe(cb: () => void) {
   listeners.add(cb);
-  // Load persisted data only AFTER the first client render has committed, so
-  // the initial client tree matches the server-rendered HTML. Loading inside
-  // getSnapshot() made the very first client render use localStorage data
-  // while the server used the seed — that mismatch aborted hydration and left
-  // the whole app without event handlers (nothing was clickable).
   if (!hydrated) {
     load();
     listeners.forEach((l) => l());
@@ -340,6 +372,10 @@ function getServerSnapshot(): GymData {
 
 export function useGym(): GymData {
   return useSyncExternalStore(subscribe, () => data, getServerSnapshot);
+}
+
+export function useAuthUser() {
+  return currentUser;
 }
 
 /* ---------- rep helpers ---------- */
@@ -617,13 +653,11 @@ export function calculateRmr(profile?: UserProfile) {
   const a = p.age || 26;
   const isFemale = p.gender !== "male";
 
-  // Mifflin-St Jeor Formula
   const baseRmr = 10 * w + 6.25 * h - 5 * a + (isFemale ? -161 : 5);
   const rmr = Math.round(baseRmr);
 
-  // Daily Energy Expenditure estimate based on weekly workouts
   const frequency = p.workoutsPerWeek ?? 4;
-  let mult = 1.2; // sedentary
+  let mult = 1.2;
   if (frequency >= 1 && frequency <= 2) mult = 1.375;
   else if (frequency >= 3 && frequency <= 4) mult = 1.55;
   else if (frequency >= 5) mult = 1.725;
@@ -647,7 +681,7 @@ export function calculateCardioCalories(
   inclinePct = 0,
 ): number {
   if (durationMin <= 0) return 0;
-  let met = 5; // default moderate MET
+  let met = 5;
 
   if (type.includes("הליכון") || type.includes("Treadmill") || type.includes("ריצה")) {
     met = speedKmH >= 10 ? 10 : speedKmH >= 8 ? 8 : 4.5;
@@ -664,7 +698,6 @@ export function calculateCardioCalories(
     met = 9;
   }
 
-  // Calories = MET * weight_kg * duration_hours
   const calories = met * weightKg * (durationMin / 60);
   return Math.round(calories);
 }
@@ -728,17 +761,16 @@ function withDay(date: string, updater: (day: NutritionDay) => NutritionDay) {
   set({ ...data, nutritionDays: days });
 }
 
-/** Determine meal index based on time logged (08:30 -> Breakfast, 13:15 -> Lunch, 19:30 -> Dinner) */
 export function autoMealIndexForTime(timeStr?: string): number {
   const now = new Date();
   const hours = timeStr ? parseInt(timeStr.split(":")[0] ?? "12", 10) : now.getHours();
 
-  if (hours < 10) return 0; // ארוחת בוקר
-  if (hours < 12) return 1; // נשנוש בוקר
-  if (hours < 15) return 2; // ארוחת צהריים
-  if (hours < 18) return 3; // נשנוש אחה"צ
-  if (hours < 21) return 4; // ארוחת ערב
-  return 5; // נשנוש לילה
+  if (hours < 10) return 0;
+  if (hours < 12) return 1;
+  if (hours < 15) return 2;
+  if (hours < 18) return 3;
+  if (hours < 21) return 4;
+  return 5;
 }
 
 export function addFoodAutoMeal(date: string, food: MealFood) {
@@ -761,7 +793,6 @@ export function addFoodAutoMeal(date: string, food: MealFood) {
     return { ...day, meals };
   });
 
-  // Track as recent food
   if (food.foodId) {
     const recent = [food.foodId, ...(data.recentFoods ?? []).filter((id) => id !== food.foodId)];
     set({ ...data, recentFoods: recent.slice(0, 20) });
@@ -842,7 +873,6 @@ export function emptyMealFood(): MealFood {
   };
 }
 
-/** Convert a library food into a meal food entry (quantity 1). */
 export function mealFoodFromLibrary(food: FoodItem): MealFood {
   return {
     id: uid(),
@@ -868,9 +898,6 @@ function normalizeSearch(s: string) {
     .trim();
 }
 
-/**
- * Forgiving Hebrew food search (e.g., "קוטג" matches "קוטג'", "ביצה" matches "ביצים").
- */
 export function searchFoods(foods: FoodItem[], query: string) {
   const normalized = normalizeSearch(query);
   if (!normalized) return foods;
@@ -892,9 +919,6 @@ export function searchFoods(foods: FoodItem[], query: string) {
   });
 }
 
-/**
- * Finds food replacements with EXACT calorie matching formula.
- */
 export function findFoodReplacements(
   foods: FoodItem[],
   current: Pick<MealFood, "foodId" | "name" | "calories" | "protein" | "quantity">,
@@ -934,7 +958,6 @@ export type MacroTotals = {
 
 const round1 = (n: number) => Math.round(n * 10) / 10;
 
-/** Totals for a list of meal foods, scaled by each food's quantity. */
 export function foodTotals(foods: MealFood[]): MacroTotals {
   return foods.reduce<MacroTotals>(
     (t, f) => ({
@@ -948,7 +971,6 @@ export function foodTotals(foods: MealFood[]): MacroTotals {
   );
 }
 
-/** Totals across every meal in a day. */
 export function dayTotals(day: NutritionDay): MacroTotals {
   const all = day.meals.flatMap((m) => m.foods);
   const t = foodTotals(all);
