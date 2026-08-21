@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
-import { Apple, Dumbbell, History, Home, LayoutGrid } from "lucide-react";
-import type { ReactNode } from "react";
+import { Apple, Cloud, Dumbbell, History, Home, LayoutGrid } from "lucide-react";
+import { useState, type ReactNode } from "react";
+import { AuthModal } from "./AuthModal";
 
 const NAV: { to: string; label: string; id: string; icon: typeof Home }[] = [
   { to: "/", label: "בית", id: "home", icon: Home },
@@ -23,8 +24,11 @@ export function AppShell({
   action?: ReactNode | undefined;
   children: ReactNode;
 }) {
+  const [authOpen, setAuthOpen] = useState(false);
+
   return (
     <div className="min-h-[100dvh] w-full bg-background text-foreground" dir="rtl">
+      <AuthModal open={authOpen} onClose={() => setAuthOpen(false)} />
       <header
         className="sticky top-0 z-30 border-b border-border/30 bg-background/85 backdrop-blur-xl"
         style={{ paddingTop: "max(0.6rem, env(safe-area-inset-top))" }}
@@ -46,7 +50,17 @@ export function AppShell({
                 </p>
               ) : null}
             </div>
-            {action ? <div className="flex shrink-0 items-center gap-2 pt-0.5">{action}</div> : null}
+            <div className="flex shrink-0 items-center gap-1.5 pt-0.5">
+              <button
+                type="button"
+                onClick={() => setAuthOpen(true)}
+                aria-label="חשבון וסנכרון ענן"
+                className="press grid h-11 w-11 place-items-center rounded-2xl bg-secondary text-muted-foreground hover:text-primary transition-colors"
+              >
+                <Cloud className="h-5 w-5" strokeWidth={2} />
+              </button>
+              {action}
+            </div>
           </div>
         </div>
       </header>

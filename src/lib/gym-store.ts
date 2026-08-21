@@ -211,6 +211,51 @@ function persist() {
   }
 }
 
+async function syncToCloudBackground(actionType: string, payload: unknown) {
+  if (!supabase || !isSupabaseConfigured) return;
+  try {
+    const { data: userData } = await supabase.auth.getUser();
+    if (!userData?.user) return;
+    const userId = userData.user.id;
+
+    if (actionType === "program" && typeof payload === "object" && payload !== null) {
+      const p = payload as Program;
+      await supabase.from("programs").upsert({
+        id: p.id,
+        user_id: userId,
+        name: p.name,
+        notes: p.notes ?? "",
+        day_ids: p.dayIds,
+        updated_at: new Date().toISOString(),
+      });
+    } else if (actionType === "workout" && typeof payload === "object" && payload !== null) {
+      const w = payload as Workout;
+      await supabase.from("program_days").upsert({
+        id: w.id,
+        user_id: userId,
+        name: w.name,
+        notes: w.notes ?? "",
+        items: w.items,
+        updated_at: new Date().toISOString(),
+      });
+    } else if (actionType === "session" && typeof payload === "object" && payload !== null) {
+      const s = payload as HistorySession;
+      await supabase.from("workout_sessions").upsert({
+        id: s.id,
+        user_id: userId,
+        workout_id: s.workoutId,
+        workout_name: s.workoutName,
+        program_name: s.programName,
+        date: s.date,
+        duration_sec: s.durationSec,
+        entries: s.entries,
+      });
+    }
+  } catch {
+    /* ignore network errors to preserve local offline cache */
+  }
+}
+
 function set(next: GymData) {
   data = next;
   persist();
