@@ -1,5 +1,7 @@
 export type UserRole = "coach" | "client";
 
+export type AnimalCharacter = "dog" | "cat" | "panda" | "fox" | "koala" | "bunny" | "bear" | "lion" | "penguin";
+
 export type ClientLink = {
   id: string;
   clientId: string;
@@ -37,26 +39,20 @@ export type Exercise = {
   tips?: string;
 };
 
-/** How the programmed reps are expressed for a workout item. */
 export type RepType = "fixed" | "range";
 
-/** An optional warm-up set programmed for an exercise. */
 export type WarmupSet = {
   id: string;
   weight: number;
   reps: number;
 };
 
-/** Per-set configuration: each set can have its own weight/reps and dropSet flag */
 export type WorkingSet = {
   id: string;
   setNumber: number;
   weight: number;
-  /** Fixed reps, or the low end of a range */
   reps: number;
-  /** Range maximum reps (when repType === "range"). */
   repMax?: number;
-  /** A drop set follows a working set with reduced weight. */
   dropSet?: boolean;
 };
 
@@ -64,37 +60,22 @@ export type WorkoutItem = {
   id: string;
   exerciseId: string;
   sets: number;
-  /** Fixed reps, or the low end of a range. */
   reps: number;
-  /** "fixed" (default) or "range". Older data without this is treated as fixed. */
   repType?: RepType;
-  /** Range minimum reps (when repType === "range"). */
   repMin?: number;
-  /** Range maximum reps (when repType === "range"). */
   repMax?: number;
-  /** Per-set weight configuration. Each set has independent weight/reps/dropSet. */
   workingSets?: WorkingSet[];
-  /** Prescribed Coach Target Weight */
   targetWeight?: number;
-  /** Legacy single weight field. */
   weight: number;
   rest: number; // seconds
   notes: string;
-  /** Coach Technique Instructions */
   techniqueNotes?: string;
-  /** Coach Approved Alternative Exercise IDs */
   approvedAlternatives?: string[];
-  /** Drop set configuration */
   dropSetConfig?: DropSetConfig;
-  /** Optional tempo string, e.g. "3-1-1-0". */
   tempo?: string;
-  /** Optional Reps In Reserve target. */
   rir?: number | null;
-  /** Optional Rate of Perceived Exertion target. */
   rpe?: number | null;
-  /** Optional warm-up sets. */
   warmups?: WarmupSet[];
-  /** Items that share a supersetId are performed together as an explicit superset. */
   supersetId?: string;
 };
 
@@ -105,7 +86,6 @@ export type Workout = {
   items: WorkoutItem[];
 };
 
-/** A training program: a named collection of workout days. */
 export type Program = {
   id: string;
   name: string;
@@ -143,9 +123,9 @@ export type HistorySession = {
   date: string; // ISO
   durationSec: number;
   entries: HistoryEntry[];
+  difficultyRating?: "easy" | "appropriate" | "difficult";
+  discomfortNotes?: string;
 };
-
-/* ---------- nutrition & user profile ---------- */
 
 export type FoodItem = {
   id: string;
@@ -162,7 +142,7 @@ export type FoodItem = {
   notes?: string;
   searchTerms?: string[];
   favorite?: boolean;
-  approvedSubstitutes?: string[]; // foodIds approved by coach
+  approvedSubstitutes?: string[];
 };
 
 export type MealFood = {
@@ -235,6 +215,28 @@ export type ClientHabits = {
   busyDayMode: boolean;
 };
 
+export type CoachMessage = {
+  id: string;
+  coachId: string;
+  clientId: string;
+  message: string;
+  createdAt: string;
+  isRead?: boolean;
+};
+
+export type CoachChangeHistory = {
+  id: string;
+  coachId: string;
+  clientId: string;
+  changeDescription: string;
+  createdAt: string;
+};
+
+export type FoodPreferences = {
+  liked: string[];
+  disliked: string[];
+};
+
 export type CardioLog = {
   id: string;
   date: string; // YYYY-MM-DD
@@ -254,6 +256,9 @@ export type UserProfile = {
   workoutsPerWeek?: number;
   role?: UserRole;
   coachId?: string;
+  animalCharacter?: AnimalCharacter;
+  foodPreferences?: FoodPreferences;
+  todayRoutineEnabled?: boolean;
 };
 
 export type GymData = {
@@ -272,6 +277,8 @@ export type GymData = {
   bodyWeightLogs?: BodyWeightLog[];
   bodyMeasurements?: BodyMeasurement[];
   habits?: ClientHabits[];
+  coachMessages?: CoachMessage[];
+  changeHistory?: CoachChangeHistory[];
   cardioLogs?: CardioLog[];
   userProfile?: UserProfile;
   clients?: ClientLink[];
@@ -351,4 +358,16 @@ export const CARDIO_TYPES = [
   "שחייה",
   "טניס",
   "אימון אינטרוולים (HIIT)",
+];
+
+export const ANIMAL_CHARACTERS: { id: AnimalCharacter; name: string; emoji: string }[] = [
+  { id: "dog", name: "כלבלב", emoji: "🐶" },
+  { id: "cat", name: "חתלתול", emoji: "🐱" },
+  { id: "panda", name: "פנדה", emoji: "🐼" },
+  { id: "fox", name: "שועל", emoji: "🦊" },
+  { id: "koala", name: "קואלה", emoji: "🐨" },
+  { id: "bunny", name: "ארנב", emoji: "🐰" },
+  { id: "bear", name: "דובב", emoji: "🐻" },
+  { id: "lion", name: "אריה", emoji: "🦁" },
+  { id: "penguin", name: "פינגווין", emoji: "🐧" },
 ];

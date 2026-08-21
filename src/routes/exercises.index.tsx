@@ -1,6 +1,6 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { ChevronLeft, Dumbbell, Plus, Search, SlidersHorizontal } from "lucide-react";
-import { useState } from "react";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { ChevronLeft, Dumbbell, Plus, Search, Shield, SlidersHorizontal } from "lucide-react";
+import { useEffect, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { EmptyState, Pill, SectionHeader } from "@/components/ui-app/primitives";
 import { useGym } from "@/lib/gym-store";
@@ -21,11 +21,36 @@ export const Route = createFileRoute("/exercises/")({
 });
 
 function Library() {
-  const { exercises } = useGym();
+  const { exercises, userProfile } = useGym();
+  const navigate = useNavigate();
+  const isCoach = userProfile?.role === "coach";
+
+  useEffect(() => {
+    if (userProfile && !isCoach) {
+      navigate({ to: "/" });
+    }
+  }, [userProfile, isCoach, navigate]);
+
   const [q, setQ] = useState("");
   const [group, setGroup] = useState("הכל");
   const [equipment, setEquipment] = useState("הכל");
   const [filtersOpen, setFiltersOpen] = useState(false);
+
+  if (!isCoach) {
+    return (
+      <AppShell title="ספריית תרגילים" kicker="גישת מאמן בלבד">
+        <div className="surface-card p-6 text-center space-y-4 rounded-3xl mt-4">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-50 text-amber-600">
+            <Shield className="h-7 w-7" />
+          </div>
+          <h2 className="font-display text-xl font-bold text-ink">גישה שמורה למאמנים</h2>
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            ספריית התרגילים הכללית מנוהלת על ידי המאמן שלך. התרגילים שהוקצו עבורך מופיעים ישירות בתוך בלשונית "תוכניות".
+          </p>
+        </div>
+      </AppShell>
+    );
+  }
 
   const query = q.toLowerCase();
   const list = exercises.filter(
@@ -51,7 +76,7 @@ function Library() {
           to="/exercises/$exerciseId"
           params={{ exerciseId: "new" }}
           aria-label="הוסף תרגיל"
-          className="press grid h-11 w-11 place-items-center rounded-2xl bg-primary text-primary-foreground"
+          className="press grid h-11 w-11 place-items-center rounded-2xl bg-primary text-primary-foreground cursor-pointer"
         >
           <Plus className="h-5 w-5" strokeWidth={2.4} />
         </Link>
@@ -69,7 +94,7 @@ function Library() {
         <button
           type="button"
           onClick={() => setFiltersOpen((v) => !v)}
-          className="press relative grid h-9 w-9 place-items-center rounded-xl text-muted-foreground hover:bg-secondary"
+          className="press relative grid h-9 w-9 place-items-center rounded-xl text-muted-foreground hover:bg-secondary cursor-pointer"
           aria-label="סינון"
         >
           <SlidersHorizontal className="h-4 w-4" />
@@ -101,14 +126,14 @@ function Library() {
 
       {/* Filter rail */}
       {filtersOpen ? (
-        <div className="surface-card mt-3 p-4">
+        <div className="surface-card mt-3 p-4 text-start">
           <SectionHeader title="סינון לפי שריר" className="mb-2" />
           <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-2 no-scrollbar">
             {["הכל", ...MUSCLE_GROUPS].map((g) => (
               <button
                 key={g}
                 onClick={() => setGroup(g)}
-                className={`press shrink-0 rounded-full px-3.5 py-1.5 text-[12px] font-semibold transition-colors ${
+                className={`press shrink-0 rounded-full px-3.5 py-1.5 text-[12px] font-semibold transition-colors cursor-pointer ${
                   group === g
                     ? "bg-primary text-primary-foreground shadow-sm"
                     : "bg-secondary text-muted-foreground"
@@ -124,7 +149,7 @@ function Library() {
               <button
                 key={eq}
                 onClick={() => setEquipment(eq)}
-                className={`press shrink-0 rounded-full px-3 py-1.5 text-[11.5px] font-semibold transition-colors ${
+                className={`press shrink-0 rounded-full px-3 py-1.5 text-[11.5px] font-semibold transition-colors cursor-pointer ${
                   equipment === eq
                     ? "bg-primary text-primary-foreground shadow-sm"
                     : "bg-secondary text-muted-foreground"
@@ -138,8 +163,8 @@ function Library() {
       ) : null}
 
       <SectionHeader
-        className="mt-5"
-        title={`${list.length} תרגילים`}
+        className="mt-5 text-start"
+        title={`${list.length} תרגילים בספרייה`}
         subtitle="לחצי על תרגיל לעריכה ופרטים"
       />
 
@@ -188,7 +213,7 @@ function Library() {
             <Link
               to="/exercises/$exerciseId"
               params={{ exerciseId: "new" }}
-              className="press inline-flex h-11 items-center gap-2 rounded-full bg-primary px-5 text-[13.5px] font-semibold text-primary-foreground"
+              className="press inline-flex h-11 items-center gap-2 rounded-full bg-primary px-5 text-[13.5px] font-semibold text-primary-foreground cursor-pointer"
             >
               <Plus className="h-4 w-4" strokeWidth={2.4} />
               תרגיל חדש

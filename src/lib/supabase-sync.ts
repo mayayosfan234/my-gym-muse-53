@@ -1,7 +1,9 @@
 import { ISRAELI_FOOD_DATABASE } from "./israeli-food-db";
 import { supabase } from "./supabase";
 import {
+  type AnimalCharacter,
   type ClientLink,
+  type CoachMessage,
   type Exercise,
   type FoodItem,
   type GymData,
@@ -15,16 +17,13 @@ import {
 
 export type SyncStatus = "idle" | "syncing" | "synced" | "error" | "offline";
 
-/**
- * Upload local state to Supabase for an authenticated user.
- */
 export async function syncLocalToSupabase(
   userId: string,
   localData: GymData,
   userEmail?: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    // 1. Profile (including email & role)
+    // 1. Profile
     if (localData.userProfile || userEmail) {
       const p = localData.userProfile ?? { weight: 65 };
       await supabase.from("profiles").upsert(
@@ -35,6 +34,8 @@ export async function syncLocalToSupabase(
           height_cm: p.height,
           role: p.role || "client",
           coach_id: p.coachId || null,
+          animal_character: p.animalCharacter || "dog",
+          today_routine_enabled: p.todayRoutineEnabled ?? true,
           updated_at: new Date().toISOString(),
         },
         { onConflict: "id" }
@@ -186,9 +187,6 @@ export async function syncLocalToSupabase(
   }
 }
 
-/**
- * Download cloud state from Supabase for an authenticated user.
- */
 export async function pullSupabaseData(
   userId: string,
   localState: GymData
@@ -210,10 +208,30 @@ export async function pullSupabaseData(
         height: profile.height_cm ? Number(profile.height_cm) : nextData.userProfile?.height,
         role: (profile.role as UserRole) || "client",
         coachId: profile.coach_id || undefined,
+        animalCharacter: (profile.animal_character as AnimalCharacter) || "dog",
+        todayRoutineEnabled: profile.today_routine_enabled ?? true,
       };
     }
 
-    // 2. If Coach, fetch client links
+    // 2. Fetch Coach Messages if Client
+    const { data: messages } = await supabase
+      .from("coach_messages")
+      .select("*")
+      .eq("client_id", userId)
+      .order("created_at", { ascending: false });
+
+    if (messages && messages.length > 0) {
+      nextData.coachMessages = messages.map((m) => ({
+        id: m.id,
+        coachId: m.coach_id,
+        clientId: m.client_id,
+        message: m.message,
+        createdAt: m.created_at,
+        isRead: m.is_read,
+      }));
+    }
+
+    // 3. If Coach, fetch client links
     if (nextData.userProfile?.role === "coach") {
       const { data: clientLinks } = await supabase
         .from("coach_clients")
@@ -231,7 +249,7 @@ export async function pullSupabaseData(
       }
     }
 
-    // 3. Custom Exercises
+    // 4. Custom Exercises
     const { data: dbCustomExercises } = await supabase
       .from("custom_exercises")
       .select("*")
@@ -255,7 +273,7 @@ export async function pullSupabaseData(
       nextData.exercises = Array.from(customMap.values());
     }
 
-    // 4. Programs & Days
+    // 5. Programs & Days
     const { data: dbPrograms } = await supabase
       .from("programs")
       .select("*")
@@ -299,7 +317,7 @@ export async function pullSupabaseData(
       nextData.workouts = Array.from(workoutsMap.values());
     }
 
-    // 5. History Sessions
+    // 6. History Sessions
     const { data: dbSessions } = await supabase
       .from("workout_sessions")
       .select("*")
@@ -320,7 +338,7 @@ export async function pullSupabaseData(
       nextData.history = historyList;
     }
 
-    // 6. Custom Foods
+    // 7. Custom Foods
     const { data: dbCustomFoods } = await supabase
       .from("custom_foods")
       .select("*")
@@ -347,7 +365,7 @@ export async function pullSupabaseData(
       nextData.foods = Array.from(foodMap.values());
     }
 
-    // 7. Nutrition Days
+    // 8. Nutrition Days
     const { data: dbNutritionDays } = await supabase
       .from("nutrition_days")
       .select("*")
@@ -362,7 +380,7 @@ export async function pullSupabaseData(
       nextData.nutritionDays = daysList;
     }
 
-    // 8. Food Favorites
+    // 9. Food Favorites
     const { data: dbFavs } = await supabase
       .from("food_favorites")
       .select("food_id")
@@ -378,9 +396,6 @@ export async function pullSupabaseData(
   return nextData;
 }
 
-/**
- * Fetch a specific client's data for a coach.
- */
 export async function pullClientDataForCoach(clientId: string): Promise<{
   programs: Program[];
   workouts: Workout[];

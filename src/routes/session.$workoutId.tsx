@@ -15,6 +15,11 @@ import {
   Timer,
   X,
   Sparkles,
+  Zap,
+  Award,
+  Smile,
+  Meh,
+  Frown,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AppShell } from "@/components/AppShell";
@@ -82,10 +87,13 @@ function Session() {
   const currentProgram = programs.find((program) => program.dayIds.includes(workoutId));
   const [cardExercise, setCardExercise] = useState<Exercise | null>(null);
 
-  // Pause / Resume session
+  const [isLowEnergy, setIsLowEnergy] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
 
-  // Exercise replacement modal state
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+  const [difficultyRating, setDifficultyRating] = useState<"easy" | "appropriate" | "difficult">("appropriate");
+  const [discomfortNotes, setDiscomfortNotes] = useState("");
+
   const [replacingIndex, setReplacingIndex] = useState<number | null>(null);
   const [replaceSearch, setReplaceSearch] = useState("");
 
@@ -108,9 +116,14 @@ function Session() {
       const ex = exercises.find((e) => e.id === item.exerciseId);
       const last = lastPerformance(history, item.exerciseId);
       const isRange = item.repType === "range";
-      const targetReps = isRange ? (item.repMin ?? item.reps) : item.reps;
+
+      const weightMult = isLowEnergy ? 0.85 : 1.0;
+      const prescribedWeight = Math.round((item.targetWeight || item.weight) * weightMult * 2) / 2;
+
+      const targetReps = isRange
+        ? Math.max(1, (item.repMin ?? item.reps) - (isLowEnergy ? 1 : 0))
+        : Math.max(1, item.reps - (isLowEnergy ? 1 : 0));
       const targetRepMax = isRange ? item.repMax : undefined;
-      const prescribedWeight = item.targetWeight || item.weight;
 
       const warmups: LoggedSet[] = (item.warmups ?? []).map((w) => ({
         reps: w.reps,
@@ -139,13 +152,11 @@ function Session() {
         sets: [...warmups, ...working],
       };
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [workoutId]);
+  }, [workoutId, isLowEnergy]);
 
   const [entries, setEntries] = useState<HistoryEntry[]>(initial);
   const [startedAt] = useState(() => Date.now());
   const [rest, setRest] = useState(0);
-  const [customRest, setCustomRest] = useState("");
   const [pendingExit, setPendingExit] = useState(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -232,7 +243,7 @@ function Session() {
     0,
   );
 
-  const finish = () => {
+  const handleFinishConfirm = () => {
     saveSession({
       id: uid(),
       workoutId: workout.id,
@@ -241,14 +252,16 @@ function Session() {
       date: new Date().toISOString(),
       durationSec: Math.round((Date.now() - startedAt) / 1000),
       entries: entries.map((e) => ({ ...e, sets: e.sets.filter((s) => s.done) })),
+      difficultyRating,
+      discomfortNotes: discomfortNotes.trim() || undefined,
     });
     clearSavedSession();
+    setShowFeedbackModal(false);
     navigate({ to: "/programs" });
   };
 
   const progress = totalSets ? (doneSets / totalSets) * 100 : 0;
 
-  // Filter approved alternatives if coach set them, otherwise default to same muscle group
   const currentItem = replacingIndex !== null ? workout.items[replacingIndex] : null;
   const approvedIds = currentItem?.approvedAlternatives;
 
@@ -256,7 +269,6 @@ function Session() {
     if (approvedIds && approvedIds.length > 0) {
       return approvedIds.includes(ex.id);
     }
-    // Filter by search
     return (
       ex.name.toLowerCase().includes(replaceSearch.toLowerCase()) ||
       ex.muscleGroup.toLowerCase().includes(replaceSearch.toLowerCase())
@@ -270,6 +282,17 @@ function Session() {
       subtitle={`${doneSets} מתוך ${totalSets} סטים · בהצלחה!`}
       action={
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => setIsLowEnergy(!isLowEnergy)}
+            className={`p-2 rounded-full border transition-colors cursor-pointer ${
+              isLowEnergy
+                ? "bg-amber-100 text-amber-800 border-amber-300"
+                : "bg-secondary text-ink hover:bg-secondary/80"
+            }`}
+            title="מצב ללא אנרגיה"
+          >
+            <Zap className="h-4 w-4" />
+          </button>
           <button
             onClick={() => setIsPaused(!isPaused)}
             className={`p-2 rounded-full border transition-colors cursor-pointer ${
@@ -287,9 +310,22 @@ function Session() {
         </div>
       }
     >
+      {/* Low Energy Mode Banner */}
+      {isLowEnergy && (
+        <div className="surface-card p-3 rounded-2xl bg-amber-50 text-amber-800 border border-amber-200 text-start space-y-1 mb-3">
+          <div className="flex items-center gap-1.5 font-bold text-xs">
+            <Zap className="h-4 w-4 text-amber-600" />
+            <span>מצב יום ללא אנרגיה מופעל</span>
+          </div>
+          <p className="text-[11.5px] text-amber-700">
+            הותאם עבורך נפח אימון קל יותר (משקל קל ב-15%) מבלי לשנות את התוכנית המקורית של המאמן!
+          </p>
+        </div>
+      )}
+
       {/* Pause Banner */}
       {isPaused && (
-        <div className="surface-card p-3 rounded-2xl bg-amber-50 text-amber-800 border border-amber-200 text-center font-bold text-xs">
+        <div className="surface-card p-3 rounded-2xl bg-amber-50 text-amber-800 border border-amber-200 text-center font-bold text-xs mb-3">
           ⏸ האימון מושהה כעת. חזרי מתי שנוח לך!
         </div>
       )}
@@ -324,7 +360,6 @@ function Session() {
           const supersetLabel = labels[ei];
           const fullExercise = exercises.find((e) => e.id === entry.exerciseId);
           const workingCount = entry.sets.filter((s) => !s.warmup).length;
-          const doneCount = entry.sets.filter((s) => s.done && !s.warmup).length;
           const prescribedWeight = item?.targetWeight || item?.weight || 0;
 
           return (
@@ -462,10 +497,77 @@ function Session() {
       </div>
 
       <div className="mt-6">
-        <PrimaryButton onClick={finish} leading={<Check className="h-4 w-4" strokeWidth={2.4} />}>
+        <PrimaryButton
+          onClick={() => setShowFeedbackModal(true)}
+          leading={<Check className="h-4 w-4" strokeWidth={2.4} />}
+        >
           סיים ושמור אימון
         </PrimaryButton>
       </div>
+
+      {/* Post Workout Feedback Modal */}
+      {showFeedbackModal && (
+        <div
+          className="fade-in fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
+          onClick={() => setShowFeedbackModal(false)}
+        >
+          <div
+            className="w-full max-w-sm rounded-3xl border border-white/80 bg-white p-5 shadow-2xl space-y-4 text-start"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="text-center space-y-1">
+              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-700">
+                <Award className="h-6 w-6" />
+              </div>
+              <h3 className="font-display text-lg font-bold text-ink">אימון מצוין! איך הרגשת?</h3>
+              <p className="text-xs text-muted-foreground">המשוב ישודר ישירות ללוח המאמן שלך</p>
+            </div>
+
+            <div className="space-y-2">
+              <label className="block text-xs font-bold text-muted-foreground">דרגת קושי</label>
+              <div className="grid grid-cols-3 gap-2">
+                {[
+                  { id: "easy", label: "קל מדי", icon: Smile, color: "text-emerald-600" },
+                  { id: "appropriate", label: "מדויק", icon: Meh, color: "text-primary" },
+                  { id: "difficult", label: "קשה מדי", icon: Frown, color: "text-rose-600" },
+                ].map(({ id, label, icon: Icon, color }) => (
+                  <button
+                    key={id}
+                    onClick={() => setDifficultyRating(id as any)}
+                    className={`p-2.5 rounded-2xl border text-center font-bold text-xs flex flex-col items-center gap-1 cursor-pointer transition-all ${
+                      difficultyRating === id
+                        ? "border-primary bg-primary/10 shadow-xs scale-105"
+                        : "border-border/60 hover:border-border"
+                    }`}
+                  >
+                    <Icon className={`h-5 w-5 ${color}`} />
+                    <span>{label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-muted-foreground mb-1">
+                דיווח על אי-נוחות / הערה למאמן (אופציונלי)
+              </label>
+              <textarea
+                value={discomfortNotes}
+                onChange={(e) => setDiscomfortNotes(e.target.value)}
+                placeholder="למשל: עומס קל במרפק ימין בסט האחרון..."
+                className="w-full rounded-2xl border border-border p-2.5 text-xs outline-none focus:border-primary h-16"
+              />
+            </div>
+
+            <button
+              onClick={handleFinishConfirm}
+              className="w-full rounded-2xl bg-primary py-3 text-sm font-bold text-white shadow-md cursor-pointer hover:bg-primary/90"
+            >
+              אישור ושמירת אימון
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Floating Rest Timer Bar */}
       {rest > 0 ? (

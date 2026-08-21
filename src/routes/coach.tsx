@@ -17,6 +17,10 @@ import {
   ArrowRight,
   ListPlus,
   CheckCircle2,
+  MessageSquare,
+  AlertCircle,
+  BookOpen,
+  Search,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { AppShell } from "../components/AppShell";
@@ -33,12 +37,17 @@ function CoachDashboardPage() {
   const store = useGym();
   const isCoach = store.userProfile?.role === "coach";
   const [clients, setClients] = useState<any[]>(store.clients || []);
+  const [clientSearch, setClientSearch] = useState("");
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
   const [clientDetails, setClientDetails] = useState<any>(null);
   const [loadingDetails, setLoadingDetails] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteMsg, setInviteMsg] = useState("");
   const [showAddModal, setShowAddModal] = useState(false);
+
+  // Coach Message sender state
+  const [coachMsgText, setCoachMsgText] = useState("");
+  const [msgSentNotice, setMsgSentNotice] = useState("");
 
   // Coach Program & Day Builder state
   const [newProgramName, setNewProgramName] = useState("");
@@ -101,6 +110,31 @@ function CoachDashboardPage() {
       setLoadingDetails(false);
     });
   }, [selectedClientId]);
+
+  // Send Coach Message to Client
+  const handleSendCoachMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedClientId || !coachMsgText.trim()) return;
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { error } = await supabase.from("coach_messages").insert({
+        coach_id: user.id,
+        client_id: selectedClientId,
+        message: coachMsgText.trim(),
+      });
+
+      if (!error) {
+        setMsgSentNotice("הודעת החיזוק נשלחה בהצלחה למתאמן!");
+        setCoachMsgText("");
+        setTimeout(() => setMsgSentNotice(""), 3000);
+      }
+    } catch {
+      /* ignore */
+    }
+  };
 
   // Add Client by Email via RPC lookup
   const handleAddClient = async (e: React.FormEvent) => {
@@ -295,6 +329,13 @@ function CoachDashboardPage() {
     );
   }
 
+  const filteredClients = clients.filter((c) => {
+    const emailStr = (c.profiles?.email || "").toLowerCase();
+    const nameStr = (c.profiles?.full_name || "").toLowerCase();
+    const q = clientSearch.toLowerCase();
+    return !q || emailStr.includes(q) || nameStr.includes(q);
+  });
+
   const selectedClientInfo = clients.find((c) => c.client_id === selectedClientId);
 
   return (
@@ -333,27 +374,38 @@ function CoachDashboardPage() {
           </div>
         </div>
 
-        {/* Client List */}
-        <div className="space-y-2">
+        {/* Client Search & List */}
+        <div className="space-y-2.5">
           <div className="flex items-center justify-between px-1">
             <h3 className="font-bold text-sm text-ink flex items-center gap-1.5">
               <Users className="h-4 w-4 text-primary" /> רשימת המתאמנים שלי
             </h3>
           </div>
 
-          {clients.length === 0 ? (
+          <div className="num-pill flex h-10 items-center gap-2 px-3">
+            <Search className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+            <input
+              type="text"
+              value={clientSearch}
+              onChange={(e) => setClientSearch(e.target.value)}
+              placeholder="סינון מתאמנים לפי שם או אימייל..."
+              className="w-full bg-transparent text-xs outline-none"
+            />
+          </div>
+
+          {filteredClients.length === 0 ? (
             <div className="surface-card p-6 text-center text-muted-foreground rounded-2xl text-xs space-y-2">
-              <p>עדיין לא שויכו מתאמנים לחשבון המאמן שלך.</p>
+              <p>לא נמצאו מתאמנים רשומים.</p>
               <button
                 onClick={() => setShowAddModal(true)}
                 className="text-primary font-bold hover:underline cursor-pointer"
               >
-                לחצי כאן להוספת מתאמן ראשון לפי אימייל
+                לחצי כאן להוספת מתאמן לפי אימייל
               </button>
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-2.5">
-              {clients.map((c) => {
+              {filteredClients.map((c) => {
                 const isSelected = c.client_id === selectedClientId;
                 const emailStr = c.profiles?.email || "מתאמן";
                 const nameStr = c.profiles?.full_name || emailStr.split("@")[0];
@@ -424,6 +476,36 @@ function CoachDashboardPage() {
               </div>
             ) : (
               <div className="space-y-4">
+                {/* Send Coach Message Panel */}
+                <div className="surface-card p-4 rounded-2xl space-y-2.5 border border-primary/20 bg-primary/5">
+                  <h4 className="font-bold text-xs text-primary flex items-center gap-1.5">
+                    <MessageSquare className="h-4 w-4" /> שליחת הודעת חיזוק / הנחיה למתאמן
+                  </h4>
+
+                  {msgSentNotice && (
+                    <p className="text-xs font-bold text-emerald-700 bg-emerald-50 p-2 rounded-xl border border-emerald-200">
+                      {msgSentNotice}
+                    </p>
+                  )}
+
+                  <form onSubmit={handleSendCoachMessage} className="flex gap-2">
+                    <input
+                      type="text"
+                      required
+                      value={coachMsgText}
+                      onChange={(e) => setCoachMsgText(e.target.value)}
+                      placeholder="הקלידי הודעה שתופיע במסך הבית של המתאמן..."
+                      className="flex-1 rounded-xl border border-border bg-white px-3 py-1.5 text-xs outline-none focus:border-primary"
+                    />
+                    <button
+                      type="submit"
+                      className="rounded-xl bg-primary px-3 py-1.5 text-xs font-bold text-white shadow-xs cursor-pointer hover:bg-primary/90"
+                    >
+                      שלח
+                    </button>
+                  </form>
+                </div>
+
                 {/* Client Programs & Full Exercise Prescription Builder */}
                 <div className="surface-card p-4 rounded-2xl space-y-3">
                   <div className="flex items-center justify-between border-b pb-2">
@@ -432,7 +514,6 @@ function CoachDashboardPage() {
                     </h4>
                   </div>
 
-                  {/* Create New Program Form */}
                   <form onSubmit={handleCreateClientProgram} className="flex gap-2">
                     <input
                       type="text"
@@ -451,7 +532,6 @@ function CoachDashboardPage() {
                     </button>
                   </form>
 
-                  {/* Program & Days List */}
                   <div className="space-y-3 pt-2">
                     {clientDetails?.programs?.map((prog: any) => {
                       const isProgActive = editingProgramId === prog.id;
@@ -475,7 +555,6 @@ function CoachDashboardPage() {
                             </button>
                           </div>
 
-                          {/* Add Day Form */}
                           {isProgActive && (
                             <div className="space-y-3 pt-2 border-t border-border/40">
                               <form onSubmit={handleAddProgramDay} className="flex gap-2">
@@ -495,7 +574,6 @@ function CoachDashboardPage() {
                                 </button>
                               </form>
 
-                              {/* Days & Exercise Prescription Panel */}
                               <div className="space-y-2">
                                 {progDays?.map((dayItem: any) => {
                                   const isDayActive = editingDayId === dayItem.id;
@@ -517,7 +595,6 @@ function CoachDashboardPage() {
                                         </button>
                                       </div>
 
-                                      {/* Prescribed Exercises List */}
                                       {dayItem.items?.length > 0 && (
                                         <div className="space-y-1.5 pt-1">
                                           {dayItem.items.map((exItem: any) => {
@@ -539,16 +616,6 @@ function CoachDashboardPage() {
                                                     {exItem.sets}×{exItem.repMin || exItem.reps}
                                                     {exItem.repMax ? `-${exItem.repMax}` : ""}
                                                   </span>
-                                                  {exItem.supersetId && (
-                                                    <span className="mr-1 rounded-sm bg-primary/20 px-1 py-0.2 text-[9px] font-bold text-primary">
-                                                      SuperSet {exItem.supersetId}
-                                                    </span>
-                                                  )}
-                                                  {exItem.dropSetConfig?.enabled && (
-                                                    <span className="mr-1 rounded-sm bg-rose-100 px-1 py-0.2 text-[9px] font-bold text-rose-800">
-                                                      DropSet
-                                                    </span>
-                                                  )}
                                                 </div>
                                                 <button
                                                   onClick={() =>
@@ -564,7 +631,6 @@ function CoachDashboardPage() {
                                         </div>
                                       )}
 
-                                      {/* Add Exercise Form Panel */}
                                       {isDayActive && (
                                         <form
                                           onSubmit={handleAddExerciseToDay}
@@ -634,45 +700,6 @@ function CoachDashboardPage() {
                                                 className="w-full rounded-md border p-1 text-center"
                                               />
                                             </div>
-                                          </div>
-
-                                          <div className="grid grid-cols-2 gap-2">
-                                            <div>
-                                              <label className="block text-[9px] font-bold text-muted-foreground">
-                                                קבוצת SuperSet
-                                              </label>
-                                              <input
-                                                type="text"
-                                                value={supersetGroup}
-                                                onChange={(e) => setSupersetGroup(e.target.value)}
-                                                placeholder="לדוגמה: A1, A2"
-                                                className="w-full rounded-md border p-1"
-                                              />
-                                            </div>
-                                            <div className="flex items-center gap-2 pt-3">
-                                              <input
-                                                type="checkbox"
-                                                id="chkDrop"
-                                                checked={dropSetEnabled}
-                                                onChange={(e) => setDropSetEnabled(e.target.checked)}
-                                              />
-                                              <label htmlFor="chkDrop" className="font-bold text-[10px]">
-                                                כולל DropSet
-                                              </label>
-                                            </div>
-                                          </div>
-
-                                          <div>
-                                            <label className="block text-[9px] font-bold text-muted-foreground mb-1">
-                                              הנחיות טכניקה למתאמן
-                                            </label>
-                                            <input
-                                              type="text"
-                                              value={techNotes}
-                                              onChange={(e) => setTechniqueNotes(e.target.value)}
-                                              placeholder="לדוגמה: לשמור על שכמות צמודות, מתיחה מלאה..."
-                                              className="w-full rounded-md border p-1"
-                                            />
                                           </div>
 
                                           <button

@@ -16,6 +16,11 @@ import {
   Droplets,
   Ruler,
   Award,
+  MessageSquare,
+  CheckCircle2,
+  Circle,
+  Sparkles,
+  Heart,
 } from "lucide-react";
 import { useState } from "react";
 import { AppShell } from "@/components/AppShell";
@@ -36,7 +41,7 @@ import {
   todayKey,
   useGym,
 } from "@/lib/gym-store";
-import { CARDIO_TYPES } from "@/lib/gym-types";
+import { ANIMAL_CHARACTERS, CARDIO_TYPES, type AnimalCharacter } from "@/lib/gym-types";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -59,7 +64,7 @@ function formatHebrewDate(date: Date) {
 
 function Dashboard() {
   const navigate = useNavigate();
-  const { workouts, exercises, history, programs, nutritionDays, userProfile, cardioLogs } =
+  const { workouts, exercises, history, programs, nutritionDays, userProfile, cardioLogs, coachMessages } =
     useGym();
 
   const now = new Date();
@@ -70,6 +75,19 @@ function Dashboard() {
   const [showMeasurementModal, setShowMeasurementModal] = useState(false);
   const [waistCm, setWaistCm] = useState("72");
   const [hipsCm, setHipsCm] = useState("95");
+
+  // Today's Checklist State
+  const [routineChecklist, setRoutineChecklist] = useState<Record<string, boolean>>({
+    workout: false,
+    water: true,
+    steps: false,
+    nutrition: false,
+  });
+
+  // Character Switcher
+  const [showCharModal, setShowCharModal] = useState(false);
+  const selectedCharId = userProfile?.animalCharacter || "dog";
+  const charMeta = ANIMAL_CHARACTERS.find((c) => c.id === selectedCharId) || ANIMAL_CHARACTERS[0]!;
 
   // Weekly Activity calculation
   const startOfWeek = new Date(now);
@@ -90,6 +108,9 @@ function Dashboard() {
   const totalDurationMin = Math.round(
     thisWeek.reduce((sum, s) => sum + (s.durationSec || 0), 0) / 60,
   );
+
+  // Consistency Score calculation (0-100%)
+  const consistencyScore = Math.min(100, Math.round((thisWeek.length / (userProfile?.workoutsPerWeek || 4)) * 100));
 
   // Nutrition Today
   const todayDateStr = todayKey();
@@ -130,6 +151,14 @@ function Dashboard() {
     setShowBodyModal(false);
   };
 
+  const handleSelectAnimalChar = (charId: AnimalCharacter) => {
+    saveUserProfile({
+      ...(userProfile ?? { weight: 65, height: 165, age: 26, gender: "female" }),
+      animalCharacter: charId,
+    });
+    setShowCharModal(false);
+  };
+
   const handleLogCardio = () => {
     const dur = parseInt(cardioDuration, 10) || 0;
     const spd = parseFloat(cardioSpeed) || 0;
@@ -147,11 +176,63 @@ function Dashboard() {
     setShowCardioModal(false);
   };
 
+  const toggleChecklistItem = (key: string) => {
+    setRoutineChecklist((prev) => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  const latestCoachMsg = coachMessages && coachMessages.length > 0 ? coachMessages[0] : null;
+
   return (
     <AppShell title={formatHebrewDate(now)} subtitle="אימונים ותזונה">
+      {/* Coach Message Banner */}
+      {latestCoachMsg && (
+        <div className="surface-card p-4 rounded-3xl bg-linear-to-r from-primary/10 via-rose-50 to-primary/5 border border-primary/20 text-start space-y-1.5 shadow-xs">
+          <div className="flex items-center justify-between">
+            <span className="flex items-center gap-1.5 font-bold text-xs text-primary">
+              <MessageSquare className="h-4 w-4" /> הודעה מהמאמן שלך
+            </span>
+            <span className="text-[10px] text-muted-foreground">
+              {new Date(latestCoachMsg.createdAt).toLocaleDateString("he-IL")}
+            </span>
+          </div>
+          <p className="text-xs font-semibold text-ink leading-relaxed">
+            "{latestCoachMsg.message}"
+          </p>
+        </div>
+      )}
+
+      {/* Personal Character & Consistency Banner */}
+      <div className="surface-card p-4 rounded-3xl bg-white border border-border/60 flex items-center justify-between text-start">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setShowCharModal(true)}
+            className="flex h-12 w-12 items-center justify-center rounded-2xl bg-rose-50 text-2xl border border-rose-100 shadow-xs cursor-pointer hover:scale-105 transition-transform"
+            title="לחץ להחלפת דמות מלווה"
+          >
+            {charMeta.emoji}
+          </button>
+          <div>
+            <div className="flex items-center gap-1.5 font-bold text-sm text-ink">
+              <span>{charMeta.name} המלווה שלך</span>
+              <span className="text-xs text-primary">★</span>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              מדד עקביות שבועי: <strong className="text-emerald-700">{consistencyScore}%</strong>
+            </p>
+          </div>
+        </div>
+
+        <button
+          onClick={() => setShowCharModal(true)}
+          className="text-xs font-bold text-primary hover:underline cursor-pointer"
+        >
+          החלף דמות
+        </button>
+      </div>
+
       {/* 1. Next / Today's Workout Focus Card */}
       {nextWorkout ? (
-        <div className="ink-card p-5 text-start">
+        <div className="ink-card p-5 text-start mt-4">
           <div className="flex items-center justify-between">
             <span className="rounded-full bg-white/20 px-3 py-1 text-[11px] font-bold text-primary-foreground uppercase">
               האימון הבא
@@ -193,7 +274,7 @@ function Dashboard() {
           </div>
         </div>
       ) : (
-        <Card className="text-start">
+        <Card className="text-start mt-4">
           <p className="font-display text-[16px] font-bold text-ink">אין תכניות אימון עדיין</p>
           <p className="mt-1 text-[13px] text-muted-foreground">
             צרי תכנית אימונים ראשונה כדי להתחיל להתאמן בחדר כושר.
@@ -207,7 +288,39 @@ function Dashboard() {
         </Card>
       )}
 
-      {/* 2. Habits & Routine Tracker (Water & Measurements) */}
+      {/* 2. Today's Routine Checklist */}
+      <section className="mt-5 text-start">
+        <SectionHeader title="הרוטינה של היום" subtitle="משימות יומיות לשמירה על רצף" />
+        <div className="space-y-2">
+          {[
+            { key: "workout", label: `אימון יומיומי: ${nextWorkout?.name || "מנוחה"}` },
+            { key: "water", label: `שתיית מים (יעד 2,500 מ״ל): ${waterMl} מ״ל` },
+            { key: "steps", label: "צעדים יומיים (יעד 8,000 צעדים)" },
+            { key: "nutrition", label: `תיעוד תזונה ביומן: ${Math.round(totalsToday.calories)} קל׳` },
+          ].map(({ key, label }) => {
+            const isDone = routineChecklist[key] || false;
+
+            return (
+              <div
+                key={key}
+                onClick={() => toggleChecklistItem(key)}
+                className={`surface-card p-3 rounded-2xl border transition-all cursor-pointer flex items-center justify-between text-xs ${
+                  isDone ? "bg-emerald-50/50 border-emerald-200 line-through opacity-70" : "bg-white border-border/60 font-bold"
+                }`}
+              >
+                <span>{label}</span>
+                {isDone ? (
+                  <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+                ) : (
+                  <Circle className="h-4 w-4 text-muted-foreground shrink-0" />
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* 3. Habits & Routine Tracker (Water & Measurements) */}
       <section className="mt-5 text-start">
         <SectionHeader title="הרגלים והיקפי גוף" subtitle="מעקב מים והיקפים" />
         <div className="grid grid-cols-2 gap-2.5">
@@ -247,7 +360,7 @@ function Dashboard() {
         </div>
       </section>
 
-      {/* 3. Weekly Activity Overview */}
+      {/* 4. Weekly Activity Overview */}
       <section className="mt-5">
         <SectionHeader title="פעילות השבוע" subtitle={`${thisWeek.length} אימונים בוצעו השבוע`} />
         <div className="grid grid-cols-3 gap-2.5">
@@ -274,7 +387,7 @@ function Dashboard() {
         </div>
       </section>
 
-      {/* 4. Nutrition Summary Today */}
+      {/* 5. Nutrition Summary Today */}
       <section className="mt-5">
         <SectionHeader
           title="תזונה להיום"
@@ -329,48 +442,47 @@ function Dashboard() {
         </div>
       </section>
 
-      {/* 5. Body Weight & RMR Calculation Card */}
-      <section className="mt-5">
-        <SectionHeader
-          title="נתוני גוף וחילוף חומרים"
-          subtitle="חישוב RMR והוצאה קלורית יומית"
-          action={
-            <button
-              type="button"
-              onClick={() => setShowBodyModal(true)}
-              className="press rounded-full bg-secondary px-3 py-1.5 text-[12px] font-bold text-primary cursor-pointer"
-            >
-              עדכני נתונים
-            </button>
-          }
-        />
-        <div className="surface-card p-4 text-start">
-          <div className="grid grid-cols-3 gap-2 text-center">
-            <div className="num-pill p-3">
-              <p className="text-[10.5px] font-bold text-muted-foreground uppercase">משקל גוף</p>
-              <p className="mt-1 font-display text-[20px] font-bold tabular-nums text-ink">
-                {rmrData.weight} <span className="text-[12px] font-normal">ק״ג</span>
-              </p>
+      {/* Modal: Select Animal Character */}
+      {showCharModal && (
+        <div
+          className="fade-in fixed inset-0 z-50 flex items-end justify-center bg-black/40 backdrop-blur-sm p-4"
+          onClick={() => setShowCharModal(false)}
+        >
+          <div
+            className="w-full max-w-sm rounded-3xl border border-white/80 bg-white p-5 shadow-2xl space-y-3 text-start"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b pb-2">
+              <h3 className="font-bold text-base text-ink flex items-center gap-2">
+                <span>בחרי דמות אישית מלווה</span>
+              </h3>
+              <button
+                onClick={() => setShowCharModal(false)}
+                className="text-muted-foreground font-bold text-sm cursor-pointer"
+              >
+                ✕
+              </button>
             </div>
-            <div className="num-pill p-3">
-              <p className="text-[10.5px] font-bold text-muted-foreground uppercase">
-                RMR (מנוחה)
-              </p>
-              <p className="mt-1 font-display text-[20px] font-bold tabular-nums text-ink">
-                {rmrData.rmr} <span className="text-[12px] font-normal">קל׳</span>
-              </p>
-            </div>
-            <div className="num-pill p-3">
-              <p className="text-[10.5px] font-bold text-muted-foreground uppercase">
-                יומי (TDEE)
-              </p>
-              <p className="mt-1 font-display text-[20px] font-bold tabular-nums text-primary">
-                {rmrData.tdee} <span className="text-[12px] font-normal">קל׳</span>
-              </p>
+
+            <div className="grid grid-cols-3 gap-2 pt-1">
+              {ANIMAL_CHARACTERS.map((char) => (
+                <button
+                  key={char.id}
+                  onClick={() => handleSelectAnimalChar(char.id)}
+                  className={`p-3 rounded-2xl border text-center transition-all cursor-pointer ${
+                    selectedCharId === char.id
+                      ? "border-primary bg-primary/10 shadow-xs scale-105"
+                      : "border-border/60 hover:border-border"
+                  }`}
+                >
+                  <span className="text-3xl block">{char.emoji}</span>
+                  <span className="text-xs font-bold text-ink mt-1 block">{char.name}</span>
+                </button>
+              ))}
             </div>
           </div>
         </div>
-      </section>
+      )}
 
       {/* Modal: Body Measurements */}
       {showMeasurementModal && (
@@ -424,49 +536,6 @@ function Dashboard() {
           </div>
         </div>
       )}
-
-      {/* Modal: Update Body Weight */}
-      {showBodyModal ? (
-        <div
-          className="fade-in fixed inset-0 z-50 flex items-end justify-center bg-black/40 backdrop-blur-sm p-4"
-          onClick={() => setShowBodyModal(false)}
-        >
-          <div
-            className="w-full max-w-sm rounded-3xl border border-white/80 bg-white p-5 shadow-2xl space-y-3 text-start"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h3 className="font-display text-[18px] font-bold text-ink">
-              עדכני משקל ומספר אימונים
-            </h3>
-            <div className="space-y-3">
-              <div>
-                <label className="block text-[12px] font-bold text-muted-foreground">משקל (בק״ג)</label>
-                <input
-                  type="number"
-                  step="0.1"
-                  value={weightInput}
-                  onChange={(e) => setWeightInput(e.target.value)}
-                  className="mt-1 w-full rounded-2xl border border-border bg-secondary px-4 py-2.5 text-[15px] font-bold text-ink outline-none"
-                />
-              </div>
-              <div>
-                <label className="block text-[12px] font-bold text-muted-foreground">אימונים בשבוע</label>
-                <input
-                  type="number"
-                  min="0"
-                  max="14"
-                  value={workoutsWeekInput}
-                  onChange={(e) => setWorkoutsWeekInput(e.target.value)}
-                  className="mt-1 w-full rounded-2xl border border-border bg-secondary px-4 py-2.5 text-[15px] font-bold text-ink outline-none"
-                />
-              </div>
-            </div>
-            <div className="mt-4">
-              <PrimaryButton onClick={handleProfileSave}>שמרי נתונים</PrimaryButton>
-            </div>
-          </div>
-        </div>
-      ) : null}
     </AppShell>
   );
 }
