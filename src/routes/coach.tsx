@@ -3,6 +3,7 @@ import {
   Apple,
   Award,
   ChevronLeft,
+  Crown,
   Dumbbell,
   Edit2,
   Plus,
@@ -12,22 +13,17 @@ import {
   UserCheck,
   UserPlus,
   Users,
-  Layers,
-  Sparkles,
-  ArrowRight,
-  ListPlus,
-  CheckCircle2,
   MessageSquare,
-  AlertCircle,
-  BookOpen,
   Search,
+  UserCog,
+  ArrowRightLeft,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { AppShell } from "../components/AppShell";
 import { uid, useGym } from "../lib/gym-store";
 import { pullClientDataForCoach } from "../lib/supabase-sync";
 import { supabase } from "../lib/supabase";
-import type { DropSetConfig, Exercise, WorkoutItem } from "../lib/gym-types";
+import type { WorkoutItem } from "../lib/gym-types";
 
 export const Route = createFileRoute("/coach")({
   component: CoachDashboardPage,
@@ -35,8 +31,12 @@ export const Route = createFileRoute("/coach")({
 
 function CoachDashboardPage() {
   const store = useGym();
-  const isCoach = store.userProfile?.role === "coach";
+  const role = store.userProfile?.role || "client";
+  const isOwner = role === "owner";
+  const isCoach = role === "coach" || isOwner;
+
   const [clients, setClients] = useState<any[]>(store.clients || []);
+  const [allProfiles, setAllProfiles] = useState<any[]>([]);
   const [clientSearch, setClientSearch] = useState("");
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
   const [clientDetails, setClientDetails] = useState<any>(null);
@@ -72,9 +72,6 @@ function CoachDashboardPage() {
   const [editingNutrition, setEditingNutrition] = useState(false);
   const [calTarget, setCalTarget] = useState(2000);
   const [protTarget, setProtTarget] = useState(140);
-  const [carbTarget, setCarbTarget] = useState(200);
-  const [fatTarget, setFatTarget] = useState(65);
-  const [fiberTarget, setFiberTarget] = useState(25);
 
   const loadCoachClients = async () => {
     const {
@@ -92,11 +89,22 @@ function CoachDashboardPage() {
     }
   };
 
+  const loadAllProfilesForOwner = async () => {
+    if (!isOwner) return;
+    const { data } = await supabase.from("profiles").select("*");
+    if (data) {
+      setAllProfiles(data);
+    }
+  };
+
   useEffect(() => {
     if (isCoach) {
       loadCoachClients();
     }
-  }, [isCoach]);
+    if (isOwner) {
+      loadAllProfilesForOwner();
+    }
+  }, [isCoach, isOwner]);
 
   useEffect(() => {
     if (!selectedClientId) {
@@ -110,6 +118,22 @@ function CoachDashboardPage() {
       setLoadingDetails(false);
     });
   }, [selectedClientId]);
+
+  // OWNER RPC: Promote or Demote Role
+  const handleOwnerChangeRole = async (targetUserId: string, newRole: "coach" | "client") => {
+    try {
+      const { error } = await supabase.rpc("change_user_role", {
+        target_user_id: targetUserId,
+        new_role: newRole,
+      });
+
+      if (error) throw error;
+      loadAllProfilesForOwner();
+      alert(`תפקיד המשתמש עודכן בהצלחה ל-${newRole === "coach" ? "מאמן" : "מתאמן"}`);
+    } catch (err: any) {
+      alert(err?.message || "שגיאה בשינוי תפקיד");
+    }
+  };
 
   // Send Coach Message to Client
   const handleSendCoachMessage = async (e: React.FormEvent) => {
@@ -153,7 +177,7 @@ function CoachDashboardPage() {
       );
 
       if (lookupErr || !lookupRes || lookupRes.length === 0) {
-        throw new Error("משתמש לא נמצא. יש לוודא שהמתאמן נרשם ל-GymTrack בכתובת זו.");
+        throw new Error("משתמש לא נמצא. יש לוודא שהמתאמן נרשם ל-My Routine בכתובת זו.");
       }
 
       const foundClientId = lookupRes[0].client_id;
@@ -340,9 +364,9 @@ function CoachDashboardPage() {
 
   return (
     <AppShell
-      title="לוח בקרה למאמן"
-      subtitle="ניהול תוכניות אימון, תזונה ומעקב מתאמנים"
-      kicker="מאמן מוסמך"
+      title={isOwner ? "ניהול מערכת ובעלים" : "לוח בקרה למאמן"}
+      subtitle="ניהול תוכניות אימון, תזונה, הרשאות ומעקב מתאמנים"
+      kicker={isOwner ? "בעלי הפלטפורמה" : "מאמן מוסמך"}
       action={
         <button
           onClick={() => setShowAddModal(true)}
@@ -354,6 +378,58 @@ function CoachDashboardPage() {
       }
     >
       <div className="space-y-5 text-start">
+        {/* Owner Management Section */}
+        {isOwner && (
+          <div className="surface-card p-5 rounded-3xl space-y-3 bg-purple-50/60 border border-purple-200">
+            <div className="flex items-center justify-between border-b border-purple-200/60 pb-2">
+              <div className="flex items-center gap-2">
+                <Crown className="h-5 w-5 text-purple-700" />
+                <h3 className="font-bold text-sm text-purple-950">אזור ניהול בעלים (Owner Management)</h3>
+              </div>
+              <span className="text-[11px] font-bold text-purple-800 bg-purple-100 px-2 py-0.5 rounded-full">
+                {allProfiles.length} משתמשים במערכת
+              </span>
+            </div>
+
+            <div className="space-y-2 pt-1">
+              <p className="text-xs text-purple-900 font-semibold">משתמשים והרשאות תפקיד:</p>
+              <div className="space-y-1.5 max-h-48 overflow-y-auto">
+                {allProfiles.map((p) => (
+                  <div
+                    key={p.id}
+                    className="flex items-center justify-between rounded-xl bg-white p-2.5 text-xs border border-purple-100"
+                  >
+                    <div>
+                      <span className="font-bold text-ink">{p.full_name || p.email}</span>
+                      <span className="text-muted-foreground mr-1">({p.role || "client"})</span>
+                    </div>
+
+                    {p.role !== "owner" && (
+                      <div className="flex items-center gap-1">
+                        {p.role === "client" ? (
+                          <button
+                            onClick={() => handleOwnerChangeRole(p.id, "coach")}
+                            className="rounded-lg bg-amber-100 px-2 py-1 text-[11px] font-bold text-amber-800 hover:bg-amber-200 cursor-pointer"
+                          >
+                            הפוך למאמן
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => handleOwnerChangeRole(p.id, "client")}
+                            className="rounded-lg bg-gray-100 px-2 py-1 text-[11px] font-bold text-gray-700 hover:bg-gray-200 cursor-pointer"
+                          >
+                            הסר הרשאת מאמן
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Coach Header Banner */}
         <div className="surface-card p-5 rounded-3xl space-y-3 bg-linear-to-br from-rose-50/60 to-primary/5 border border-primary/15">
           <div className="flex items-center justify-between">

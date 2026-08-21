@@ -1,4 +1,4 @@
-export type UserRole = "coach" | "client";
+export type UserRole = "owner" | "coach" | "client";
 
 export type AnimalCharacter = "dog" | "cat" | "panda" | "fox" | "koala" | "bunny" | "bear" | "lion" | "penguin";
 

@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { Apple, Cloud, Dumbbell, Home, LayoutGrid, LogIn, LogOut, Shield, User } from "lucide-react";
+import { Apple, Cloud, Dumbbell, Home, LayoutGrid, LogIn, LogOut, Shield, Crown, User } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { useAuthUser, useGym } from "../lib/gym-store";
 import { supabase } from "../lib/supabase";
@@ -19,7 +19,9 @@ export function AppShell({
 }) {
   const store = useGym();
   const user = useAuthUser();
-  const isCoach = store.userProfile?.role === "coach";
+  const role = store.userProfile?.role || "client";
+  const isOwner = role === "owner";
+  const isCoach = role === "coach" || isOwner;
 
   // Client gets 3 tabs: בית | תוכניות | תזונה (Exercises is coach-only!)
   // Coach gets 4 tabs: בית | תוכניות | תרגילים | תזונה
@@ -88,7 +90,15 @@ export function AppShell({
               ) : null}
             </div>
             <div className="flex shrink-0 items-center gap-2 pt-0.5">
-              {isCoach && (
+              {isOwner ? (
+                <Link
+                  to="/coach"
+                  className="flex items-center gap-1 rounded-full bg-purple-100 px-2.5 py-1 text-xs font-bold text-purple-800 border border-purple-300 shadow-xs hover:bg-purple-200 transition-colors"
+                >
+                  <Crown className="h-3.5 w-3.5 text-purple-700" />
+                  <span>בעלים</span>
+                </Link>
+              ) : isCoach ? (
                 <Link
                   to="/coach"
                   className="flex items-center gap-1 rounded-full bg-amber-100/80 px-2.5 py-1 text-xs font-bold text-amber-800 border border-amber-300/60 shadow-xs hover:bg-amber-200 transition-colors"
@@ -96,7 +106,7 @@ export function AppShell({
                   <Shield className="h-3.5 w-3.5 text-amber-700" />
                   <span>מאמן</span>
                 </Link>
-              )}
+              ) : null}
 
               {user ? (
                 <div className="flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 border border-emerald-200/60 shadow-xs">
@@ -141,7 +151,7 @@ export function AppShell({
               <div className="flex items-center gap-2">
                 <User className="h-5 w-5 text-primary" />
                 <h3 className="font-bold text-lg text-ink">
-                  {isSignUp ? "הרשמה ל-GymTrack" : "התחברות ל-GymTrack"}
+                  {isSignUp ? "הרשמה ל-My Routine" : "התחברות ל-My Routine"}
                 </h3>
               </div>
               <button
