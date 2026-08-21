@@ -10,8 +10,8 @@ function getEnvVar(key: string): string | undefined {
   return undefined;
 }
 
-export const SUPABASE_URL =
-  getEnvVar("VITE_SUPABASE_URL") || getEnvVar("SUPABASE_URL") || "";
+const rawUrl = getEnvVar("VITE_SUPABASE_URL") || getEnvVar("SUPABASE_URL") || "";
+export const SUPABASE_URL = rawUrl.replace(/\/rest\/v1\/?$/, "").replace(/\/+$/, "");
 export const SUPABASE_ANON_KEY =
   getEnvVar("VITE_SUPABASE_ANON_KEY") || getEnvVar("SUPABASE_ANON_KEY") || "";
 
